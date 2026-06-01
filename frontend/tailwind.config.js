@@ -1,0 +1,52 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+    theme: {
+        extend: {
+            colors: {
+                spindle: '#A3C9F1',
+                cruise: '#b8e6d5',
+                pink: '#F5B7C1',
+                french_lilac: '#deb5e0',
+                portage: '#7C9DDE',
+                york: {
+                    50: '#f3faf3',
+                    100: '#e4f4e4',
+                    200: '#cae8ca',
+                    300: '#a1d4a1',
+                    400: '#88c488',
+                    500: '#4c9b4c',
+                    600: '#3a7f3a',
+                    700: '#306530',
+                    800: '#2a512b',
+                    900: '#244325',
+                },
+                malibu: {
+                    50: '#f0f8ff',
+                    100: '#dff1ff',
+                    200: '#b8e4ff',
+                    300: '#82d2ff',
+                    400: '#33b7fd',
+                    500: '#099eee',
+                    600: '#007fcc',
+                    700: '#0064a5',
+                    800: '#045588',
+                    900: '#0a4770',
+                },
+                lavender: {
+                    50: '#fbf6fe',
+                    100: '#f5e9fe',
+                    200: '#edd7fd',
+                    300: '#deb8fa',
+                    400: '#ca8bf5',
+                    500: '#bf74f0',
+                    600: '#a13edf',
+                    700: '#8b2cc4',
+                    800: '#7529a0',
+                    900: '#602281',
+                },
+            },
+        },
+    },
+    plugins: [],
+};
