@@ -35,3 +35,7 @@ const connectionConfig = shouldUseDatabaseUrl
       };
 
 export const db = new Pool(connectionConfig);
+
+db.on('connect', async (client) => {
+    await client.query('SET search_path TO public');
+});

@@ -301,13 +301,14 @@ export async function login(req, res) {
               ${selectFirstLoginFragment}
           ${selectProfileImageFragment}
              ${selectNameFragment}
-      FROM ${safeTable}
+      FROM public.${safeTable}
             WHERE LOWER(${safeEmail}) = LOWER($1)${statusFilter}
       LIMIT 1
     `;
 
         const { expiresIn } = getJwtConfig();
-
+        console.log('Tabela:', safeTable);
+        console.log('Query:', query);
         const { rows } = await db.query(query, [email]);
 
         if (!rows.length) {
@@ -351,8 +352,11 @@ export async function login(req, res) {
             },
         });
     } catch (error) {
-        console.error('Erro no login:', error.message);
-        return res.status(500).json({ message: 'Erro interno no login.' });
+        console.error('ERRO COMPLETO:', error);
+        return res.status(500).json({
+            message: 'Erro interno no login.',
+            error: error.message,
+        });
     }
 }
 
