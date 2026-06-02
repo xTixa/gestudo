@@ -24,6 +24,7 @@ import {
 } from '../controllers/dashboardController.js';
 import { listarLogs } from '../controllers/logsController.js';
 import { listarAgenda } from '../controllers/agendaController.js';
+import { listarTabelaPresencasGestor } from '../controllers/presencasController.js';
 import {
     listarDisciplinasCatalogo,
     criarDisciplinaCatalogo,
@@ -174,6 +175,14 @@ router.get(
         rescheduleEligible: { type: 'string', required: false },
     }),
     listarAgenda
+);
+
+router.get(
+    '/presencas',
+    validateQuery({
+        month: { type: 'string', required: false },
+    }),
+    listarTabelaPresencasGestor
 );
 
 // =============== GESTÃO DE PESSOAS ===============

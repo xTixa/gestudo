@@ -20,6 +20,7 @@ import {
     NotebookIcon,
     DoorClosedIcon,
     BoxIcon,
+    ClipboardCheck,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -44,6 +45,12 @@ const menuByRole = {
             label: 'Agenda',
             path: '/gestor/agenda',
             icon: Calendar,
+        },
+        {
+            key: 'presencas',
+            label: 'Presenças',
+            path: '/gestor/presencas',
+            icon: ClipboardCheck,
         },
         {
             key: 'reagendar',

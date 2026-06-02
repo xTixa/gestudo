@@ -20,10 +20,7 @@ const shouldUseDatabaseUrl =
 const connectionConfig = shouldUseDatabaseUrl
     ? {
           connectionString: process.env.DATABASE_URL,
-          ssl:
-              process.env.DB_SSL === 'true'
-                  ? { rejectUnauthorized: false }
-                  : false,
+          ssl: { rejectUnauthorized: false }, // obrigatório no Neon
       }
     : {
           host: process.env.DB_HOST || 'localhost',

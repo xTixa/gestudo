@@ -24,6 +24,7 @@ import NotificationsPage from './pages/Admin/notifications';
 import SettingsPage from './pages/Admin/settings';
 import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
 import AgendaPage from './pages/Admin/agenda';
+import PresencasGestorPage from './pages/Admin/presences';
 import ReagendamentosPage from './pages/Admin/rescheduling';
 import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
 import SalasPage from './pages/Admin/InternalManagement/rooms';
@@ -100,6 +101,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<DashboardGestor />}
                     />
                     <Route path="/gestor/agenda" element={<AgendaPage />} />
+                    <Route
+                        path="/gestor/presencas"
+                        element={<PresencasGestorPage />}
+                    />
                     <Route
                         path="/gestor/reagendar"
                         element={<ReagendamentosPage />}

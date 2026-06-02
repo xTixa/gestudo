@@ -32,6 +32,10 @@ function normalizeTimeOnly(value) {
         .slice(0, 5);
 }
 
+function quoteIdent(identifier) {
+    return `"${String(identifier).replace(/"/g, '""')}"`;
+}
+
 function parseDateOrNull(value) {
     const normalized = normalizeDateOnly(value);
     if (!normalized) {
@@ -182,6 +186,59 @@ async function hasPresencasDataReposicaoColumn(client = db) {
     );
 
     return Boolean(rows[0]);
+}
+
+async function resolvePacotesHorasColumn(client = db) {
+    const { rows } = await client.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'pacotes'
+    `);
+
+    const columns = new Set(
+        rows.map((row) => String(row.column_name || '').toLowerCase())
+    );
+    const candidates = [
+        'horas',
+        'horas_subscritas',
+        'horas_mes',
+        'horas_mensais',
+        'carga_horaria',
+        'carga_horaria_mensal',
+    ];
+
+    for (const candidate of candidates) {
+        if (columns.has(candidate)) {
+            return candidate;
+        }
+    }
+
+    return null;
+}
+
+function normalizeMonth(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})/);
+    if (match) {
+        return `${match[1]}-${match[2]}`;
+    }
+
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthRange(monthValue) {
+    const month = normalizeMonth(monthValue);
+    const [year, monthNumber] = month.split('-').map(Number);
+    const start = new Date(year, monthNumber - 1, 1);
+    const end = new Date(year, monthNumber, 0);
+
+    return {
+        month,
+        startDate: formatDateKey(start),
+        endDate: formatDateKey(end),
+    };
 }
 
 function mapAttendanceRows(rows) {
@@ -879,6 +936,187 @@ export async function guardarPresencasProfessor(req, res) {
         });
     } finally {
         client.release();
+    }
+}
+
+export async function listarTabelaPresencasGestor(req, res) {
+    try {
+        const { month, startDate, endDate } = getMonthRange(req.query?.month);
+        const inscricoesServicoColumn =
+            await resolveInscricoesServicoColumn(db);
+        const pacotesHorasColumn = await resolvePacotesHorasColumn(db);
+
+        if (!inscricoesServicoColumn) {
+            return res.status(200).json({
+                month,
+                startDate,
+                endDate,
+                dias: [],
+                alunos: [],
+            });
+        }
+
+        const quotedServicoColumn = quoteIdent(inscricoesServicoColumn);
+        const horasExpr = pacotesHorasColumn
+            ? `
+                COALESCE(
+                    NULLIF(
+                        replace(
+                            regexp_replace(pac.${quoteIdent(pacotesHorasColumn)}::text, '[^0-9,.-]', '', 'g'),
+                            ',',
+                            '.'
+                        ),
+                        ''
+                    )::numeric,
+                    0
+                )
+            `
+            : '0::numeric';
+
+        const [alunosResult, presencasResult] = await Promise.all([
+            db.query(
+                `
+                    SELECT
+                        a.id_aluno,
+                        COALESCE(p.nome, 'Aluno') AS nome,
+                        a.ano,
+                        COALESCE(SUM(${horasExpr}), 0)::numeric AS horas_subscritas
+                    FROM inscricoes i
+                    INNER JOIN alunos a ON a.id_aluno = i.id_aluno
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                    LEFT JOIN pacotes pac ON pac.id_pacote = i.id_pacote
+                    LEFT JOIN servicos_curriculares s ON s.id_servico = i.${quotedServicoColumn}
+                    WHERE LOWER(COALESCE(i.estado, 'ativa')) = 'ativa'
+                      AND i.${quotedServicoColumn} IS NOT NULL
+                      AND (
+                            s.id_servico IS NULL
+                            OR (
+                                s.data_inicio <= $2::date
+                                AND COALESCE(s.data_fim, s.data_inicio) >= $1::date
+                            )
+                      )
+                    GROUP BY a.id_aluno, p.nome, a.ano
+                    ORDER BY a.ano ASC NULLS LAST, p.nome ASC, a.id_aluno ASC
+                `,
+                [startDate, endDate]
+            ),
+            db.query(
+                `
+                    SELECT
+                        pr.id_aluno,
+                        COALESCE(p.nome, 'Aluno') AS nome,
+                        a.ano,
+                        pr.data_aula::date AS data_aula,
+                        SUM(
+                            CASE
+                                WHEN LOWER(COALESCE(pr.estado, '')) IN ('presente', 'reposta')
+                                 AND s.hora_inicio IS NOT NULL
+                                 AND s.hora_fim IS NOT NULL
+                                THEN GREATEST(
+                                    EXTRACT(EPOCH FROM (s.hora_fim::time - s.hora_inicio::time)) / 3600,
+                                    0
+                                )
+                                ELSE 0
+                            END
+                        )::numeric AS horas_feitas
+                    FROM presencas pr
+                    INNER JOIN servicos_curriculares s ON s.id_servico = pr.id_servico
+                    INNER JOIN alunos a ON a.id_aluno = pr.id_aluno
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                    WHERE pr.data_aula >= $1::date
+                      AND pr.data_aula <= $2::date
+                    GROUP BY pr.id_aluno, p.nome, a.ano, pr.data_aula
+                    ORDER BY pr.data_aula ASC, a.ano ASC NULLS LAST, p.nome ASC, pr.id_aluno ASC
+                `,
+                [startDate, endDate]
+            ),
+        ]);
+
+        const diasSet = new Set();
+        const alunosMap = new Map();
+
+        alunosResult.rows.forEach((row) => {
+            alunosMap.set(Number(row.id_aluno), {
+                id_aluno: Number(row.id_aluno),
+                nome: String(row.nome || 'Aluno').trim(),
+                ano: row.ano == null ? '' : String(row.ano).trim(),
+                horas_subscritas: Number(row.horas_subscritas || 0),
+                dias: {},
+                presencas: [],
+                total_horas_feitas: 0,
+                diferenca: 0,
+            });
+        });
+
+        presencasResult.rows.forEach((row) => {
+            const alunoId = Number(row.id_aluno);
+            const data = normalizeDateOnly(row.data_aula);
+            const horas = Number(row.horas_feitas || 0);
+
+            if (!data) {
+                return;
+            }
+
+            diasSet.add(data);
+
+            if (!alunosMap.has(alunoId)) {
+                alunosMap.set(alunoId, {
+                    id_aluno: alunoId,
+                    nome: String(row.nome || `Aluno #${alunoId}`).trim(),
+                    ano: row.ano == null ? '' : String(row.ano).trim(),
+                    horas_subscritas: 0,
+                    dias: {},
+                    presencas: [],
+                    total_horas_feitas: 0,
+                    diferenca: 0,
+                });
+            }
+
+            const aluno = alunosMap.get(alunoId);
+            aluno.dias[data] = Number(((aluno.dias[data] || 0) + horas).toFixed(2));
+            aluno.total_horas_feitas = Number(
+                (aluno.total_horas_feitas + horas).toFixed(2)
+            );
+        });
+
+        const alunos = Array.from(alunosMap.values())
+            .map((aluno) => ({
+                ...aluno,
+                horas_subscritas: Number(aluno.horas_subscritas.toFixed(2)),
+                presencas: Object.entries(aluno.dias)
+                    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                    .map(([data, horas]) => ({
+                        data,
+                        horas: Number(Number(horas || 0).toFixed(2)),
+                    })),
+                diferenca: Number(
+                    (aluno.total_horas_feitas - aluno.horas_subscritas).toFixed(2)
+                ),
+            }))
+            .sort((a, b) => {
+                const anoA = Number(a.ano);
+                const anoB = Number(b.ano);
+                if (!Number.isNaN(anoA) && !Number.isNaN(anoB) && anoA !== anoB) {
+                    return anoA - anoB;
+                }
+                return a.nome.localeCompare(b.nome, 'pt');
+            });
+
+        return res.status(200).json({
+            month,
+            startDate,
+            endDate,
+            dias: Array.from(diasSet).sort(),
+            alunos,
+        });
+    } catch (error) {
+        console.error(
+            'Erro ao listar tabela de presencas do gestor:',
+            error.message
+        );
+        return res.status(500).json({
+            message: 'Erro ao listar tabela de presencas.',
+        });
     }
 }
 
