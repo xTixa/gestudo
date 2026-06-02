@@ -143,6 +143,7 @@ export function corsMiddleware() {
         // Para pedidos normais
         if (origin && allowedOriginSet.has(origin)) {
             res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
         } else if (origin) {
             return res.status(403).json({
                 message: 'Origem não permitida por política CORS.',
