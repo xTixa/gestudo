@@ -122,35 +122,31 @@ export function corsMiddleware() {
 
         res.setHeader('Vary', 'Origin');
 
-        // Verificar se origem está permitida
+        // Permitir sempre OPTIONS para evitar bloqueios de preflight
+        if (req.method === 'OPTIONS') {
+            if (origin && allowedOriginSet.has(origin)) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+            }
+
+            res.setHeader(
+                'Access-Control-Allow-Methods',
+                'GET, POST, PATCH, DELETE, OPTIONS'
+            );
+            res.setHeader(
+                'Access-Control-Allow-Headers',
+                'Content-Type, Authorization, X-User-Id, X-CSRF-Token'
+            );
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+            return res.sendStatus(200);
+        }
+
+        // Para pedidos normais
         if (origin && allowedOriginSet.has(origin)) {
             res.setHeader('Access-Control-Allow-Origin', origin);
         } else if (origin) {
-            if (req.method === 'OPTIONS') {
-                return res.status(403).json({
-                    message: 'Origem não permitida por política CORS.',
-                });
-            }
-
             return res.status(403).json({
                 message: 'Origem não permitida por política CORS.',
             });
-        }
-
-        res.setHeader(
-            'Access-Control-Allow-Methods',
-            'GET, POST, PATCH, DELETE, OPTIONS'
-        );
-        res.setHeader(
-            'Access-Control-Allow-Headers',
-            'Content-Type, Authorization, X-User-Id, X-CSRF-Token'
-        );
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Max-Age', '3600'); // Cache preflight 1 hora
-
-        // Responder a preflight requests (OPTIONS)
-        if (req.method === 'OPTIONS') {
-            return res.sendStatus(200);
         }
 
         next();

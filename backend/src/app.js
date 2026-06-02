@@ -25,24 +25,24 @@ import { db } from './config/db.js';
 
 const app = express();
 
-// Necessário para obter req.ip correto quando a app corre atrás de proxy/reverse proxy.
 app.set('trust proxy', 1);
 
-app.use(corsMiddleware()); // CORS com validação de origem
-app.use(securityHeadersMiddleware()); // Headers de segurança HTTP
-app.use(loggingMiddleware()); // Log de requisições (opcional)
-app.use(rateLimitMiddleware(500, 15)); // Rate limiting: 500 reqs por 15 min
+// 1) CORS PRIMEIRO
+app.use(corsMiddleware());
+app.options('*', corsMiddleware());
 
-app.use(express.json()); // Parse JSON body
-app.use(express.urlencoded({ extended: true })); // Parse form data
+// 2) Segurança e rate limit
+app.use(securityHeadersMiddleware());
+app.use(loggingMiddleware());
+app.use(rateLimitMiddleware(500, 15));
+
+// 3) Body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeInputMiddleware());
 
-/*
-Extrai userId do header (X-User-Id ou Authorization Bearer token)
-Não bloqueia requisições - apenas disponibiliza req.userId
-*/
+// 4) Auth (não bloqueia)
 app.use(authMiddleware);
-app.use(csrfProtectionMiddleware());
 
 // Rota de teste simples para verificar se a API está online e responder com informações básicas sobre a versão e status. Útil para monitoramento e health checks.
 app.get('/', (req, res) => {
@@ -78,6 +78,9 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes); // Autenticação (pública)
 app.use('/api/public', publicRoutes); // Endpoints públicos
+
+app.use(csrfProtectionMiddleware()); // Proteção CSRF para rotas autenticadas
+
 app.use('/api/aluno', verificarMatriculaAtiva, alunoRoutes); // Perfil do aluno (role aluno)
 app.use('/api/professor', professorRoutes); // Área do professor (role professor)
 app.use('/api/busca', buscaRoutes); // Busca global (autenticada)
