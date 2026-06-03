@@ -146,18 +146,24 @@ function PresencasTable({ rows, attendanceColumnCount, title }) {
                                             className="h-14 border border-slate-900 bg-white px-2 py-1 text-center align-middle"
                                         >
                                             {presenca ? (
-                                                <span className="inline-flex flex-col leading-tight">
-                                                    <span>
-                                                        {formatDayMonth(
-                                                            presenca.data
-                                                        )}
-                                                    </span>
-                                                    <span>
-                                                        {formatHoursLabel(
-                                                            presenca.horas
-                                                        )}
-                                                    </span>
-                                                </span>
+                                                <div className="mx-auto flex w-full max-w-[64px] flex-col gap-1">
+                                                    <div className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-semibold leading-none text-slate-700">
+                                                        Dia
+                                                        <div className="mt-0.5 text-sm font-bold text-slate-900">
+                                                            {formatDayMonth(
+                                                                presenca.data
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-1 text-[11px] font-semibold leading-none text-blue-700">
+                                                        Hora
+                                                        <div className="mt-0.5 text-sm font-bold text-blue-900">
+                                                            {formatHoursLabel(
+                                                                presenca.horas
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             ) : null}
                                         </td>
                                     );
