@@ -30,6 +30,14 @@ function getCurrentMonth() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function shiftMonth(monthValue, delta) {
+    const [year, month] = String(monthValue || getCurrentMonth())
+        .split('-')
+        .map(Number);
+    const date = new Date(year, (month || 1) - 1 + delta, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function formatHours(value) {
     const number = Number(value || 0);
     return Number.isInteger(number) ? String(number) : number.toFixed(1);
@@ -74,15 +82,22 @@ function buildAttendanceColumns(rows) {
     return Math.max(MIN_ATTENDANCE_COLUMNS, maxPresencas);
 }
 
-function PresencasTable({ rows, attendanceColumnCount }) {
+function PresencasTable({ rows, attendanceColumnCount, title }) {
+    const totalColumns = attendanceColumnCount + 5;
+
     return (
-        <div className="overflow-x-auto">
-            <div className="min-w-max">
-                <div className="border-x border-t border-slate-900 py-3 text-center text-sm font-semibold text-slate-900">
-                    {formatMonthTitle(rows?.[0]?.month)}
-                </div>
-                <table className="border-collapse text-sm text-slate-900">
+        <div className="overflow-x-auto print:overflow-visible">
+            <div className="min-w-max print:min-w-0 print:w-full">
+                <table className="w-full border-collapse text-sm text-slate-900">
                     <thead>
+                        <tr>
+                            <th
+                                colSpan={totalColumns}
+                                className="border border-slate-900 bg-slate-50 py-3 text-center text-sm font-semibold text-slate-900"
+                            >
+                                {title || formatMonthTitle(rows?.[0]?.month)}
+                            </th>
+                        </tr>
                         <tr>
                             <th className="w-14 border border-slate-900 bg-slate-100 px-2 py-2 text-center font-semibold">
                                 ANO
@@ -165,7 +180,6 @@ function PresencasTable({ rows, attendanceColumnCount }) {
 export default function PresencasGestorPage() {
     const [month, setMonth] = useState(getCurrentMonth());
     const [search, setSearch] = useState('');
-    const [showPreview, setShowPreview] = useState(false);
     const [refreshTick, setRefreshTick] = useState(0);
     const [report, setReport] = useState({
         alunos: [],
@@ -235,76 +249,116 @@ export default function PresencasGestorPage() {
         [filteredRows]
     );
 
-    const summary = useMemo(() => {
-        return report.alunos.reduce(
-            (acc, aluno) => {
-                acc.subscritas += Number(aluno.horas_subscritas || 0);
-                acc.feitas += Number(aluno.total_horas_feitas || 0);
-                return acc;
-            },
-            { subscritas: 0, feitas: 0 }
-        );
-    }, [report.alunos]);
-
     const hasRows = filteredRows.length > 0;
     const tableTitle = formatMonthTitle(report.month || month);
 
     return (
         <section className="space-y-5">
-            <AdminPageHeader
-                eyebrow="Presenças"
-                title="Mapa mensal"
-                subtitle="A tabela abaixo é a vista do PDF. Podes filtrar, pré-visualizar e depois imprimir/guardar."
-                icon={CalendarDays}
-                actions={
-                    <>
-                        <button
-                            type="button"
-                            onClick={() => setRefreshTick((value) => value + 1)}
-                            disabled={loading}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <RefreshCw
-                                size={16}
-                                className={loading ? 'animate-spin' : ''}
-                            />
-                            Atualizar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowPreview((value) => !value)}
-                            disabled={!hasRows}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <FileText size={16} />
-                            {showPreview
-                                ? 'Ocultar pré-visualização'
-                                : 'Pré-visualizar PDF'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => window.print()}
-                            disabled={!hasRows}
-                            className="inline-flex items-center gap-2 rounded-xl bg-red-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <FileText size={16} />
-                            Imprimir / guardar PDF
-                        </button>
-                    </>
-                }
-            />
+            <style>{`
+                @media print {
+                    @page {
+                        size: landscape;
+                        margin: 10mm;
+                    }
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 print:hidden">
+                    body * {
+                        visibility: hidden;
+                    }
+
+                    #presencas-print-area,
+                    #presencas-print-area * {
+                        visibility: visible;
+                    }
+
+                    #presencas-print-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                }
+            `}</style>
+            <div className="print:hidden">
+                <AdminPageHeader
+                    eyebrow="Presenças"
+                    title="Mapa mensal"
+                    subtitle="A tabela abaixo é a vista do PDF. Podes filtrar e depois imprimir/guardar."
+                    icon={CalendarDays}
+                    actions={
+                        <>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setRefreshTick((value) => value + 1)
+                                }
+                                disabled={loading}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <RefreshCw
+                                    size={16}
+                                    className={loading ? 'animate-spin' : ''}
+                                />
+                                Atualizar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => window.print()}
+                                disabled={!hasRows}
+                                className="inline-flex items-center gap-2 rounded-xl bg-red-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <FileText size={16} />
+                                Imprimir / guardar PDF
+                            </button>
+                        </>
+                    }
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 print:hidden">
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <label className="text-xs font-medium text-slate-500">
                         Mês
                     </label>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {tableTitle}
+                    </p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setMonth((value) => shiftMonth(value, -1))
+                            }
+                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Mes anterior
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMonth(getCurrentMonth())}
+                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Mes atual
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setMonth((value) => shiftMonth(value, 1))
+                            }
+                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Proximo mes
+                        </button>
+                    </div>
                     <input
                         type="month"
                         value={month}
                         onChange={(event) => setMonth(event.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
                     />
+                    <p className="mt-1 text-xs text-slate-500">
+                        Usa os botoes para navegar rapido ou escolhe diretamente
+                        no calendario.
+                    </p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
@@ -325,69 +379,25 @@ export default function PresencasGestorPage() {
                         />
                     </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <p className="text-xs font-medium text-slate-500">
-                            Subscritas
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-800">
-                            {formatHoursLabel(summary.subscritas) || '0h'}
-                        </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <p className="text-xs font-medium text-slate-500">
-                            Feitas
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-800">
-                            {formatHoursLabel(summary.feitas) || '0h'}
-                        </p>
-                    </div>
-                </div>
             </div>
 
-            {showPreview ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:border-0 print:shadow-none">
-                    <div className="mb-3 flex items-start justify-between gap-3 print:hidden">
-                        <div>
-                            <p className="text-sm font-semibold text-slate-900">
-                                Pré-visualização do PDF
-                            </p>
-                            <p className="text-xs text-slate-500">
-                                Esta é a folha que vai sair no PDF.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowPreview(false)}
-                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                        >
-                            Fechar
-                        </button>
-                    </div>
-
-                    <PresencasTable
-                        rows={filteredRows}
-                        attendanceColumnCount={attendanceColumnCount}
-                        title={tableTitle}
-                    />
-                </div>
-            ) : null}
-
             {error ? (
-                <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 print:hidden">
                     <AlertCircle size={17} className="mt-0.5 flex-shrink-0" />
                     <span>{error}</span>
                 </div>
             ) : null}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:hidden">
+            <div
+                id="presencas-print-area"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
+            >
                 {loading ? (
-                    <p className="p-6 text-sm text-slate-500">
+                    <p className="p-6 text-sm text-slate-500 print:hidden">
                         A carregar presenças...
                     </p>
                 ) : !hasRows ? (
-                    <p className="p-6 text-sm text-slate-500">
+                    <p className="p-6 text-sm text-slate-500 print:hidden">
                         Sem presenças para o mês selecionado.
                     </p>
                 ) : (

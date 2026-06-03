@@ -33,6 +33,24 @@ export default function Login({ onLogin }) {
         }
     }, []);
 
+    useEffect(() => {
+        async function fetchCsrfToken() {
+            try {
+                const res = await fetch(`${API_URL}/api/auth/csrf-token`, {
+                    credentials: 'include', // necessário para receber cookie mc_csrf
+                });
+                const data = await res.json();
+                if (data.csrfToken) {
+                    window.csrfToken = data.csrfToken; // ou guarda num state
+                }
+            } catch (err) {
+                console.error('Falha ao obter CSRF token', err);
+            }
+        }
+
+        fetchCsrfToken();
+    }, []);
+
     async function handleSubmit(event) {
         event.preventDefault();
         setLoading(true);
