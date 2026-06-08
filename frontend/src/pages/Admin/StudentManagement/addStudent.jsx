@@ -17,6 +17,7 @@ const INITIAL_FORM = {
     telemovel: '',
     telefone: '',
     email: '',
+    nivel_ensino: '',
     ano_escolar: '',
     turma: '',
     escola: '',
@@ -43,6 +44,7 @@ const REQUIRED_FIELDS = [
     'localidade',
     'codigo_postal',
     'escola',
+    'nivel_ensino',
     'ano_escolar',
     'telemovel',
     'ee_nome_completo',
@@ -57,6 +59,50 @@ const REQUIRED_FIELDS = [
 // classe base para os inputs do formulário, garantindo consistência visual e facilitando a manutenção do código, com estilos para borda, preenchimento, tamanho da fonte e foco
 const inputBaseClass =
     'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200';
+
+const EDUCATION_LEVELS = [
+    {
+        value: 'pre-escolar',
+        label: 'Pre-escolar',
+        years: [{ value: '0', label: 'Pre-escolar' }],
+    },
+    {
+        value: '1-ciclo',
+        label: '1.º Ciclo',
+        years: [
+            { value: '1', label: '1.º ano' },
+            { value: '2', label: '2.º ano' },
+            { value: '3', label: '3.º ano' },
+            { value: '4', label: '4.º ano' },
+        ],
+    },
+    {
+        value: '2-ciclo',
+        label: '2.º Ciclo',
+        years: [
+            { value: '5', label: '5.º ano' },
+            { value: '6', label: '6.º ano' },
+        ],
+    },
+    {
+        value: '3-ciclo',
+        label: '3.º Ciclo',
+        years: [
+            { value: '7', label: '7.º ano' },
+            { value: '8', label: '8.º ano' },
+            { value: '9', label: '9.º ano' },
+        ],
+    },
+    {
+        value: 'secundario',
+        label: 'Secundário',
+        years: [
+            { value: '10', label: '10.º ano' },
+            { value: '11', label: '11.º ano' },
+            { value: '12', label: '12.º ano' },
+        ],
+    },
+];
 
 export default function AddAlunoPage() {
     const navigate = useNavigate();
@@ -151,7 +197,11 @@ export default function AddAlunoPage() {
 
     function handleChange(event) {
         const { name, value } = event.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+        setForm((prev) => ({
+            ...prev,
+            [name]: value,
+            ...(name === 'nivel_ensino' ? { ano_escolar: '' } : {}),
+        }));
     }
 
     function handleBlur(event) {
@@ -229,6 +279,11 @@ export default function AddAlunoPage() {
             navigate('/gestor/alunos');
         }
     }
+
+    const selectedEducationLevel = EDUCATION_LEVELS.find(
+        (level) => level.value === form.nivel_ensino
+    );
+    const yearOptions = selectedEducationLevel?.years || [];
 
     return (
         <section className="w-full space-y-4 bg-slate-50 p-4 sm:p-6">
@@ -500,17 +555,48 @@ export default function AddAlunoPage() {
                             </label>
 
                             <label className="block text-sm text-slate-700">
+                                Nivel de Ensino *
+                                <select
+                                    name="nivel_ensino"
+                                    value={form.nivel_ensino}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    required
+                                    className={inputBaseClass}
+                                >
+                                    <option value="">Selecionar nÃ­vel</option>
+                                    {EDUCATION_LEVELS.map((level) => (
+                                        <option
+                                            key={level.value}
+                                            value={level.value}
+                                        >
+                                            {level.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block text-sm text-slate-700">
                                 Ano *
-                                <input
-                                    type="text"
+                                <select
                                     name="ano_escolar"
                                     value={form.ano_escolar}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    placeholder="Ex: 10º ano"
                                     required
+                                    disabled={!form.nivel_ensino}
                                     className={inputBaseClass}
-                                />
+                                >
+                                    <option value="">Selecionar ano</option>
+                                    {yearOptions.map((year) => (
+                                        <option
+                                            key={year.value}
+                                            value={year.value}
+                                        >
+                                            {year.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </label>
 
                             <label className="block text-sm text-slate-700">

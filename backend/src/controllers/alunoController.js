@@ -28,6 +28,12 @@ function gerarPasswordTemporaria() {
     return `Temp@${dia}${mes}${ano}`;
 }
 
+function gerarCartaoCidadaoPlaceholder(prefix = 'ND') {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+}
+
 function toNullableText(value) {
     const normalized = String(value ?? '').trim();
     return normalized || null;
@@ -881,7 +887,8 @@ export async function criarAluno(req, res) {
                 [
                     encarregadoNome,
                     '1980-01-01',
-                    toNullableText(ee_cartao_cidadao) || 'N/D',
+                    toNullableText(ee_cartao_cidadao) ||
+                        gerarCartaoCidadaoPlaceholder('EE'),
                     encarregadoNif || null,
                     String(ee_morada || '').trim() || null,
                     String(ee_localidade || '').trim() || null,
