@@ -48,6 +48,7 @@ function getAuthCookieOptions() {
         sameSite: 'lax',
         secure: isProduction,
         path: '/',
+        domain: isProduction ? '.blocodenotas.pt' : undefined,
         maxAge: Number(
             process.env.JWT_COOKIE_MAX_AGE_MS || 12 * 60 * 60 * 1000
         ),
@@ -340,6 +341,7 @@ export async function login(req, res) {
         return res.status(200).json({
             message: 'Login efetuado com sucesso.',
             tokenExpiresIn: expiresIn,
+            token: authToken,
             csrfToken,
             user: {
                 id: user.id,

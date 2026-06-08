@@ -5,6 +5,14 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const CSRF_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+// Restaurar CSRF token ao carregar o módulo (após refresh da página)
+if (typeof window !== 'undefined' && !window.csrfToken) {
+    const _stored = localStorage.getItem('mc_csrf_token');
+    if (_stored) window.csrfToken = _stored;
+}
+
 function getCookie(name) {
     if (typeof document === 'undefined') {
         return '';
@@ -53,12 +61,10 @@ export function getStoredToken() {
 export async function apiFetch(url, options = {}) {
     const token = getStoredToken();
     const method = String(options.method || 'GET').toUpperCase();
-    const csrfToken = getCookie('mc_csrf');
-    const requiresCsrfToken =
-        method === 'POST' ||
-        method === 'PUT' ||
-        method === 'PATCH' ||
-        method === 'DELETE';
+    const requiresCsrf = CSRF_METHODS.includes(method);
+
+    // ✅ Constrói URL completa se for caminho relativo
+    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
 
     const headers = {
         ...options.headers,
@@ -69,11 +75,22 @@ export async function apiFetch(url, options = {}) {
         headers.Authorization = `Bearer ${token}`;
     }
 
-    if (requiresCsrfToken && csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
+    // ✅ CSRF: tenta cookie primeiro, fallback para window.csrfToken
+    if (requiresCsrf) {
+        const csrfToken =
+            window.csrfToken ||
+            localStorage.getItem('mc_csrf_token') ||
+            getCookie('mc_csrf') ||
+            '';
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+        } else {
+            console.warn('[apiFetch] CSRF token em falta para', method, url);
+        }
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(fullUrl, {
+        // ✅ usa fullUrl
         ...options,
         headers,
         credentials: options.credentials || 'include',

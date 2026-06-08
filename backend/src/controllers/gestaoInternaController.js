@@ -742,8 +742,11 @@ export async function criarSalaCatalogo(req, res) {
 
         return res.status(201).json(novoRegisto);
     } catch (error) {
-        console.error('Erro ao criar sala:', error.message);
-        return res.status(500).json({ message: 'Erro ao criar sala.' });
+        console.error('Erro ao criar sala COMPLETO:', error.stack); // ← stack trace completo
+        return res.status(500).json({
+            message: 'Erro ao criar sala.',
+            debug: error.message, // ← remove isto em produção depois de resolver
+        });
     }
 }
 

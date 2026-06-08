@@ -60,6 +60,7 @@ function getCsrfCookieOptions() {
         sameSite: 'lax',
         secure: isProduction,
         path: '/',
+        domain: isProduction ? '.blocodenotas.pt' : undefined,
         maxAge: Number(
             process.env.JWT_COOKIE_MAX_AGE_MS || 12 * 60 * 60 * 1000
         ),
@@ -113,6 +114,7 @@ export function ensureCsrfCookie(req, res) {
  *
  * Security: Restringe origem a domínios permitidos
  */
+
 export function corsMiddleware() {
     const allowedOrigins = resolveAllowedOrigins();
     const allowedOriginSet = new Set(allowedOrigins);
@@ -184,6 +186,12 @@ export function csrfProtectionMiddleware(options = {}) {
 
         const csrfCookie = cookies[CSRF_COOKIE_NAME];
         const csrfHeader = String(req.headers['x-csrf-token'] || '').trim();
+
+        console.log('=== CSRF DEBUG ===');
+        console.log('Cookie CSRF:', csrfCookie);
+        console.log('Header CSRF:', csrfHeader);
+        console.log('Cookie Auth:', authCookie);
+        console.log('==================');
 
         if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
             return res.status(403).json({

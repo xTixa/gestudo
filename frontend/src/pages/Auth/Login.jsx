@@ -33,7 +33,7 @@ export default function Login({ onLogin }) {
         }
     }, []);
 
-    useEffect(() => {
+    /* useEffect(() => {
         async function fetchCsrfToken() {
             try {
                 const res = await fetch(`${API_URL}/api/auth/csrf-token`, {
@@ -49,7 +49,7 @@ export default function Login({ onLogin }) {
         }
 
         fetchCsrfToken();
-    }, []);
+    }, []);*/
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -85,10 +85,18 @@ export default function Login({ onLogin }) {
                 localStorage.removeItem(LOGIN_EMAIL_KEY);
             }
 
+            if (data.token) {
+                localStorage.setItem('mc_token', data.token);
+            }
+
+            if (data.csrfToken) {
+                window.csrfToken = data.csrfToken;
+                localStorage.setItem('mc_csrf_token', data.csrfToken);
+            }
+
             // Armazenar utilizador no localStorage (chave canónica + retrocompatibilidade)
             localStorage.setItem('mc_user', JSON.stringify(data.user));
             localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.removeItem('mc_token');
 
             // Se é primeira login, redirecionar para alterar password obrigatoriamente
             if (data.user.primeiraLogin === true) {

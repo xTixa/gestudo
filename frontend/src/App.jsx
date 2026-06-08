@@ -283,9 +283,14 @@ function App() {
         [currentRole]
     );
 
-    function handleLogin(loggedUser) {
+    function handleLogin(loggedUser, csrfToken) {
         setUser(loggedUser);
         localStorage.setItem('mc_user', JSON.stringify(loggedUser));
+
+        if (csrfToken) {
+            window.csrfToken = csrfToken;
+            localStorage.setItem('mc_csrf_token', csrfToken);
+        }
 
         const nextPath = ROLE_HOME_PATH[loggedUser?.role] || '/';
         navigate(nextPath, { replace: true });
@@ -309,6 +314,8 @@ function App() {
             setUser(null);
             localStorage.removeItem('mc_user');
             localStorage.removeItem('mc_token');
+            localStorage.removeItem('mc_csrf_token');
+            window.csrfToken = undefined;
             navigate('/login', { replace: true });
         }
 
@@ -333,13 +340,17 @@ function App() {
     }, []);
 
     useEffect(() => {
-        if (!user) {
-            return;
-        }
+        if (!user) return;
 
-        apiGet('/api/auth/csrf-token').catch(() => {
-            // Não bloqueia a UI; as rotas protegidas continuarão a responder 403 se faltar token.
-        });
+        apiGet('/api/auth/csrf-token')
+            .then((res) => res.json())
+            .then((data) => {
+                if (data?.csrfToken) {
+                    window.csrfToken = data.csrfToken;
+                    localStorage.setItem('mc_csrf_token', data.csrfToken);
+                }
+            })
+            .catch(() => {});
     }, [user]);
 
     useEffect(() => {
@@ -393,6 +404,8 @@ function App() {
         setUser(null);
         localStorage.removeItem('mc_user');
         localStorage.removeItem('mc_token');
+        localStorage.removeItem('mc_csrf_token');
+        window.csrfToken = undefined;
         navigate('/login', { replace: true });
     }, [navigate]);
 
@@ -435,6 +448,7 @@ function App() {
     if (!isKnownRole) {
         localStorage.removeItem('mc_user');
         localStorage.removeItem('mc_token');
+        localStorage.removeItem('mc_csrf_token');
         return (
             <Routes>
                 <Route path="/" element={<InfosHomePage />} />
