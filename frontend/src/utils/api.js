@@ -58,24 +58,58 @@ export function getStoredToken() {
  * @param {object} options - Opções do fetch (method, body, headers, etc)
  * @returns {Promise} Resposta do fetch
  */
+
 export async function apiFetch(url, options = {}) {
+    const response = await _doFetch(url, options);
+
+    // Se for 403 por CSRF, tenta renovar o token e repetir uma vez
+    if (response.status === 403) {
+        const cloned = response.clone();
+        const data = await cloned.json().catch(() => ({}));
+
+        if (data?.message?.includes('CSRF')) {
+            // Renovar token
+            const refreshed = await _refreshCsrfToken();
+            if (refreshed) {
+                // Repetir o pedido original com o token novo
+                return _doFetch(url, options);
+            }
+        }
+    }
+
+    return response;
+}
+
+async function _refreshCsrfToken() {
+    try {
+        const res = await fetch(`${API_URL}/api/auth/csrf-token`, {
+            credentials: 'include',
+        });
+        const data = await res.json();
+        if (data?.csrfToken) {
+            window.csrfToken = data.csrfToken;
+            localStorage.setItem('mc_csrf_token', data.csrfToken);
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+// A lógica actual do apiFetch passa para esta função interna
+async function _doFetch(url, options = {}) {
     const token = getStoredToken();
     const method = String(options.method || 'GET').toUpperCase();
     const requiresCsrf = CSRF_METHODS.includes(method);
-
-    // ✅ Constrói URL completa se for caminho relativo
     const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
 
-    const headers = {
-        ...options.headers,
-    };
+    const headers = { ...options.headers };
 
-    // Adicionar header de autenticação se existir token JWT
     if (token) {
         headers.Authorization = `Bearer ${token}`;
     }
 
-    // ✅ CSRF: tenta cookie primeiro, fallback para window.csrfToken
     if (requiresCsrf) {
         const csrfToken =
             window.csrfToken ||
@@ -84,28 +118,20 @@ export async function apiFetch(url, options = {}) {
             '';
         if (csrfToken) {
             headers['X-CSRF-Token'] = csrfToken;
-        } else {
-            console.warn('[apiFetch] CSRF token em falta para', method, url);
         }
     }
 
     const response = await fetch(fullUrl, {
-        // ✅ usa fullUrl
         ...options,
         headers,
         credentials: options.credentials || 'include',
     });
 
     const endpoint = String(url || '');
-    const isLoginEndpoint = endpoint.includes('/api/auth/login');
-
-    if (response.status === 401 && !isLoginEndpoint) {
+    if (response.status === 401 && !endpoint.includes('/api/auth/login')) {
         window.dispatchEvent(
             new CustomEvent('mc:unauthorized', {
-                detail: {
-                    url: endpoint,
-                    status: response.status,
-                },
+                detail: { url: endpoint, status: response.status },
             })
         );
     }
