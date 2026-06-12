@@ -117,7 +117,7 @@ export default function InfosInscricaoPage() {
                 );
 
                 if (!response.ok) {
-                    throw new Error('Falha ao carregar opcoes.');
+                    throw new Error('Falha ao carregar opções.');
                 }
 
                 const data = await response.json();
@@ -155,7 +155,7 @@ export default function InfosInscricaoPage() {
 
                 setErroOpcoes(
                     error?.message ||
-                        'Nao foi possivel carregar disciplinas, niveis, modalidades e tipos de servico da base de dados.'
+                        'Não foi possível carregar disciplinas, níveis, modalidades e tipos de serviço da base de dados.'
                 );
             } finally {
                 if (isMounted) {
@@ -270,7 +270,7 @@ export default function InfosInscricaoPage() {
 
         for (const field of requiredFields) {
             if (!String(formData.get(field) || '').trim()) {
-                return 'Preencha todos os campos obrigatorios.';
+                return 'Preencha todos os campos obrigatórios.';
             }
         }
 
@@ -288,7 +288,7 @@ export default function InfosInscricaoPage() {
         const codAluno = String(formData.get('codigo_postal') || '').trim();
         const codEe = String(formData.get('ee_codigo_postal') || '').trim();
         if (!postalCodeRegex.test(codAluno) || !postalCodeRegex.test(codEe)) {
-            return 'Codigo postal invalido. Use o formato 0000-000.';
+            return 'Código postal inválido. Use o formato 0000-000.';
         }
 
         const phones = [
@@ -298,13 +298,13 @@ export default function InfosInscricaoPage() {
             String(formData.get('ee_telefone') || '').trim(),
         ];
         if (phones.some((value) => !phoneRegex.test(value))) {
-            return 'Telefone/telemovel invalido. Deve conter 9 digitos.';
+            return 'Telefone/telemovel inválido. Deve conter 9 digitos.';
         }
 
         const nifAluno = String(formData.get('nif') || '').trim();
         const nifEe = String(formData.get('ee_nif') || '').trim();
         if (!nifRegex.test(nifAluno) || !nifRegex.test(nifEe)) {
-            return 'NIF invalido. Deve conter 9 digitos.';
+            return 'NIF inválido. Deve conter 9 digitos.';
         }
 
         return '';
@@ -385,13 +385,13 @@ export default function InfosInscricaoPage() {
         ) {
             const digits = rawValue.replace(/\D/g, '');
             if (digits.length !== 9) {
-                return 'Numero deve conter 9 digitos.';
+                return 'Número deve conter 9 digitos.';
             }
         }
 
         if (name === 'codigo_postal' || name === 'ee_codigo_postal') {
             if (!/^\d{4}-\d{3}$/.test(rawValue)) {
-                return 'Formato invalido (0000-000).';
+                return 'Formato inválido (0000-000).';
             }
         }
 
@@ -477,9 +477,9 @@ export default function InfosInscricaoPage() {
 
                         <div className="mt-7 grid gap-3 text-xs sm:grid-cols-3 sm:text-sm">
                             <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                                <p className="font-semibold">Resposta Rapida</p>
+                                <p className="font-semibold">Resposta Rápida</p>
                                 <p className="mt-1 text-slate-200">
-                                    Contacto habitual em ate 48h uteis.
+                                    Contacto habitual em ate 48h úteis.
                                 </p>
                             </div>
                             <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
@@ -487,15 +487,15 @@ export default function InfosInscricaoPage() {
                                     Plano Personalizado
                                 </p>
                                 <p className="mt-1 text-slate-200">
-                                    Avaliacao inicial com proposta ajustada.
+                                    Avaliação inicial com proposta ajustada.
                                 </p>
                             </div>
                             <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
                                 <p className="font-semibold">
-                                    Acompanhamento Continuo
+                                    Acompanhamento Contínuo
                                 </p>
                                 <p className="mt-1 text-slate-200">
-                                    Monitorizacao regular da evolucao.
+                                    Monitorizaçãoo regular da evolução.
                                 </p>
                             </div>
                         </div>
@@ -525,7 +525,7 @@ export default function InfosInscricaoPage() {
                             </h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                                 <label className="text-sm font-semibold text-slate-700">
-                                    Data de Inicio
+                                    Data de Início
                                     <input
                                         name="data_inicio"
                                         type="date"
@@ -561,7 +561,7 @@ export default function InfosInscricaoPage() {
                                     />
                                 </label>
                                 <label className="text-sm font-semibold text-slate-700">
-                                    Telemável
+                                    Telemóvel
                                     <input
                                         name="telemovel"
                                         type="tel"
@@ -1042,7 +1042,7 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </fieldset>
                                 <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Observacoes
+                                    Observações
                                     <textarea
                                         name="obs"
                                         rows={4}
@@ -1150,56 +1150,27 @@ export default function InfosInscricaoPage() {
                                     <span className="font-semibold text-slate-800">
                                         1.
                                     </span>{' '}
-                                    Preencher formulario online.
+                                    Preencher formulário online.
                                 </li>
                                 <li className="rounded-lg bg-slate-50 px-3 py-2">
                                     <span className="font-semibold text-slate-800">
                                         2.
                                     </span>{' '}
-                                    Validacao pela equipa pedagogica.
+                                    Validação pela equipa pedagógica.
                                 </li>
                                 <li className="rounded-lg bg-slate-50 px-3 py-2">
                                     <span className="font-semibold text-slate-800">
                                         3.
                                     </span>{' '}
-                                    Definicao de horario e modalidade.
+                                    Definição de horário e modalidade.
                                 </li>
                                 <li className="rounded-lg bg-slate-50 px-3 py-2">
                                     <span className="font-semibold text-slate-800">
                                         4.
                                     </span>{' '}
-                                    Inicio do acompanhamento.
+                                    Início do acompanhamento.
                                 </li>
                             </ol>
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h3 className="text-base font-bold text-slate-800">
-                                Pacotes Disponiveis
-                            </h3>
-                            <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">
-                                        6h/mes
-                                    </span>
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">
-                                        8h/mes
-                                    </span>
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">
-                                        12h/mes
-                                    </span>
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">
-                                        Sessões individuais:
-                                    </span>{' '}
-                                    20EUR/h
-                                </li>
-                            </ul>
                         </div>
 
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -1207,7 +1178,7 @@ export default function InfosInscricaoPage() {
                                 Apoio ao Preenchimento
                             </h3>
                             <p className="mt-3 text-sm text-slate-600">
-                                Se tiver duvidas, podemos ajudar por telefone ou
+                                Se tiver dúvidas, podemos ajudar por telefone ou
                                 email durante o hórario de atendimento.
                             </p>
                             <ul className="mt-4 space-y-2 text-sm text-slate-700">
@@ -1237,11 +1208,11 @@ export default function InfosInscricaoPage() {
                                 Documentos Recomendados
                             </h3>
                             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
-                                <li>Documento de identificacao do aluno</li>
-                                <li>Informacao escolar atual (ano/turma)</li>
-                                <li>Dados do encarregado de educacao</li>
+                                <li>Documento de identificação do aluno</li>
+                                <li>Informação escolar atual (ano/turma)</li>
+                                <li>Dados do encarregado de educação</li>
                                 <li>
-                                    Horario preferencial para acompanhamento
+                                    Horário preferencial para acompanhamento
                                 </li>
                             </ul>
                         </div>

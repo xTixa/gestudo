@@ -71,6 +71,12 @@ function formatLabel(value) {
     return raw.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function gerarCartaoCidadaoPlaceholder(prefix = 'ND') {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+}
+
 /**
  * Procura tabela em base de dados usando lista de nomes candidatos
  *
@@ -239,6 +245,7 @@ export async function listarOpcoesInscricao(req, res) {
         return res.status(200).json({
             disciplinas: normalizeOptionRows(disciplinasResult.rows),
             niveisEnsino: normalizeOptionRows(niveisResult.rows),
+            modalidades: normalizeOptionRows(modalidadesResult.rows),
             tiposServico: normalizeOptionRows(tiposServicoResult.rows),
         });
     } catch (error) {
@@ -320,6 +327,10 @@ function validarInscricaoParaAprovacao(inscricao) {
 function getDuplicateErrorMessage(error) {
     const constraint = String(error?.constraint || '').toLowerCase();
     const detail = String(error?.detail || '').toLowerCase();
+
+    if (constraint.includes('cc') || detail.includes('(cc)')) {
+        return 'Já existe uma pessoa registada com este cartão de cidadão.';
+    }
 
     if (constraint.includes('users') && constraint.includes('email')) {
         return 'Já existe um utilizador com este email.';
@@ -464,9 +475,10 @@ async function integrarInscricaoAprovada(inscricao) {
         const ccAluno =
             toNullableText(inscricao?.cartao_cidadao) ||
             toNullableText(inscricao?.dados?.cartao_cidadao) ||
-            'N/D';
+            gerarCartaoCidadaoPlaceholder('AL');
         const ccEncarregado =
-            toNullableText(inscricao?.dados?.ee_cartao_cidadao) || 'N/D';
+            toNullableText(inscricao?.dados?.ee_cartao_cidadao) ||
+            gerarCartaoCidadaoPlaceholder('EE');
 
         if (!email) {
             throw new Error('A inscrição aprovada não contém email do aluno.');
