@@ -630,6 +630,20 @@ export async function listarAgenda(req, res) {
           AND se.data_inicio <= $2::date
           AND COALESCE(se.data_fim, se.data_inicio) >= $1::date
           AND ($3::int IS NULL OR se.id_professor = $3::int)
+          AND (
+            $4::int IS NULL
+            OR ${
+                inscricoesServicoColumn
+                    ? `EXISTS (
+              SELECT 1
+              FROM inscricoes i
+              WHERE i.${inscricoesServicoColumn} = se.id_servico
+                AND i.id_aluno = $4::int
+                AND i.estado = 'ativa'
+            )`
+                    : 'false'
+            }
+          )
       )
       ORDER BY data_inicio ASC, hora_inicio ASC, id_servico ASC
     `;

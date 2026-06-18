@@ -6,6 +6,7 @@ import {
     criarAluno,
     alterarEstadoAluno,
     eliminarAlunoDefinitivo,
+    resetarPasswordAluno,
 } from '../controllers/alunoController.js';
 import {
     listarProfessores,
@@ -252,6 +253,11 @@ router.patch(
         encarregado_email: { type: 'email', required: false },
     }),
     atualizarAluno
+);
+router.post(
+    '/alunos/:id/reset-password',
+    validateParams({ id: 'number' }),
+    resetarPasswordAluno
 );
 router.patch(
     '/alunos/:id/status',

@@ -692,11 +692,20 @@ export async function listarAlunos(req, res) {
                 a.id_user,
                 p.nome,
                 p.nif,
+                p.data_nasc AS data_nascimento,
+                p.cc,
+                p.morada,
+                p.localidade,
+                p.cod_postal,
+                p.telemovel AS contacto,
+                p.telefone,
                 a.ano,
                 a.turma,
                 a.escola,
                 pe.nome AS encarregado,
-                p.telemovel AS contacto,
+                pe.telemovel AS ee_contacto,
+                e.parentesco AS ee_parentesco,
+                ue.email AS ee_email,
                 u.created_at AS data_inicio,
                 u.email,
                 u.imagem_perfil_url,
@@ -706,6 +715,7 @@ export async function listarAlunos(req, res) {
             INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
             INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
             INNER JOIN pessoas pe ON pe.id_pessoa = e.id_pessoa
+            LEFT JOIN users ue ON ue.id_user = e.id_user
             ORDER BY p.nome ASC
         `;
 
@@ -962,6 +972,18 @@ export async function criarAluno(req, res) {
             passwordTemporaria
         );
         const emailEnviado = emailResultado.ok === true;
+
+        // Enviar também para o encarregado de educação se tiver email real
+        if (
+            encarregadoEmail &&
+            !encarregadoEmail.includes('@placeholder.local')
+        ) {
+            await enviarEmailCredenciaisIniciais(
+                alunoNome,
+                encarregadoEmail,
+                passwordTemporaria
+            ).catch(() => {});
+        }
 
         return res.status(201).json({
             message: emailEnviado
@@ -1846,5 +1868,90 @@ export async function eliminarAlunoDefinitivo(req, res) {
             .json({ message: 'Erro ao eliminar aluno definitivamente.' });
     } finally {
         client.release();
+    }
+}
+
+/**
+ * Reseta a password de um aluno e reenvia credenciais por email (aluno e encarregado)
+ *
+ * @param {Object} req - Objecto de requisição (params: id)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Confirmação do reset
+ */
+export async function resetarPasswordAluno(req, res) {
+    const { id } = req.params;
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de aluno inválido.' });
+    }
+
+    const client = await db.connect();
+
+    try {
+        const alunoResult = await client.query(
+            `
+            SELECT
+                a.id_user,
+                p.nome,
+                u.email AS aluno_email,
+                ue.email AS ee_email
+            FROM alunos a
+            INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+            INNER JOIN users u ON u.id_user = a.id_user
+            INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+            LEFT JOIN users ue ON ue.id_user = e.id_user
+            WHERE a.id_aluno = $1
+            LIMIT 1
+            `,
+            [id]
+        );
+
+        if (!alunoResult.rows.length) {
+            client.release();
+            return res.status(404).json({ message: 'Aluno não encontrado.' });
+        }
+
+        const row = alunoResult.rows[0];
+        const passwordTemporaria = gerarPasswordTemporaria();
+        const passwordHash = await bcrypt.hash(passwordTemporaria, 10);
+
+        await client.query(
+            `UPDATE users SET password = $1, primeira_login = true WHERE id_user = $2`,
+            [passwordHash, row.id_user]
+        );
+
+        client.release();
+
+        // Enviar ao aluno
+        await enviarEmailCredenciaisIniciais(
+            row.nome,
+            row.aluno_email,
+            passwordTemporaria
+        ).catch(() => {});
+
+        // Enviar ao encarregado se tiver email real
+        const eeEmail = String(row.ee_email || '').trim();
+        if (eeEmail && !eeEmail.includes('@placeholder.local')) {
+            await enviarEmailCredenciaisIniciais(
+                row.nome,
+                eeEmail,
+                passwordTemporaria
+            ).catch(() => {});
+        }
+
+        return res.status(200).json({
+            message:
+                'Password resetada com sucesso. Novas credenciais enviadas por email.',
+        });
+    } catch (error) {
+        try {
+            client.release();
+        } catch {
+            // noop
+        }
+        console.error('Erro ao resetar password do aluno:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao resetar password do aluno.' });
     }
 }

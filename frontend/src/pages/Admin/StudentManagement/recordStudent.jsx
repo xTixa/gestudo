@@ -7,10 +7,47 @@ import {
     UserCog,
     Plus,
     UserRound,
+    RefreshCw,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
-import { apiDelete, apiGet, apiPatch } from '../../../utils/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('pt-PT');
+}
+
+function formatCurrency(value) {
+    if (value == null || value === '') return '-';
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return String(value);
+    return new Intl.NumberFormat('pt-PT', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(numeric);
+}
+
+function parseTimeToMinutes(value) {
+    const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return null;
+    return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function formatDurationLabel(horaInicio, horaFim) {
+    const inicio = parseTimeToMinutes(horaInicio);
+    const fim = parseTimeToMinutes(horaFim);
+    if (inicio == null || fim == null || fim <= inicio) return '-';
+    const totalMinutes = fim - inicio;
+    const horas = Math.floor(totalMinutes / 60);
+    const minutos = totalMinutes % 60;
+    if (minutos === 0) return `${horas}h`;
+    return `${horas}h${String(minutos).padStart(2, '0')}`;
+}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -47,6 +84,7 @@ export default function FichaAlunoPage() {
     const [error, setError] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
     const [confirmModal, setConfirmModal] = useState({
         open: false,
         mode: null,
@@ -296,7 +334,34 @@ export default function FichaAlunoPage() {
         }
     }
 
+    async function handleResetPassword() {
+        if (!alunoId) return;
+        setResetLoading(true);
+        setActionMessage('');
+        setError('');
+        try {
+            const response = await apiPost(
+                `/api/gestor/alunos/${alunoId}/reset-password`,
+                {}
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.message || 'Erro ao reenviar credenciais.');
+            }
+            setActionMessage(
+                data?.message || 'Credenciais reenviadas por email com sucesso.'
+            );
+        } catch (err) {
+            setError(err?.message || 'Erro ao reenviar credenciais.');
+        } finally {
+            setResetLoading(false);
+        }
+    }
+
     const alunoImage = getAlunoProfileImage(aluno);
+    const servicosSubscritos = Array.isArray(aluno.servicosSubscritos)
+        ? aluno.servicosSubscritos
+        : [];
 
     return (
         <section className="space-y-6">
@@ -343,7 +408,7 @@ export default function FichaAlunoPage() {
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
                         className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
@@ -360,6 +425,16 @@ export default function FichaAlunoPage() {
                         }
                     >
                         <Pencil size={14} />
+                    </button>
+                    <button
+                        type="button"
+                        disabled={resetLoading}
+                        className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        title="Reenviar credenciais por email"
+                        onClick={handleResetPassword}
+                    >
+                        <RefreshCw size={14} />
+                        {resetLoading ? 'A enviar...' : 'Reenviar credenciais'}
                     </button>
                     <button
                         type="button"
@@ -534,87 +609,81 @@ export default function FichaAlunoPage() {
                     </button>
                 </div>
 
-                {/* Explicações Individuais */}
-                <div className="mb-6">
-                    <h3 className="mb-3 text-sm font-semibold text-slate-700">
-                        Explicações Individuais
-                    </h3>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Modalidade
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Modalidade Explicações Individuais
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Nº Horas/Mês
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">-</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Disciplinas
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Matemática - Física e Química
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Data Inscrição
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Data Inscrição: 04/02/2025
-                                </p>
-                            </div>
-                        </div>
+                {servicosSubscritos.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                        Não existem serviços subscritos para este aluno.
                     </div>
-                </div>
-
-                {/* Explicações em Grupo */}
-                <div>
-                    <h3 className="mb-3 text-sm font-semibold text-slate-700">
-                        Explicações em Grupo
-                    </h3>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Modalidade
+                ) : (
+                    <div className="space-y-4">
+                        {servicosSubscritos.map((servico, idx) => (
+                            <div
+                                key={servico.id_servico ?? idx}
+                                className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                            >
+                                <p className="mb-3 text-sm font-semibold text-slate-700">
+                                    {servico.tipoServico ||
+                                        servico.modalidade ||
+                                        'Serviço'}
                                 </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Modalidade Explicações em Grupo
-                                </p>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Modalidade
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {servico.modalidade || '-'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Nº Horas/Mês
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {formatDurationLabel(
+                                                servico.horaInicio,
+                                                servico.horaFim
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Disciplina
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {servico.disciplina ||
+                                                servico.area ||
+                                                '-'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Preço
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {formatCurrency(servico.valor)}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Data Inscrição
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {formatDate(servico.dataInscricao)}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase text-slate-500">
+                                            Data Início
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-700">
+                                            {formatDate(servico.dataInicio)}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Nº Horas/Mês
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">-</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Disciplinas
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Português - Inglês
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase text-slate-500">
-                                    Data Inscrição
-                                </p>
-                                <p className="mt-1 text-sm text-slate-700">
-                                    Data Inscrição: 03/23/2025
-                                </p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Encarregado de Educação */}

@@ -168,11 +168,22 @@ const IMPORT_TEMPLATE_HEADERS = [
 // lista de campos que podem ser exportados, com identificadores e rótulos legíveis, usados para configurar o processo de exportação e para permitir que o usuário selecione quais campos deseja incluir no arquivo exportado
 const EXPORTABLE_FIELDS = [
     { id: 'nome', label: 'Nome Completo' },
+    { id: 'email', label: 'Email' },
     { id: 'nif', label: 'NIF' },
+    { id: 'data_nascimento', label: 'Data Nascimento' },
+    { id: 'cc', label: 'Cartão Cidadão' },
+    { id: 'morada', label: 'Morada' },
+    { id: 'localidade', label: 'Localidade' },
+    { id: 'cod_postal', label: 'Código Postal' },
+    { id: 'contacto', label: 'Telemóvel' },
+    { id: 'telefone', label: 'Telefone' },
     { id: 'ano', label: 'Ano Escolar' },
+    { id: 'turma', label: 'Turma' },
     { id: 'escola', label: 'Escola' },
     { id: 'encarregado', label: 'Encarregado Educação' },
-    { id: 'contacto', label: 'Contacto' },
+    { id: 'ee_email', label: 'Email Encarregado' },
+    { id: 'ee_contacto', label: 'Contacto Encarregado' },
+    { id: 'ee_parentesco', label: 'Parentesco' },
     { id: 'data_inicio', label: 'Data Início' },
 ];
 
@@ -462,14 +473,14 @@ async function saveBlobToDisk(blob, fileName, extension, mimeType) {
     return 'downloaded';
 }
 
-// função para obter o valor a ser exportado para um campo específico de uma linha de dados, aplicando formatações especiais para campos como encarregado, data_inicio e ano, e retornando o valor original para outros campos, garantindo que os dados sejam apresentados de forma legível e consistente no arquivo exportado
+// função para obter o valor a ser exportado para um campo específico de uma linha de dados, aplicando formatações especiais para campos como encarregado, data_inicio, data_nascimento e ano, e retornando o valor original para outros campos, garantindo que os dados sejam apresentados de forma legível e consistente no arquivo exportado
 function getExportValue(row, fieldId) {
     if (fieldId === 'encarregado') {
         return getEncarregadoLabel(row.encarregado);
     }
 
-    if (fieldId === 'data_inicio') {
-        return formatDate(row.data_inicio);
+    if (fieldId === 'data_inicio' || fieldId === 'data_nascimento') {
+        return formatDate(row[fieldId]);
     }
 
     if (fieldId === 'ano') {
@@ -768,20 +779,26 @@ export default function GestaoAlunos() {
             return;
         }
 
-        const excelHeader = selectedColumns.map((column) => column.label);
-        const excelLines = alunosFiltrados.map((aluno) =>
-            selectedColumns
-                .map((column) => getExportValue(aluno, column.id))
-                .join('\t')
-        );
-        const excelData = [excelHeader.join('\t'), ...excelLines].join('\n');
+        const wsData = [
+            selectedColumns.map((column) => column.label),
+            ...alunosFiltrados.map((aluno) =>
+                selectedColumns.map((column) => getExportValue(aluno, column.id))
+            ),
+        ];
+        const worksheet = utils.aoa_to_sheet(wsData);
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, worksheet, 'Alunos');
+        const excelArrayBuffer = write(workbook, {
+            bookType: 'xlsx',
+            type: 'array',
+        });
         const saveResult = await saveBlobToDisk(
-            new Blob([excelData], {
-                type: 'application/vnd.ms-excel;charset=utf-8;',
+            new Blob([excelArrayBuffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             }),
             baseFileName,
-            'xls',
-            'application/vnd.ms-excel'
+            'xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
 
         if (saveResult === 'cancelled') {
@@ -791,8 +808,8 @@ export default function GestaoAlunos() {
 
         setActionMessage(
             saveResult === 'saved'
-                ? 'Ficheiro Excel guardado no local escolhido.'
-                : 'Ficheiro Excel descarregado (browser sem seletor de pasta).'
+                ? 'Ficheiro XLSX guardado no local escolhido.'
+                : 'Ficheiro XLSX descarregado (browser sem seletor de pasta).'
         );
         setShowExportModal(false);
     }

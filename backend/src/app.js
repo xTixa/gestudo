@@ -29,7 +29,7 @@ app.set('trust proxy', 1);
 
 // 1) CORS PRIMEIRO
 app.use(corsMiddleware());
-app.options('*', corsMiddleware());
+app.options(/.*/, corsMiddleware());
 
 // 2) Segurança e rate limit
 app.use(securityHeadersMiddleware());

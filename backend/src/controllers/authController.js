@@ -398,15 +398,21 @@ export async function alterarPassword(req, res) {
         const safeTable = sanitizeIdentifier(userTable);
         const safeId = sanitizeIdentifier(idColumn);
         const safePassword = sanitizeIdentifier(passwordColumn);
+        const safeRole = sanitizeIdentifier(roleColumn);
+        const safeEmail = sanitizeIdentifier(emailColumn);
         const safeFirstLogin = sanitizeIdentifier(firstLoginColumn || '');
         const hasFirstLogin = await hasFirstLoginColumn(
             safeTable,
             safeFirstLogin
         );
 
+        const firstLoginSelect = hasFirstLogin
+            ? `, ${safeFirstLogin} AS primeira_login`
+            : '';
+
         // Buscar password atual do utilizador
         const userQuery = `
-      SELECT ${safePassword} AS password
+      SELECT ${safePassword} AS password, ${safeRole} AS role, ${safeEmail} AS email${firstLoginSelect}
       FROM ${safeTable}
       WHERE ${safeId} = $1
       LIMIT 1
@@ -454,6 +460,32 @@ export async function alterarPassword(req, res) {
             return res
                 .status(500)
                 .json({ message: 'Erro ao atualizar password.' });
+        }
+
+        // Notificar encarregado de educação no primeiro login do aluno
+        if (hasFirstLogin && user.primeira_login && String(user.role || '').toLowerCase() === 'aluno') {
+            try {
+                const { rows: guardianRows } = await db.query(
+                    `SELECT p.nome AS aluno_nome, ue.email AS ee_email
+                     FROM alunos a
+                     INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                     INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+                     LEFT JOIN users ue ON ue.id_user = e.id_user
+                     WHERE a.id_user = $1
+                     LIMIT 1`,
+                    [userId]
+                );
+                const guardianInfo = guardianRows[0];
+                if (guardianInfo?.ee_email && !guardianInfo.ee_email.includes('@placeholder.local')) {
+                    await enviarEmailCredenciaisIniciais(
+                        guardianInfo.aluno_nome || user.email,
+                        guardianInfo.ee_email,
+                        passwordNova
+                    ).catch(() => {});
+                }
+            } catch (guardianErr) {
+                console.error('Erro ao notificar encarregado de educação:', guardianErr.message);
+            }
         }
 
         const refreshedToken = signAuthToken({

@@ -167,10 +167,14 @@ export default function Login({ onLogin }) {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                <label
+                                    htmlFor="login-email"
+                                    className="mb-1.5 block text-sm font-semibold text-slate-700"
+                                >
                                     Email
                                 </label>
                                 <input
+                                    id="login-email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -182,7 +186,10 @@ export default function Login({ onLogin }) {
 
                             <div>
                                 <div className="mb-1.5 flex items-center justify-between gap-3">
-                                    <label className="block text-sm font-semibold text-slate-700">
+                                    <label
+                                        htmlFor="login-password"
+                                        className="block text-sm font-semibold text-slate-700"
+                                    >
                                         Palavra-passe
                                     </label>
                                     <a
@@ -194,6 +201,7 @@ export default function Login({ onLogin }) {
                                 </div>
 
                                 <input
+                                    id="login-password"
                                     type="password"
                                     value={password}
                                     onChange={(e) =>

@@ -813,8 +813,9 @@ export default function GestaoProfessores() {
             'Area Ensino',
             'Nivel',
         ];
-        const excelLines = professoresFiltrados.map((prof) =>
-            [
+        const wsData = [
+            excelHeader,
+            ...professoresFiltrados.map((prof) => [
                 prof.nome || '',
                 prof.nif || '',
                 prof.data_nasc || '',
@@ -828,17 +829,23 @@ export default function GestaoProfessores() {
                 prof.habilitacao || '',
                 prof.area_ensino || '',
                 prof.nivel || '',
-            ].join('\t')
-        );
-        const excelData = [excelHeader.join('\t'), ...excelLines].join('\n');
+            ]),
+        ];
+        const worksheet = utils.aoa_to_sheet(wsData);
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, worksheet, 'Professores');
+        const excelArrayBuffer = write(workbook, {
+            bookType: 'xlsx',
+            type: 'array',
+        });
 
         const saveResult = await saveBlobToDisk(
-            new Blob([excelData], {
-                type: 'application/vnd.ms-excel;charset=utf-8;',
+            new Blob([excelArrayBuffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             }),
             baseFileName,
-            'xls',
-            'application/vnd.ms-excel'
+            'xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         );
 
         if (saveResult === 'cancelled') {
@@ -848,8 +855,8 @@ export default function GestaoProfessores() {
 
         setActionMessage(
             saveResult === 'saved'
-                ? 'Ficheiro Excel guardado no local escolhido.'
-                : 'Ficheiro Excel descarregado (browser sem seletor de pasta).'
+                ? 'Ficheiro XLSX guardado no local escolhido.'
+                : 'Ficheiro XLSX descarregado (browser sem seletor de pasta).'
         );
         setShowExportModal(false);
     }
