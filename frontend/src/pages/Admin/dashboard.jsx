@@ -10,6 +10,8 @@ import {
     Calendar,
     BarChart3,
     TrendingUp,
+    Maximize2,
+    X,
 } from 'lucide-react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import StatCard from '../../components/dashboard/StatCard';
@@ -30,6 +32,24 @@ export default function DashboardGestor() {
     const [monthlyData, setMonthlyData] = useState([]);
     const [chartsLoading, setChartsLoading] = useState(true);
     const [chartsError, setChartsError] = useState('');
+    const [expandedChart, setExpandedChart] = useState(null);
+
+    useEffect(() => {
+        if (!expandedChart) return undefined;
+
+        const previousOverflow = document.body.style.overflow;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setExpandedChart(null);
+        };
+
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [expandedChart]);
 
     useEffect(() => {
         let isMounted = true;
@@ -189,12 +209,31 @@ export default function DashboardGestor() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <BarChart3 className="text-blue-500" size={20} />
-                        <h2 className="text-lg font-medium text-slate-700">
-                            Atividade Ativa Semanal
-                        </h2>
+                <article
+                    className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                    onClick={() => setExpandedChart('weekly')}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setExpandedChart('weekly');
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Ampliar gráfico de atividade semanal"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <BarChart3 className="text-blue-500" size={20} />
+                            <h2 className="text-lg font-medium text-slate-700">
+                                Atividade Ativa Semanal
+                            </h2>
+                        </div>
+                        <Maximize2
+                            className="shrink-0 text-slate-400 transition group-hover:text-blue-500"
+                            size={18}
+                            aria-hidden="true"
+                        />
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
                         Serviços e inscrições ativas em cada dia da última
@@ -207,12 +246,31 @@ export default function DashboardGestor() {
                     />
                 </article>
 
-                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <TrendingUp className="text-amber-500" size={20} />
-                        <h2 className="text-lg font-medium text-slate-700">
-                            Serviços Ativos por Mês
-                        </h2>
+                <article
+                    className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-200 hover:shadow-md"
+                    onClick={() => setExpandedChart('monthly')}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setExpandedChart('monthly');
+                        }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Ampliar gráfico de serviços ativos por mês"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <TrendingUp className="text-amber-500" size={20} />
+                            <h2 className="text-lg font-medium text-slate-700">
+                                Serviços Ativos por Mês
+                            </h2>
+                        </div>
+                        <Maximize2
+                            className="shrink-0 text-slate-400 transition group-hover:text-amber-500"
+                            size={18}
+                            aria-hidden="true"
+                        />
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
                         Volume de serviços ativos ao longo dos últimos seis
@@ -225,6 +283,66 @@ export default function DashboardGestor() {
                     />
                 </article>
             </div>
+
+            {expandedChart ? (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm sm:p-8"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setExpandedChart(null);
+                        }
+                    }}
+                    role="presentation"
+                >
+                    <section
+                        className="w-full max-w-6xl rounded-2xl bg-white p-5 shadow-2xl sm:p-7"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="expanded-chart-title"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2
+                                    id="expanded-chart-title"
+                                    className="text-xl font-semibold text-slate-800"
+                                >
+                                    {expandedChart === 'weekly'
+                                        ? 'Atividade Ativa Semanal'
+                                        : 'Serviços Ativos por Mês'}
+                                </h2>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Passe o cursor sobre as barras para consultar os valores.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setExpandedChart(null)}
+                                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                                aria-label="Fechar gráfico ampliado"
+                                autoFocus
+                            >
+                                <X size={22} />
+                            </button>
+                        </div>
+
+                        {expandedChart === 'weekly' ? (
+                            <WeeklyChart
+                                data={weeklyData}
+                                loading={chartsLoading}
+                                error={chartsError}
+                                expanded
+                            />
+                        ) : (
+                            <MonthlyChart
+                                data={monthlyData}
+                                loading={chartsLoading}
+                                error={chartsError}
+                                expanded
+                            />
+                        )}
+                    </section>
+                </div>
+            ) : null}
         </section>
     );
 }

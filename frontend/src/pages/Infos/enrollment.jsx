@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PublicNavbar from '../../components/infos/PublicNavbar';
 import PublicFooter from '../../components/infos/PublicFooter';
 
@@ -10,18 +10,8 @@ const API_BASES = Array.from(
 const PACOTE_OPTIONS = ['6h/mês', '8h/mês', '12h/mês'];
 
 const ANO_ESCOLAR_OPTIONS = [
-    '1º Ano',
-    '2º Ano',
-    '3º Ano',
-    '4º Ano',
-    '5º Ano',
-    '6º Ano',
-    '7º Ano',
-    '8º Ano',
-    '9º Ano',
-    '10º Ano',
-    '11º Ano',
-    '12º Ano',
+    '1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano',
+    '7º Ano', '8º Ano', '9º Ano', '10º Ano', '11º Ano', '12º Ano',
 ];
 
 const ANOS_ESCOLARES_POR_NIVEL = {
@@ -36,55 +26,54 @@ function normalizeText(value) {
         .trim()
         .toLowerCase()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[̀-ͯ]/g, '')
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '');
 }
 
 function getAnosEscolaresPorNivel(nivel) {
-    const nivelNormalizado = normalizeText(
-        nivel?.key || nivel?.label || nivel?.value
-    );
-
-    if (!nivelNormalizado) {
-        return [];
-    }
-
-    if (nivelNormalizado.includes('superior')) {
-        return [];
-    }
-
+    const nivelNormalizado = normalizeText(nivel?.key || nivel?.label || nivel?.value);
+    if (!nivelNormalizado) return [];
+    if (nivelNormalizado.includes('superior')) return [];
     for (const [key, anos] of Object.entries(ANOS_ESCOLARES_POR_NIVEL)) {
-        if (nivelNormalizado.includes(key)) {
-            return anos;
-        }
+        if (nivelNormalizado.includes(key)) return anos;
     }
-
     return ANO_ESCOLAR_OPTIONS;
 }
 
 function buildApiUrl(base, path) {
-    const normalizedPath = String(path || '').startsWith('/')
-        ? path
-        : `/${path}`;
+    const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
     return `${String(base || '').replace(/\/$/, '')}${normalizedPath}`;
 }
 
 async function fetchWithFallback(path, options) {
     const candidates = [...API_BASES, ''];
     let lastError = null;
-
     for (const base of candidates) {
         const url = buildApiUrl(base, path);
-
         try {
             return await fetch(url, options);
         } catch (error) {
             lastError = error;
         }
     }
-
     throw lastError || new Error('Não foi possível contactar o servidor.');
+}
+
+function Req() {
+    return <span className="ml-0.5 text-red-500">*</span>;
+}
+
+const INPUT_CLS =
+    'mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+const SELECT_CLS =
+    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+const SELECT_DISABLED_CLS =
+    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+const LABEL_CLS = 'text-sm font-semibold text-slate-700';
+
+function newPlanoItem(id) {
+    return { id, disciplina: '', tipoServico: '', modalidade: '', pacote: '' };
 }
 
 export default function InfosInscricaoPage() {
@@ -93,192 +82,148 @@ export default function InfosInscricaoPage() {
     const [disciplinasOptions, setDisciplinasOptions] = useState([]);
     const [niveisEnsinoOptions, setNiveisEnsinoOptions] = useState([]);
     const [modalidadesOptions, setModalidadesOptions] = useState([]);
-    const [tipoServicoSelecionadoOptions, setTipoServicoSelecionadoOptions] =
-        useState([]);
+    const [tipoServicoOptions, setTipoServicoOptions] = useState([]);
     const [selectedNivel, setSelectedNivel] = useState('');
     const [selectedAnoEscolar, setSelectedAnoEscolar] = useState('');
-    const [selectedModalidade, setSelectedModalidade] = useState('');
-    const [selectedPacote, setSelectedPacote] = useState('');
-    const [selectedTipoServico, setSelectedTipoServico] = useState('');
     const [loadingOpcoes, setLoadingOpcoes] = useState(true);
     const [erroOpcoes, setErroOpcoes] = useState('');
     const [liveErrors, setLiveErrors] = useState({});
 
+    // Multi-discipline plan
+    const [planoItems, setPlanoItems] = useState([newPlanoItem(1)]);
+    const [planoNextId, setPlanoNextId] = useState(2);
+
+    // Refs for address copy
+    const alunoMoradaRef = useRef(null);
+    const alunoLocalidadeRef = useRef(null);
+    const alunoCodigoPostalRef = useRef(null);
+    const eeMoradaRef = useRef(null);
+    const eeLocalidadeRef = useRef(null);
+    const eeCodigoPostalRef = useRef(null);
+
     useEffect(() => {
         let isMounted = true;
-
         async function carregarOpcoes() {
             setLoadingOpcoes(true);
             setErroOpcoes('');
-
             try {
-                const response = await fetchWithFallback(
-                    '/api/public/inscricao-opcoes'
-                );
-
-                if (!response.ok) {
-                    throw new Error('Falha ao carregar opções.');
-                }
-
+                const response = await fetchWithFallback('/api/public/inscricao-opcoes');
+                if (!response.ok) throw new Error('Falha ao carregar opções.');
                 const data = await response.json();
-
-                if (!isMounted) {
-                    return;
-                }
-
+                if (!isMounted) return;
                 setDisciplinasOptions(
-                    Array.isArray(data?.disciplinas)
-                        ? data.disciplinas.filter((item) => item?.label)
-                        : []
+                    Array.isArray(data?.disciplinas) ? data.disciplinas.filter((i) => i?.label) : []
                 );
                 setNiveisEnsinoOptions(
-                    Array.isArray(data?.niveisEnsino)
-                        ? data.niveisEnsino.filter((item) => item?.label)
-                        : []
+                    Array.isArray(data?.niveisEnsino) ? data.niveisEnsino.filter((i) => i?.label) : []
                 );
                 setModalidadesOptions(
-                    Array.isArray(data?.modalidades)
-                        ? data.modalidades.filter((item) => item?.label)
-                        : []
+                    Array.isArray(data?.modalidades) ? data.modalidades.filter((i) => i?.label) : []
                 );
-                setTipoServicoSelecionadoOptions(
+                setTipoServicoOptions(
                     Array.isArray(data?.tiposServico)
-                        ? data.tiposServico.filter((item) => item?.label)
+                        ? data.tiposServico.filter((i) => i?.label)
                         : Array.isArray(data?.tipoServico)
-                          ? data.tipoServico.filter((item) => item?.label)
+                          ? data.tipoServico.filter((i) => i?.label)
                           : []
                 );
             } catch (error) {
-                if (!isMounted) {
-                    return;
-                }
-
+                if (!isMounted) return;
                 setErroOpcoes(
                     error?.message ||
                         'Não foi possível carregar disciplinas, níveis, modalidades e tipos de serviço da base de dados.'
                 );
             } finally {
-                if (isMounted) {
-                    setLoadingOpcoes(false);
-                }
+                if (isMounted) setLoadingOpcoes(false);
             }
         }
-
         carregarOpcoes();
-
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, []);
 
-    const disciplinasFiltradas = disciplinasOptions.filter((item) => {
-        if (!selectedNivel) {
-            return false;
-        }
-
-        const nivelSelecionado = niveisEnsinoOptions.find(
-            (nivel) => String(nivel.id) === selectedNivel
-        );
-        const selectedKey =
-            nivelSelecionado?.key || normalizeText(nivelSelecionado?.label);
-        const matchesId =
-            item.nivelRef && String(item.nivelRef) === String(selectedNivel);
-        const matchesKey = item.nivelRefKey && item.nivelRefKey === selectedKey;
-
-        return matchesId || matchesKey;
-    });
-
-    const nivelSelecionado = niveisEnsinoOptions.find(
-        (nivel) => String(nivel.id) === selectedNivel
-    );
+    const nivelSelecionado = niveisEnsinoOptions.find((n) => String(n.id) === selectedNivel);
     const anosEscolaresOptions = getAnosEscolaresPorNivel(nivelSelecionado);
     const isEnsinoSuperior = normalizeText(
-        nivelSelecionado?.key ||
-            nivelSelecionado?.label ||
-            nivelSelecionado?.value
+        nivelSelecionado?.key || nivelSelecionado?.label || nivelSelecionado?.value
     ).includes('superior');
 
-    const tipoServicoSelecionado =
-        tipoServicoSelecionadoOptions.find(
-            (item) => String(item.id) === selectedTipoServico
-        )?.label ||
-        tipoServicoSelecionadoOptions.find(
-            (item) => String(item.id) === selectedTipoServico
-        )?.value ||
-        '';
-
-    const modalidadeSelecionada = modalidadesOptions.find(
-        (item) => String(item.id) === selectedModalidade
-    );
-    const modalidadeSelecionadaNormalizada = normalizeText(
-        modalidadeSelecionada?.label || modalidadeSelecionada?.value
-    );
-    const podeEscolherModalidade =
-        Boolean(selectedTipoServico) && !loadingOpcoes;
-    const isExplicacoesIndividuais =
-        modalidadeSelecionadaNormalizada.includes('individu') ||
-        modalidadeSelecionadaNormalizada.includes('explicacao_individual');
-    const podeEscolherPacote =
-        Boolean(selectedModalidade) && !isExplicacoesIndividuais;
+    const disciplinasFiltradas = disciplinasOptions.filter((item) => {
+        if (!selectedNivel) return false;
+        const selectedKey = nivelSelecionado?.key || normalizeText(nivelSelecionado?.label);
+        return (
+            (item.nivelRef && String(item.nivelRef) === String(selectedNivel)) ||
+            (item.nivelRefKey && item.nivelRefKey === selectedKey)
+        );
+    });
 
     useEffect(() => {
-        if (
-            selectedAnoEscolar &&
-            (!anosEscolaresOptions.includes(selectedAnoEscolar) ||
-                isEnsinoSuperior)
-        ) {
+        if (selectedAnoEscolar && (!anosEscolaresOptions.includes(selectedAnoEscolar) || isEnsinoSuperior)) {
             setSelectedAnoEscolar('');
         }
     }, [anosEscolaresOptions, isEnsinoSuperior, selectedAnoEscolar]);
 
-    useEffect(() => {
-        if (isExplicacoesIndividuais && selectedPacote) {
-            setSelectedPacote('');
+    // ── Plan helpers ─────────────────────────────────────────────────────────
+
+    function isModalidadeIndividual(modalidadeId) {
+        if (!modalidadeId) return false;
+        const m = modalidadesOptions.find((opt) => String(opt.id) === modalidadeId);
+        const n = normalizeText(m?.label || m?.value);
+        return n.includes('individu') || n.includes('explicacao_individual');
+    }
+
+    function updatePlanoItem(id, field, value) {
+        setPlanoItems((prev) =>
+            prev.map((item) => {
+                if (item.id !== id) return item;
+                const updated = { ...item, [field]: value };
+                if (field === 'tipoServico') { updated.modalidade = ''; updated.pacote = ''; }
+                if (field === 'modalidade') { updated.pacote = ''; }
+                return updated;
+            })
+        );
+    }
+
+    function addPlanoItem() {
+        setPlanoItems((prev) => [...prev, newPlanoItem(planoNextId)]);
+        setPlanoNextId((n) => n + 1);
+    }
+
+    function removePlanoItem(id) {
+        setPlanoItems((prev) => prev.filter((item) => item.id !== id));
+    }
+
+    function validarPlano() {
+        if (planoItems.length === 0) return 'Adicione pelo menos uma disciplina ao plano.';
+        for (let i = 0; i < planoItems.length; i++) {
+            const item = planoItems[i];
+            const n = i + 1;
+            if (!item.disciplina) return `Selecione a disciplina no plano ${n}.`;
+            if (!item.tipoServico) return `Selecione o tipo de serviço no plano ${n}.`;
+            if (!item.modalidade) return `Selecione a modalidade no plano ${n}.`;
+            if (!isModalidadeIndividual(item.modalidade) && !item.pacote) {
+                return `Selecione um pacote no plano ${n}.`;
+            }
         }
-    }, [isExplicacoesIndividuais, selectedPacote]);
+        return '';
+    }
+
+    // ── Form validation ───────────────────────────────────────────────────────
 
     function validarFormulario(formData) {
         const requiredFields = [
-            'data_inicio',
-            'nome_completo',
-            'data_nascimento',
-            'email',
-            'telemovel',
-            'telefone',
-            'cartao_cidadao',
-            'nif',
-            'morada',
-            'localidade',
-            'codigo_postal',
-            'escola',
+            'data_inicio', 'nome_completo', 'data_nascimento', 'email',
+            'telemovel', 'telefone', 'cartao_cidadao', 'nif',
+            'morada', 'localidade', 'codigo_postal', 'escola',
             ...(isEnsinoSuperior ? [] : ['ano_escolar']),
-            'turma',
-            'ee_nome',
-            'ee_nif',
-            'ee_email',
-            'ee_telemovel',
-            'ee_telefone',
-            'ee_morada',
-            'ee_localidade',
-            'ee_codigo_postal',
-            'ee_parentesco',
+            'turma', 'ee_nome', 'ee_email', 'ee_telemovel',
+            'ee_morada', 'ee_localidade', 'ee_codigo_postal', 'ee_parentesco',
             'nivel_ensino',
-            'tipo_servico',
-            'disciplina',
-            'modalidade',
         ];
 
         for (const field of requiredFields) {
             if (!String(formData.get(field) || '').trim()) {
                 return 'Preencha todos os campos obrigatórios.';
             }
-        }
-
-        if (
-            !isExplicacoesIndividuais &&
-            !String(formData.get('pacote') || '').trim()
-        ) {
-            return 'Selecione um pacote para a modalidade escolhida.';
         }
 
         const postalCodeRegex = /^\d{4}-\d{3}$/;
@@ -295,16 +240,14 @@ export default function InfosInscricaoPage() {
             String(formData.get('telemovel') || '').trim(),
             String(formData.get('telefone') || '').trim(),
             String(formData.get('ee_telemovel') || '').trim(),
-            String(formData.get('ee_telefone') || '').trim(),
         ];
-        if (phones.some((value) => !phoneRegex.test(value))) {
-            return 'Telefone/telemovel inválido. Deve conter 9 digitos.';
+        if (phones.some((v) => !phoneRegex.test(v))) {
+            return 'Telefone/telemóvel inválido. Deve conter 9 dígitos.';
         }
 
         const nifAluno = String(formData.get('nif') || '').trim();
-        const nifEe = String(formData.get('ee_nif') || '').trim();
-        if (!nifRegex.test(nifAluno) || !nifRegex.test(nifEe)) {
-            return 'NIF inválido. Deve conter 9 digitos.';
+        if (!nifRegex.test(nifAluno)) {
+            return 'NIF inválido. Deve conter 9 dígitos.';
         }
 
         return '';
@@ -317,21 +260,34 @@ export default function InfosInscricaoPage() {
 
         const formElement = event.currentTarget;
         const formData = new FormData(formElement);
-        const validationError = validarFormulario(formData);
 
-        if (validationError) {
-            setSent(false);
-            setSubmitError(validationError);
-            return;
-        }
+        const formError = validarFormulario(formData);
+        if (formError) { setSubmitError(formError); return; }
+
+        const planoError = validarPlano();
+        if (planoError) { setSubmitError(planoError); return; }
 
         try {
             const payload = Object.fromEntries(formData.entries());
+
+            // Attach multi-plan array
+            payload.plano = planoItems.map((item) => ({
+                disciplina: item.disciplina,
+                tipo_servico: item.tipoServico,
+                modalidade: item.modalidade,
+                pacote: item.pacote,
+            }));
+
+            // Keep flat columns from first item for backward compat with existing DB columns
+            const first = planoItems[0] || {};
+            payload.disciplina = first.disciplina || '';
+            payload.tipo_servico = first.tipoServico || '';
+            payload.modalidade = first.modalidade || '';
+            payload.pacote = first.pacote || '';
+
             const response = await fetchWithFallback('/api/public/inscricao', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
@@ -341,60 +297,37 @@ export default function InfosInscricaoPage() {
                 throw new Error(
                     data?.detail
                         ? `${data?.message || 'Erro ao enviar inscrição.'} (${data.detail})`
-                        : data?.message ||
-                              'Não foi possível enviar a inscrição.'
+                        : data?.message || 'Não foi possível enviar a inscrição.'
                 );
             }
 
             setSent(true);
-            if (formElement) {
-                formElement.reset();
-            }
+            if (formElement) formElement.reset();
             setSelectedNivel('');
             setSelectedAnoEscolar('');
-            setSelectedModalidade('');
-            setSelectedPacote('');
-            setSelectedTipoServico('');
+            setPlanoItems([newPlanoItem(1)]);
+            setPlanoNextId(2);
             setLiveErrors({});
         } catch (error) {
-            setSubmitError(
-                error?.message || 'Não foi possível enviar a inscrição.'
-            );
+            setSubmitError(error?.message || 'Não foi possível enviar a inscrição.');
         }
     }
 
+    // ── Live validation ───────────────────────────────────────────────────────
+
     function getLiveFieldError(name, value) {
         const rawValue = String(value || '').trim();
+        if (!rawValue) return '';
 
-        if (!rawValue) {
-            return '';
+        if (name === 'nif') {
+            if (rawValue.replace(/\D/g, '').length !== 9) return 'NIF deve conter 9 dígitos.';
         }
-
-        if (name === 'nif' || name === 'ee_nif') {
-            const digits = rawValue.replace(/\D/g, '');
-            if (digits.length !== 9) {
-                return 'NIF deve conter 9 digitos.';
-            }
+        if (name === 'telemovel' || name === 'telefone' || name === 'ee_telemovel') {
+            if (rawValue.replace(/\D/g, '').length !== 9) return 'Número deve conter 9 dígitos.';
         }
-
-        if (
-            name === 'telemovel' ||
-            name === 'telefone' ||
-            name === 'ee_telemovel' ||
-            name === 'ee_telefone'
-        ) {
-            const digits = rawValue.replace(/\D/g, '');
-            if (digits.length !== 9) {
-                return 'Número deve conter 9 digitos.';
-            }
-        }
-
         if (name === 'codigo_postal' || name === 'ee_codigo_postal') {
-            if (!/^\d{4}-\d{3}$/.test(rawValue)) {
-                return 'Formato inválido (0000-000).';
-            }
+            if (!/^\d{4}-\d{3}$/.test(rawValue)) return 'Formato inválido (0000-000).';
         }
-
         return '';
     }
 
@@ -402,60 +335,35 @@ export default function InfosInscricaoPage() {
         const { name } = event.target;
         let { value } = event.target;
 
-        if (name === 'nif' || name === 'ee_nif') {
+        if (name === 'nif') {
             value = value.replace(/\D/g, '').slice(0, 9);
         }
-
-        if (
-            name === 'telemovel' ||
-            name === 'telefone' ||
-            name === 'ee_telemovel' ||
-            name === 'ee_telefone'
-        ) {
+        if (name === 'telemovel' || name === 'telefone' || name === 'ee_telemovel') {
             value = value.replace(/\D/g, '').slice(0, 9);
         }
-
         if (name === 'codigo_postal' || name === 'ee_codigo_postal') {
             const digits = value.replace(/\D/g, '').slice(0, 7);
-            value =
-                digits.length > 4
-                    ? `${digits.slice(0, 4)}-${digits.slice(4)}`
-                    : digits;
+            value = digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits;
         }
 
         event.target.value = value;
-        const errorMessage = getLiveFieldError(name, value);
+        setLiveErrors((prev) => ({ ...prev, [name]: getLiveFieldError(name, value) }));
+    }
 
+    function copiarMoradaAluno() {
+        const morada = alunoMoradaRef.current?.value || '';
+        const localidade = alunoLocalidadeRef.current?.value || '';
+        const cp = alunoCodigoPostalRef.current?.value || '';
+        if (eeMoradaRef.current) eeMoradaRef.current.value = morada;
+        if (eeLocalidadeRef.current) eeLocalidadeRef.current.value = localidade;
+        if (eeCodigoPostalRef.current) eeCodigoPostalRef.current.value = cp;
         setLiveErrors((prev) => ({
             ...prev,
-            [name]: errorMessage,
+            ee_codigo_postal: cp && !/^\d{4}-\d{3}$/.test(cp) ? 'Formato inválido (0000-000).' : '',
         }));
     }
 
-    function handleModalidadeChange(event) {
-        const modalidadeId = event.target.value;
-        setSelectedModalidade(modalidadeId);
-
-        const modalidade = modalidadesOptions.find(
-            (item) => String(item.id) === modalidadeId
-        );
-        const modalidadeNormalizada = normalizeText(
-            modalidade?.label || modalidade?.value
-        );
-        const modalidadeIndividual =
-            modalidadeNormalizada.includes('individu') ||
-            modalidadeNormalizada.includes('explicacao_individual');
-
-        if (modalidadeIndividual) {
-            setSelectedPacote('');
-        }
-    }
-
-    function handleTipoServicoChange(event) {
-        setSelectedTipoServico(event.target.value);
-        setSelectedModalidade('');
-        setSelectedPacote('');
-    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -463,7 +371,7 @@ export default function InfosInscricaoPage() {
 
             <main>
                 <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                    <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+                    <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">
                             Inscrições
                         </p>
@@ -471,18 +379,13 @@ export default function InfosInscricaoPage() {
                             Formulário de Inscrição 2025/2026
                         </h1>
                         <p className="mt-4 max-w-2xl text-sm text-slate-200 sm:text-base">
-                            Preencha os dados do aluno e do encarregado de
-                            educação.
+                            Preencha os dados do aluno e do encarregado de educação.
                         </p>
                     </div>
                 </section>
 
-                <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1.6fr_1fr]">
-                    <form
-                        onSubmit={handleSubmit}
-                        className="space-y-5"
-                        noValidate
-                    >
+                <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         {erroOpcoes ? (
                             <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                                 {erroOpcoes}
@@ -494,215 +397,124 @@ export default function InfosInscricaoPage() {
                             </p>
                         ) : null}
 
+                        <p className="text-xs text-slate-500">
+                            Os campos marcados com{' '}
+                            <span className="font-semibold text-red-500">*</span>{' '}
+                            são obrigatórios.
+                        </p>
+
+                        {/* ── Dados do Aluno ─────────────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                                 Dados do Aluno
                             </h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Data de Início
-                                    <input
-                                        name="data_inicio"
-                                        type="date"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Data de Início <Req />
+                                    <input name="data_inicio" type="date" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Nome Completo
-                                    <input
-                                        name="nome_completo"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Nome Completo <Req />
+                                    <input name="nome_completo" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Data de Nascimento
-                                    <input
-                                        name="data_nascimento"
-                                        type="date"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Data de Nascimento <Req />
+                                    <input name="data_nascimento" type="date" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Email
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Email <Req />
+                                    <input name="email" type="email" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Telemóvel
+                                <label className={LABEL_CLS}>
+                                    Telemóvel <Req />
                                     <input
-                                        name="telemovel"
-                                        type="tel"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        name="telemovel" type="tel" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        className={INPUT_CLS}
                                     />
                                     {liveErrors.telemovel ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.telemovel}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.telemovel}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Telefone
+                                <label className={LABEL_CLS}>
+                                    Telefone <Req />
                                     <input
-                                        name="telefone"
-                                        type="tel"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        name="telefone" type="tel" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        className={INPUT_CLS}
                                     />
                                     {liveErrors.telefone ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.telefone}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.telefone}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Cartão de Cidadão
-                                    <input
-                                        name="cartao_cidadao"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Cartão de Cidadão <Req />
+                                    <input name="cartao_cidadao" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    NIF
+                                <label className={LABEL_CLS}>
+                                    NIF <Req />
                                     <input
-                                        name="nif"
-                                        type="text"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        name="nif" type="text" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        className={INPUT_CLS}
                                     />
                                     {liveErrors.nif ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.nif}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.nif}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Morada
-                                    <input
-                                        name="morada"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Morada <Req />
+                                    <input ref={alunoMoradaRef} name="morada" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Localidade
-                                    <input
-                                        name="localidade"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Localidade <Req />
+                                    <input ref={alunoLocalidadeRef} name="localidade" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Código Postal
+                                <label className={LABEL_CLS}>
+                                    Código Postal <Req />
                                     <input
-                                        name="codigo_postal"
-                                        type="text"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                        placeholder="3510-085"
+                                        ref={alunoCodigoPostalRef}
+                                        name="codigo_postal" type="text" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        placeholder="3510-085" className={INPUT_CLS}
                                     />
                                     {liveErrors.codigo_postal ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.codigo_postal}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.codigo_postal}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Escola
-                                    <input
-                                        name="escola"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Escola <Req />
+                                    <input name="escola" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Nível de Ensino
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Nível de Ensino <Req />
                                     <select
-                                        required
-                                        name="nivel_ensino"
-                                        value={selectedNivel}
-                                        onChange={(event) =>
-                                            setSelectedNivel(event.target.value)
-                                        }
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        required name="nivel_ensino" value={selectedNivel}
+                                        onChange={(e) => setSelectedNivel(e.target.value)}
+                                        className={SELECT_CLS}
                                     >
                                         <option value="">Selecionar</option>
-                                        {loadingOpcoes ? (
-                                            <option value="">
-                                                A carregar...
-                                            </option>
-                                        ) : null}
+                                        {loadingOpcoes ? <option value="">A carregar...</option> : null}
                                         {niveisEnsinoOptions.map((item) => (
-                                            <option
-                                                key={item.id}
-                                                value={item.id}
-                                            >
-                                                {item.label}
-                                            </option>
+                                            <option key={item.id} value={item.id}>{item.label}</option>
                                         ))}
                                     </select>
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Ano Escolar
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Ano Escolar {!isEnsinoSuperior && <Req />}
                                     <select
-                                        required
-                                        name="ano_escolar"
-                                        value={selectedAnoEscolar}
-                                        onChange={(event) =>
-                                            setSelectedAnoEscolar(
-                                                event.target.value
-                                            )
-                                        }
-                                        disabled={
-                                            !selectedNivel ||
-                                            loadingOpcoes ||
-                                            isEnsinoSuperior
-                                        }
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        required name="ano_escolar" value={selectedAnoEscolar}
+                                        onChange={(e) => setSelectedAnoEscolar(e.target.value)}
+                                        disabled={!selectedNivel || loadingOpcoes || isEnsinoSuperior}
+                                        className={SELECT_DISABLED_CLS}
                                     >
                                         <option value="">
-                                            {!selectedNivel
-                                                ? 'Selecione primeiro o nível'
-                                                : isEnsinoSuperior
-                                                  ? 'Não aplicável'
-                                                  : 'Selecionar'}
+                                            {!selectedNivel ? 'Selecione primeiro o nível' : isEnsinoSuperior ? 'Não aplicável' : 'Selecionar'}
                                         </option>
                                         {!isEnsinoSuperior
-                                            ? anosEscolaresOptions.map(
-                                                  (ano) => (
-                                                      <option
-                                                          key={ano}
-                                                          value={ano}
-                                                      >
-                                                          {ano}
-                                                      </option>
-                                                  )
-                                              )
+                                            ? anosEscolaresOptions.map((ano) => (
+                                                  <option key={ano} value={ano}>{ano}</option>
+                                              ))
                                             : null}
                                     </select>
                                     {selectedNivel && !loadingOpcoes ? (
@@ -713,388 +525,279 @@ export default function InfosInscricaoPage() {
                                         </p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Turma
-                                    <input
-                                        name="turma"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                        placeholder="Ex: B"
-                                    />
+                                <label className={LABEL_CLS}>
+                                    Turma <Req />
+                                    <input name="turma" type="text" required placeholder="Ex: B" className={INPUT_CLS} />
                                 </label>
                             </div>
                         </section>
 
+                        {/* ── Encarregado de Educação ────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                                 Encarregado de Educação
                             </h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Nome
-                                    <input
-                                        name="ee_nome"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Nome <Req />
+                                    <input name="ee_nome" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    NIF
-                                    <input
-                                        name="ee_nif"
-                                        type="text"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
-                                    {liveErrors.ee_nif ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.ee_nif}
-                                        </p>
-                                    ) : null}
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Email <Req />
+                                    <input name="ee_email" type="email" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Email
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Telemóvel <Req />
                                     <input
-                                        name="ee_email"
-                                        type="email"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
-                                </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Telemóvel
-                                    <input
-                                        name="ee_telemovel"
-                                        type="tel"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        name="ee_telemovel" type="tel" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        className={INPUT_CLS}
                                     />
                                     {liveErrors.ee_telemovel ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.ee_telemovel}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.ee_telemovel}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Telefone
-                                    <input
-                                        name="ee_telefone"
-                                        type="tel"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
-                                    {liveErrors.ee_telefone ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.ee_telefone}
-                                        </p>
-                                    ) : null}
+
+                                <div className="flex items-center justify-between sm:col-span-2">
+                                    <span className={LABEL_CLS}>
+                                        Morada <Req />
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={copiarMoradaAluno}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+                                    >
+                                        Copiar morada do aluno
+                                    </button>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <input ref={eeMoradaRef} name="ee_morada" type="text" required className={INPUT_CLS} />
+                                </div>
+                                <label className={LABEL_CLS}>
+                                    Localidade <Req />
+                                    <input ref={eeLocalidadeRef} name="ee_localidade" type="text" required className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Morada
+                                <label className={LABEL_CLS}>
+                                    Código Postal <Req />
                                     <input
-                                        name="ee_morada"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
-                                </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Localidade
-                                    <input
-                                        name="ee_localidade"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
-                                </label>
-                                <label className="text-sm font-semibold text-slate-700">
-                                    Código Postal
-                                    <input
-                                        name="ee_codigo_postal"
-                                        type="text"
-                                        inputMode="numeric"
-                                        required
-                                        onChange={handleLiveValidation}
-                                        onBlur={handleLiveValidation}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                        ref={eeCodigoPostalRef}
+                                        name="ee_codigo_postal" type="text" inputMode="numeric" required
+                                        onChange={handleLiveValidation} onBlur={handleLiveValidation}
+                                        className={INPUT_CLS}
                                     />
                                     {liveErrors.ee_codigo_postal ? (
-                                        <p className="mt-1 text-xs text-red-600">
-                                            {liveErrors.ee_codigo_postal}
-                                        </p>
+                                        <p className="mt-1 text-xs text-red-600">{liveErrors.ee_codigo_postal}</p>
                                     ) : null}
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Parentesco
+                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                    Parentesco <Req />
                                     <input
-                                        name="ee_parentesco"
-                                        type="text"
-                                        required
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                        placeholder="Ex: Mae, Pai, Tio, Avô"
+                                        name="ee_parentesco" type="text" required
+                                        placeholder="Ex: Mãe, Pai, Tio, Avô"
+                                        className={INPUT_CLS}
                                     />
                                 </label>
                             </div>
                         </section>
 
+                        {/* ── Plano ─────────────────────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
-                                Plano
-                            </h2>
-                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Disciplina Pretendida
-                                    <select
-                                        required
-                                        name="disciplina"
-                                        disabled={
-                                            !selectedNivel || loadingOpcoes
-                                        }
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    >
-                                        <option value="">
-                                            {!selectedNivel
-                                                ? 'Selecione primeiro o nível'
-                                                : 'Selecionar'}
-                                        </option>
-                                        {disciplinasFiltradas.map((item) => (
-                                            <option
-                                                key={item.id}
-                                                value={item.value}
-                                            >
-                                                {item.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {selectedNivel &&
-                                    !loadingOpcoes &&
-                                    disciplinasFiltradas.length === 0 ? (
-                                        <p className="mt-1 text-xs text-amber-600">
-                                            Sem disciplinas associadas para este
-                                            nível.
-                                        </p>
-                                    ) : null}
-                                </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Tipo de Serviço
-                                    <select
-                                        required
-                                        name="tipo_servico"
-                                        value={selectedTipoServico}
-                                        onChange={handleTipoServicoChange}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    >
-                                        <option value="">Selecionar</option>
-                                        {loadingOpcoes ? (
-                                            <option value="">
-                                                A carregar...
-                                            </option>
-                                        ) : null}
-                                        {tipoServicoSelecionadoOptions.map(
-                                            (item) => (
-                                                <option
-                                                    key={item.id}
-                                                    value={item.id}
-                                                >
-                                                    {item.label || item.value}
-                                                </option>
-                                            )
-                                        )}
-                                    </select>
-                                    {tipoServicoSelecionado ? (
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            Tipo de serviço selecionado:{' '}
-                                            {tipoServicoSelecionado}.
-                                        </p>
-                                    ) : null}
-                                </label>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Modalidade
-                                    <select
-                                        required
-                                        name="modalidade"
-                                        value={selectedModalidade}
-                                        onChange={handleModalidadeChange}
-                                        disabled={!podeEscolherModalidade}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    >
-                                        <option value="">
-                                            {!selectedTipoServico
-                                                ? 'Selecione primeiro o tipo de serviço'
-                                                : 'Selecionar'}
-                                        </option>
-                                        {loadingOpcoes ? (
-                                            <option value="">
-                                                A carregar...
-                                            </option>
-                                        ) : null}
-                                        {modalidadesOptions.map((item) => (
-                                            <option
-                                                key={item.id}
-                                                value={item.id}
-                                            >
-                                                {item.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {!selectedTipoServico ? (
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            Escolha primeiro o tipo de serviço
-                                            para avançar para a modalidade.
-                                        </p>
-                                    ) : null}
-                                    {isExplicacoesIndividuais ? (
-                                        <p className="mt-1 text-xs text-blue-700">
-                                            Modalidade individual selecionada:
-                                            preco fixo de 20EUR/h.
-                                        </p>
-                                    ) : null}
-                                </label>
-                                <fieldset
-                                    className="sm:col-span-2"
-                                    disabled={!podeEscolherPacote}
-                                >
-                                    <legend className="text-sm font-semibold text-slate-700">
-                                        Pacote Pretendido
-                                    </legend>
-                                    <div className="mt-2 grid gap-2">
-                                        {PACOTE_OPTIONS.map((item) => (
-                                            <label
-                                                key={item}
-                                                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${!podeEscolherPacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'}`}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="pacote"
-                                                    value={item}
-                                                    checked={
-                                                        selectedPacote === item
-                                                    }
-                                                    onChange={(event) => {
-                                                        if (
-                                                            !podeEscolherPacote
-                                                        ) {
-                                                            return;
-                                                        }
+                            <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Plano</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e pacote.
+                            </p>
 
-                                                        setSelectedPacote(
-                                                            event.target.value
-                                                        );
-                                                    }}
-                                                    required={
-                                                        podeEscolherPacote
-                                                    }
-                                                    disabled={
-                                                        !podeEscolherPacote
-                                                    }
-                                                    className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
-                                                />
-                                                <span>{item}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {isExplicacoesIndividuais ? (
-                                        <p className="mt-2 text-xs text-slate-500">
-                                            Pacotes indisponiveis para
-                                            explicacao individual.
-                                        </p>
-                                    ) : !selectedModalidade ? (
-                                        <p className="mt-2 text-xs text-slate-500">
-                                            Selecione primeiro a modalidade para
-                                            escolher um pacote.
-                                        </p>
-                                    ) : null}
-                                </fieldset>
-                                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                                    Observações
-                                    <textarea
-                                        name="obs"
-                                        rows={4}
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                        placeholder="Informacoes relevantes sobre o aluno, objetivos ou disponibilidade."
-                                    />
-                                </label>
+                            <div className="mt-5 space-y-4">
+                                {planoItems.map((item, index) => {
+                                    const podeModalidade = Boolean(item.tipoServico) && !loadingOpcoes;
+                                    const isIndividual = isModalidadeIndividual(item.modalidade);
+                                    const podePacote = Boolean(item.modalidade) && !isIndividual;
+
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                                        >
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <span className="text-sm font-bold text-slate-700">
+                                                    Disciplina {index + 1}
+                                                </span>
+                                                {planoItems.length > 1 ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removePlanoItem(item.id)}
+                                                        className="text-xs font-semibold text-red-600 transition hover:text-red-800"
+                                                    >
+                                                        Remover
+                                                    </button>
+                                                ) : null}
+                                            </div>
+
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <label className={LABEL_CLS}>
+                                                    Disciplina <Req />
+                                                    <select
+                                                        value={item.disciplina}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'disciplina', e.target.value)}
+                                                        disabled={!selectedNivel || loadingOpcoes}
+                                                        className={SELECT_DISABLED_CLS}
+                                                    >
+                                                        <option value="">
+                                                            {!selectedNivel ? 'Selecione primeiro o nível' : 'Selecionar'}
+                                                        </option>
+                                                        {disciplinasFiltradas.map((d) => (
+                                                            <option key={d.id} value={d.value}>{d.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    {selectedNivel && !loadingOpcoes && disciplinasFiltradas.length === 0 ? (
+                                                        <p className="mt-1 text-xs text-amber-600">
+                                                            Sem disciplinas para este nível.
+                                                        </p>
+                                                    ) : null}
+                                                </label>
+
+                                                <label className={LABEL_CLS}>
+                                                    Tipo de Serviço <Req />
+                                                    <select
+                                                        value={item.tipoServico}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'tipoServico', e.target.value)}
+                                                        className={SELECT_CLS}
+                                                    >
+                                                        <option value="">Selecionar</option>
+                                                        {loadingOpcoes ? <option value="">A carregar...</option> : null}
+                                                        {tipoServicoOptions.map((o) => (
+                                                            <option key={o.id} value={o.id}>{o.label || o.value}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                                    Modalidade <Req />
+                                                    <select
+                                                        value={item.modalidade}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'modalidade', e.target.value)}
+                                                        disabled={!podeModalidade}
+                                                        className={SELECT_DISABLED_CLS}
+                                                    >
+                                                        <option value="">
+                                                            {!item.tipoServico ? 'Selecione primeiro o tipo de serviço' : 'Selecionar'}
+                                                        </option>
+                                                        {modalidadesOptions.map((o) => (
+                                                            <option key={o.id} value={o.id}>{o.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    {isIndividual ? (
+                                                        <p className="mt-1 text-xs text-blue-700">
+                                                            Modalidade individual selecionada: preço fixo de 20EUR/h.
+                                                        </p>
+                                                    ) : null}
+                                                </label>
+
+                                                {!isIndividual ? (
+                                                    <fieldset className="sm:col-span-2" disabled={!podePacote}>
+                                                        <legend className={LABEL_CLS}>
+                                                            Pacote {podePacote && <Req />}
+                                                        </legend>
+                                                        <div className="mt-2 grid gap-2">
+                                                            {PACOTE_OPTIONS.map((p) => (
+                                                                <label
+                                                                    key={p}
+                                                                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`pacote_${item.id}`}
+                                                                        value={p}
+                                                                        checked={item.pacote === p}
+                                                                        onChange={() => updatePlanoItem(item.id, 'pacote', p)}
+                                                                        disabled={!podePacote}
+                                                                        className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
+                                                                    />
+                                                                    <span>{p}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        {!item.modalidade ? (
+                                                            <p className="mt-2 text-xs text-slate-500">
+                                                                Selecione primeiro a modalidade para escolher um pacote.
+                                                            </p>
+                                                        ) : null}
+                                                    </fieldset>
+                                                ) : (
+                                                    <p className="text-xs text-slate-500 sm:col-span-2">
+                                                        Pacotes não disponíveis para explicação individual.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <button
+                                    type="button"
+                                    onClick={addPlanoItem}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+                                >
+                                    + Adicionar outra disciplina
+                                </button>
                             </div>
+
+                            <label className={`${LABEL_CLS} mt-5 block`}>
+                                Observações
+                                <textarea
+                                    name="obs"
+                                    rows={4}
+                                    className={`${INPUT_CLS} resize-none`}
+                                    placeholder="Informações relevantes sobre o aluno, objetivos ou disponibilidade."
+                                />
+                            </label>
                         </section>
 
+                        {/* ── Autorização de Saída ───────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                                 Autorização de Saída
                             </h2>
                             <p className="mt-2 text-sm text-slate-600">
-                                Indique as pessoas autorizadas com que o aluno
-                                pode sair no final das atividades.
+                                Indique as pessoas autorizadas com que o aluno pode sair no final das atividades.
                             </p>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <label className="text-sm font-semibold text-slate-700">
+                                <label className={LABEL_CLS}>
                                     Nome (1)
-                                    <input
-                                        name="aut_saida_nome_1"
-                                        type="text"
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                    <input name="aut_saida_nome_1" type="text" className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
+                                <label className={LABEL_CLS}>
                                     Parentesco (1)
-                                    <input
-                                        name="aut_saida_parentesco_1"
-                                        type="text"
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                    <input name="aut_saida_parentesco_1" type="text" className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
+                                <label className={LABEL_CLS}>
                                     Nome (2)
-                                    <input
-                                        name="aut_saida_nome_2"
-                                        type="text"
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                    <input name="aut_saida_nome_2" type="text" className={INPUT_CLS} />
                                 </label>
-                                <label className="text-sm font-semibold text-slate-700">
+                                <label className={LABEL_CLS}>
                                     Parentesco (2)
-                                    <input
-                                        name="aut_saida_parentesco_2"
-                                        type="text"
-                                        className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    />
+                                    <input name="aut_saida_parentesco_2" type="text" className={INPUT_CLS} />
                                 </label>
                             </div>
 
                             <div className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                                 <label className="flex items-start gap-3 text-sm text-slate-700">
                                     <input
-                                        type="checkbox"
-                                        required
+                                        type="checkbox" required
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
-                                        Consinto a utilização dos dados para
-                                        procedimentos de gestão e comunicação
-                                        interna, incluindo contacto telefónico,
-                                        SMS, email e correspondência postal.
+                                        Consinto a utilização dos dados para procedimentos de gestão e comunicação
+                                        interna, incluindo contacto telefónico, SMS, email e correspondência postal.
                                     </span>
                                 </label>
                                 <label className="flex items-start gap-3 text-sm text-slate-700">
                                     <input
-                                        type="checkbox"
-                                        required
+                                        type="checkbox" required
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
-                                        Aceito e concordo com as condições de
-                                        prestação de serviços e regulamento
-                                        interno.
+                                        Aceito e concordo com as condições de prestação de serviços e regulamento interno.
                                     </span>
                                 </label>
                             </div>
@@ -1108,8 +811,7 @@ export default function InfosInscricaoPage() {
 
                             {sent ? (
                                 <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                                    Inscrição enviada com sucesso. Aguarde a
-                                    confirmação por parte do administrador.
+                                    Inscrição enviada com sucesso. Aguarde a confirmação por parte do administrador.
                                 </p>
                             ) : null}
                         </section>

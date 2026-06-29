@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Navigate,
     Route,
@@ -60,6 +60,7 @@ import {
     iniciarNotificacoesFirebase,
     removerTokenFirebaseAtual,
 } from './services/firebaseMessaging';
+import PendingEnrollmentsPopup from './components/enrollments/PendingEnrollmentsPopup';
 
 const ROLE_HOME_PATH = {
     gestor: '/gestor/dashboard',
@@ -270,6 +271,8 @@ function App() {
     const navigate = useNavigate();
     const location = useLocation();
     const [user, setUser] = useState(getStoredUser);
+    const [pendingEnrollmentsCount, setPendingEnrollmentsCount] = useState(0);
+    const [showEnrollmentsPopup, setShowEnrollmentsPopup] = useState(false);
 
     const [sidebarOpen, setSidebarOpen] = useState(() => {
         if (typeof window === 'undefined') {
@@ -283,6 +286,8 @@ function App() {
         [currentRole]
     );
 
+    const prevUserRef = useRef(null);
+
     function handleLogin(loggedUser, csrfToken) {
         setUser(loggedUser);
         localStorage.setItem('mc_user', JSON.stringify(loggedUser));
@@ -295,6 +300,30 @@ function App() {
         const nextPath = ROLE_HOME_PATH[loggedUser?.role] || '/';
         navigate(nextPath, { replace: true });
     }
+
+    // Detecta transição de login e verifica inscrições pendentes para gestores
+    useEffect(() => {
+        const prev = prevUserRef.current;
+        prevUserRef.current = user;
+
+        const justLoggedIn = !prev && user?.role === 'gestor';
+        if (!justLoggedIn) return;
+
+        apiGet('/api/gestor/inscricoes-publicas?estado=pendente')
+            .then((res) => {
+                if (!res.ok) return null;
+                return res.json();
+            })
+            .then((data) => {
+                if (!data) return;
+                const count = data?.inscricoes?.length ?? 0;
+                if (count > 0) {
+                    setPendingEnrollmentsCount(count);
+                    setShowEnrollmentsPopup(true);
+                }
+            })
+            .catch(() => {});
+    }, [user]);
 
     useEffect(() => {
         if (!user || !isKnownRole) {
@@ -508,6 +537,14 @@ function App() {
                     </main>
                 </div>
             </div>
+
+            {showEnrollmentsPopup && (
+                <PendingEnrollmentsPopup
+                    count={pendingEnrollmentsCount}
+                    onClose={() => setShowEnrollmentsPopup(false)}
+                    onNavigate={handleNavigate}
+                />
+            )}
         </div>
     );
 }

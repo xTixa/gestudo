@@ -12,6 +12,7 @@ export default function MonthlyChart({
     data = [],
     loading = false,
     error = '',
+    expanded = false,
 }) {
     if (loading) {
         return (
@@ -34,7 +35,7 @@ export default function MonthlyChart({
     }
 
     return (
-        <div className="mt-6 h-64">
+        <div className={expanded ? 'mt-6 h-[min(65vh,34rem)]' : 'mt-6 h-64'}>
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data}>
                     <XAxis dataKey="mes" />

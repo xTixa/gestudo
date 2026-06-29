@@ -1,6 +1,7 @@
 import { db } from '../config/db.js';
 import bcrypt from 'bcryptjs';
-import { enviarEmailCredenciaisIniciais } from '../services/emailService.js';
+import { enviarEmailCredenciaisIniciais, enviarEmailAlerta } from '../services/emailService.js';
+import { dispatchAlert } from '../services/alertasDispatchService.js';
 import {
     registarInsert,
     registarUpdate,
@@ -736,6 +737,60 @@ async function integrarInscricaoAprovada(inscricao) {
     }
 }
 
+async function ensureNovaInscricaoAlertDefinition() {
+    await db.query(`
+        INSERT INTO alertas_definicoes (codigo, titulo, canal_app_default, canal_email_default, canal_sms_default, ativo)
+        VALUES ('nova-inscricao-publica', 'Nova Inscrição Pública', true, false, false, true)
+        ON CONFLICT (codigo) DO NOTHING
+    `);
+}
+
+async function notificarGestoresNovaInscricao({ nomeAluno, email, modalidade, tipoServico, id }) {
+    try {
+        const { rows: gestores } = await db.query(
+            `SELECT id_user, email FROM users WHERE role IN ('gestor', 'admin') AND status = true AND email IS NOT NULL`
+        );
+
+        if (!gestores.length) return;
+
+        const modalidadeStr = modalidade ? ` — ${modalidade}` : '';
+        const tipoStr = tipoServico ? ` (${tipoServico})` : '';
+        const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+        const link = appUrl ? `${appUrl}/gestor/inscricoes-publicas` : null;
+        const titulo = 'Nova inscrição pública recebida';
+        const descricao = `${nomeAluno} (${email}) submeteu uma nova inscrição${modalidadeStr}${tipoStr}. Referência #${id}.`;
+
+        // Email para cada gestor
+        await Promise.allSettled(
+            gestores.map((g) =>
+                enviarEmailAlerta({
+                    email: g.email,
+                    nome: 'Gestor',
+                    titulo,
+                    descricao,
+                    nivel: 'info',
+                    link,
+                })
+            )
+        );
+
+        // Notificação in-app para cada gestor
+        await ensureNovaInscricaoAlertDefinition();
+        await dispatchAlert({
+            codigo: 'nova-inscricao-publica',
+            for_user_ids: gestores.map((g) => g.id_user),
+            titulo,
+            descricao,
+            nivel: 'info',
+            canal: 'app',
+            payload: { id_inscricao_publica: id, nome_aluno: nomeAluno },
+            pushLink: link,
+        });
+    } catch (err) {
+        console.error('[inscricaoController] Erro ao notificar gestores:', err.message);
+    }
+}
+
 export async function criarInscricaoPublica(req, res) {
     try {
         await ensureInscricoesPublicasTable();
@@ -880,6 +935,15 @@ export async function criarInscricaoPublica(req, res) {
             },
             result.rows[0]?.id_inscricao_publica || null
         );
+
+        // Notificar gestores por email (fire-and-forget)
+        notificarGestoresNovaInscricao({
+            nomeAluno: nomeCompleto,
+            email,
+            modalidade: getBodyValue(body, 'modalidade'),
+            tipoServico: getBodyValue(body, 'tipo_servico'),
+            id: result.rows[0]?.id_inscricao_publica,
+        });
 
         return res.status(201).json({
             message: 'Inscrição recebida com sucesso.',
