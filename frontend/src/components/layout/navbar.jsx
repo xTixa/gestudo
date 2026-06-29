@@ -60,12 +60,14 @@ export default function Navbar({
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+    const [activeResultIndex, setActiveResultIndex] = useState(-1);
     const [notifications, setNotifications] = useState([]);
     const dropdownRef = useRef(null);
     const notificationsRef = useRef(null);
     const searchRef = useRef(null);
     const debounceTimerRef = useRef(null);
     const lastSearchRef = useRef('');
+    const searchInputRef = useRef(null);
     const displayName =
         user?.nome?.trim() || user?.email?.split('@')[0] || 'Utilizador';
     const avatarSrc = user?.imagem_perfil_url || defaultAvatar;
@@ -225,22 +227,13 @@ export default function Navbar({
                     { method: 'GET' }
                 );
 
-                console.log('[search] Status:', response.status);
-
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(
-                        '[search] Erro HTTP:',
-                        response.status,
-                        errorText
-                    );
                     setSearchResults([]);
                     setIsSearching(false);
                     return;
                 }
 
                 const result = await response.json();
-                console.log('[search] Resposta:', result);
                 const data = result.data || {
                     alunos: [],
                     professores: [],
@@ -305,9 +298,8 @@ export default function Navbar({
                 }
 
                 setSearchResults(results);
-                console.log('[search] Resultados finais:', results);
-            } catch (err) {
-                console.error('[search] Erro:', err.message, err);
+                setActiveResultIndex(-1);
+            } catch {
                 setSearchResults([]);
             } finally {
                 setIsSearching(false);
@@ -343,8 +335,32 @@ export default function Navbar({
 
     function handleSearchSubmit(event) {
         event.preventDefault();
-        // Buscar apenas, não redirecionar
-        // O dropdown de resultados já está aberto
+        const flatResults = searchResults.flatMap((cat) => cat.items);
+        if (activeResultIndex >= 0 && flatResults[activeResultIndex]) {
+            handleSearchResultClick(flatResults[activeResultIndex]);
+        }
+    }
+
+    function handleSearchKeyDown(event) {
+        if (!isSearchDropdownOpen) return;
+        const flatResults = searchResults.flatMap((cat) => cat.items);
+        if (flatResults.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setActiveResultIndex((prev) =>
+                prev < flatResults.length - 1 ? prev + 1 : 0
+            );
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveResultIndex((prev) =>
+                prev > 0 ? prev - 1 : flatResults.length - 1
+            );
+        } else if (event.key === 'Escape') {
+            setIsSearchDropdownOpen(false);
+            setActiveResultIndex(-1);
+            searchInputRef.current?.blur();
+        }
     }
 
     function handleSearchResultClick(result) {
@@ -415,7 +431,18 @@ export default function Navbar({
                                 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                             />
                             <input
+                                ref={searchInputRef}
                                 type="text"
+                                role="combobox"
+                                aria-label="Pesquisa global"
+                                aria-expanded={isSearchDropdownOpen}
+                                aria-controls="search-results-listbox"
+                                aria-autocomplete="list"
+                                aria-activedescendant={
+                                    activeResultIndex >= 0
+                                        ? `search-result-${activeResultIndex}`
+                                        : undefined
+                                }
                                 value={search}
                                 onChange={(event) =>
                                     setSearch(event.target.value)
@@ -425,12 +452,18 @@ export default function Navbar({
                                     isSearchDropdownOpen &&
                                     setIsSearchDropdownOpen(true)
                                 }
+                                onKeyDown={handleSearchKeyDown}
                                 placeholder="Pesquisar alunos, professores, serviços..."
                                 className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-200"
                             />
 
                             {isSearchDropdownOpen && search.trim() ? (
-                                <div className="fixed inset-x-4 top-32 z-[100] max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:top-full sm:mt-2 sm:max-h-96 sm:w-full">
+                                <div
+                                    id="search-results-listbox"
+                                    role="listbox"
+                                    aria-label="Resultados da pesquisa"
+                                    className="fixed inset-x-4 top-32 z-[100] max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:top-full sm:mt-2 sm:max-h-96 sm:w-full"
+                                >
                                     {isSearching ? (
                                         <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-slate-500">
                                             <Loader
@@ -446,38 +479,38 @@ export default function Navbar({
                                                 "{search}"
                                             </p>
                                         </div>
-                                    ) : (
-                                        searchResults
-                                            .filter(
-                                                (categoria) =>
-                                                    categoria.items.length > 0
-                                            )
+                                    ) : (() => {
+                                        let globalIndex = -1;
+                                        return searchResults
+                                            .filter((cat) => cat.items.length > 0)
                                             .map((categoria) => (
                                                 <div key={categoria.categoria}>
                                                     <div className="border-t border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 bg-slate-50">
                                                         {categoria.categoria}
                                                     </div>
-                                                    {categoria.items.map(
-                                                        (item) => (
+                                                    {categoria.items.map((item) => {
+                                                        globalIndex += 1;
+                                                        const idx = globalIndex;
+                                                        const isActive = idx === activeResultIndex;
+                                                        return (
                                                             <button
+                                                                id={`search-result-${idx}`}
                                                                 key={`${item.tipo}-${item.id}`}
                                                                 type="button"
-                                                                onClick={() =>
-                                                                    handleSearchResultClick(
-                                                                        item
-                                                                    )
-                                                                }
-                                                                className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 transition"
+                                                                role="option"
+                                                                aria-selected={isActive}
+                                                                onClick={() => handleSearchResultClick(item)}
+                                                                className={`w-full px-4 py-2.5 text-left text-sm text-slate-700 transition ${isActive ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100'}`}
                                                             >
                                                                 <p className="font-medium">
                                                                     {item.nome}
                                                                 </p>
                                                             </button>
-                                                        )
-                                                    )}
+                                                        );
+                                                    })}
                                                 </div>
-                                            ))
-                                    )}
+                                            ));
+                                    })()}
                                 </div>
                             ) : null}
                         </div>
@@ -543,11 +576,11 @@ export default function Navbar({
                                                     ) : null}
                                                 </div>
                                                 {notification.descricao ? (
-                                                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                                    <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">
                                                         {notification.descricao}
                                                     </p>
                                                 ) : null}
-                                                <p className="text-xs text-slate-500 mt-1">
+                                                <p className="text-xs text-slate-600 mt-1">
                                                     {getRelativeTime(
                                                         notification.createdAt
                                                     )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Users,
@@ -68,16 +68,41 @@ export default function DashboardGestor() {
     const [chartsLoading, setChartsLoading] = useState(true);
     const [chartsError, setChartsError] = useState('');
     const [expandedChart, setExpandedChart] = useState(null);
+    const dialogRef = useRef(null);
 
     useEffect(() => {
         if (!expandedChart) return undefined;
 
         const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
         const handleKeyDown = (event) => {
-            if (event.key === 'Escape') setExpandedChart(null);
+            if (event.key === 'Escape') {
+                setExpandedChart(null);
+                return;
+            }
+            if (event.key !== 'Tab' || !dialogRef.current) return;
+            const focusable = [
+                ...dialogRef.current.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                ),
+            ].filter((el) => !el.disabled);
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey) {
+                if (document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
         };
 
-        document.body.style.overflow = 'hidden';
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
@@ -368,6 +393,7 @@ export default function DashboardGestor() {
                     role="presentation"
                 >
                     <section
+                        ref={dialogRef}
                         className="w-full max-w-6xl rounded-2xl bg-white p-5 shadow-2xl sm:p-7"
                         role="dialog"
                         aria-modal="true"

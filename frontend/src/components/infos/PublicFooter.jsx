@@ -28,9 +28,26 @@ export default function PublicFooter() {
                         Informação
                     </h3>
                     <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                        <li>Política de Privacidade</li>
-                        <li>Política de Cookies</li>
-                        <li>Livro de Reclamações Online</li>
+                        <li>
+                            <Link to="/politica-privacidade" className="hover:text-slate-800 hover:underline">
+                                Política de Privacidade
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to="/politica-cookies" className="hover:text-slate-800 hover:underline">
+                                Política de Cookies
+                            </Link>
+                        </li>
+                        <li>
+                            <a
+                                href="https://www.livroreclamacoes.pt"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-slate-800 hover:underline"
+                            >
+                                Livro de Reclamações Online
+                            </a>
+                        </li>
                     </ul>
                 </div>
 

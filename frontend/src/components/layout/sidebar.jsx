@@ -367,7 +367,7 @@ export default function Sidebar({
                                                             : 'text-slate-700 hover:bg-slate-100'
                                                     }
 												`}
-                                                    title={child.label}
+                                                    aria-label={child.label}
                                                 >
                                                     <ChildIcon size={18} />
                                                 </button>
@@ -391,7 +391,7 @@ export default function Sidebar({
                                                 : 'text-slate-700 hover:bg-slate-100'
                                         }
 									`}
-                                        title={
+                                        aria-label={
                                             !showLabels ? item.label : undefined
                                         }
                                     >

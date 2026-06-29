@@ -4,6 +4,7 @@ import {
     AlertCircle,
     CheckCircle2,
     Funnel,
+    Loader,
     RefreshCw,
     Search,
     Trash2,
@@ -346,8 +347,11 @@ export default function PublicEnrollmentsPage() {
             )}
 
             {loading && !items.length ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
-                    A carregar...
+                <div className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+                    <div className="flex items-center justify-center gap-2 text-slate-500">
+                        <Loader size={18} className="animate-spin" />
+                        <span className="text-sm">A carregar inscrições...</span>
+                    </div>
                 </div>
             ) : (
                 <EnrollmentTable

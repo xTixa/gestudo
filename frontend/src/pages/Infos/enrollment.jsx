@@ -372,7 +372,7 @@ export default function InfosInscricaoPage() {
             <main>
                 <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
                     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-200">
                             Inscrições
                         </p>
                         <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
@@ -387,12 +387,12 @@ export default function InfosInscricaoPage() {
                 <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
                     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         {erroOpcoes ? (
-                            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                            <p role="alert" aria-live="assertive" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                                 {erroOpcoes}
                             </p>
                         ) : null}
                         {submitError ? (
-                            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            <p role="alert" aria-live="assertive" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                 {submitError}
                             </p>
                         ) : null}
@@ -428,23 +428,31 @@ export default function InfosInscricaoPage() {
                                 <label className={LABEL_CLS}>
                                     Telemóvel <Req />
                                     <input
+                                        id="field-telemovel"
                                         name="telemovel" type="tel" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.telemovel ? 'err-telemovel' : undefined}
+                                        aria-invalid={Boolean(liveErrors.telemovel)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         className={INPUT_CLS}
                                     />
                                     {liveErrors.telemovel ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.telemovel}</p>
+                                        <p id="err-telemovel" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.telemovel}</p>
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
                                     Telefone <Req />
                                     <input
+                                        id="field-telefone"
                                         name="telefone" type="tel" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.telefone ? 'err-telefone' : undefined}
+                                        aria-invalid={Boolean(liveErrors.telefone)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         className={INPUT_CLS}
                                     />
                                     {liveErrors.telefone ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.telefone}</p>
+                                        <p id="err-telefone" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.telefone}</p>
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
@@ -454,12 +462,16 @@ export default function InfosInscricaoPage() {
                                 <label className={LABEL_CLS}>
                                     NIF <Req />
                                     <input
+                                        id="field-nif"
                                         name="nif" type="text" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.nif ? 'err-nif' : undefined}
+                                        aria-invalid={Boolean(liveErrors.nif)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         className={INPUT_CLS}
                                     />
                                     {liveErrors.nif ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.nif}</p>
+                                        <p id="err-nif" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.nif}</p>
                                     ) : null}
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
@@ -473,13 +485,17 @@ export default function InfosInscricaoPage() {
                                 <label className={LABEL_CLS}>
                                     Código Postal <Req />
                                     <input
+                                        id="field-codigo-postal"
                                         ref={alunoCodigoPostalRef}
                                         name="codigo_postal" type="text" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.codigo_postal ? 'err-codigo-postal' : undefined}
+                                        aria-invalid={Boolean(liveErrors.codigo_postal)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         placeholder="3510-085" className={INPUT_CLS}
                                     />
                                     {liveErrors.codigo_postal ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.codigo_postal}</p>
+                                        <p id="err-codigo-postal" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.codigo_postal}</p>
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
@@ -549,12 +565,16 @@ export default function InfosInscricaoPage() {
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
                                     Telemóvel <Req />
                                     <input
+                                        id="field-ee-telemovel"
                                         name="ee_telemovel" type="tel" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.ee_telemovel ? 'err-ee-telemovel' : undefined}
+                                        aria-invalid={Boolean(liveErrors.ee_telemovel)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         className={INPUT_CLS}
                                     />
                                     {liveErrors.ee_telemovel ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.ee_telemovel}</p>
+                                        <p id="err-ee-telemovel" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.ee_telemovel}</p>
                                     ) : null}
                                 </label>
 
@@ -580,13 +600,17 @@ export default function InfosInscricaoPage() {
                                 <label className={LABEL_CLS}>
                                     Código Postal <Req />
                                     <input
+                                        id="field-ee-codigo-postal"
                                         ref={eeCodigoPostalRef}
                                         name="ee_codigo_postal" type="text" inputMode="numeric" required
+                                        aria-required="true"
+                                        aria-describedby={liveErrors.ee_codigo_postal ? 'err-ee-codigo-postal' : undefined}
+                                        aria-invalid={Boolean(liveErrors.ee_codigo_postal)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
                                         className={INPUT_CLS}
                                     />
                                     {liveErrors.ee_codigo_postal ? (
-                                        <p className="mt-1 text-xs text-red-600">{liveErrors.ee_codigo_postal}</p>
+                                        <p id="err-ee-codigo-postal" role="alert" aria-live="polite" className="mt-1 text-xs text-red-600">{liveErrors.ee_codigo_postal}</p>
                                     ) : null}
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>

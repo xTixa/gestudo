@@ -62,6 +62,8 @@ import {
     removerTokenFirebaseAtual,
 } from './services/firebaseMessaging';
 import PendingEnrollmentsPopup from './components/enrollments/PendingEnrollmentsPopup';
+import ErrorBoundary from './components/ErrorBoundary';
+import NotFound from './pages/NotFound';
 
 const ROLE_HOME_PATH = {
     gestor: '/gestor/dashboard',
@@ -406,11 +408,8 @@ function App() {
                 if (typeof result.unsubscribeForeground === 'function') {
                     unsubscribeForeground = result.unsubscribeForeground;
                 }
-            } catch (error) {
-                console.warn(
-                    '[App] Firebase Messaging não inicializado:',
-                    error.message
-                );
+            } catch {
+                // Firebase não disponível neste contexto.
             }
         }
 
@@ -474,7 +473,7 @@ function App() {
                     path="/auth/alterar-password-obrigatorio"
                     element={<AlterarPasswordObrigatorio />}
                 />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         );
     }
@@ -506,7 +505,7 @@ function App() {
                     path="/auth/alterar-password-obrigatorio"
                     element={<AlterarPasswordObrigatorio />}
                 />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         );
     }
@@ -535,10 +534,12 @@ function App() {
 
                     {/* Conteúdo da página */}
                     <main className="flex-1 p-4 sm:p-6 overflow-auto">
-                        <AuthenticatedRoutes
-                            currentRole={currentRole}
-                            user={user}
-                        />
+                        <ErrorBoundary>
+                            <AuthenticatedRoutes
+                                currentRole={currentRole}
+                                user={user}
+                            />
+                        </ErrorBoundary>
                     </main>
                 </div>
             </div>
