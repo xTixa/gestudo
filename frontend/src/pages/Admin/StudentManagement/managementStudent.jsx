@@ -11,6 +11,9 @@ import {
     UserRound,
     Users,
     Funnel,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -588,6 +591,15 @@ export default function GestaoAlunos() {
         ano: 'Todos',
         escola: 'Todos',
     });
+    const [sort, setSort] = useState({ field: null, dir: 'asc' });
+
+    function handleSort(field) {
+        setSort((prev) =>
+            prev.field === field
+                ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                : { field, dir: 'asc' }
+        );
+    }
 
     const filterOptions = useMemo(
         () => ({
@@ -646,7 +658,7 @@ export default function GestaoAlunos() {
     const alunosFiltrados = useMemo(() => {
         const term = filters.search.trim().toLowerCase();
 
-        return alunos.filter((aluno) => {
+        const filtered = alunos.filter((aluno) => {
             const matchesSearch =
                 !term ||
                 [aluno.nome, aluno.nif, aluno.ano, aluno.escola].some((value) =>
@@ -661,7 +673,22 @@ export default function GestaoAlunos() {
 
             return matchesSearch && matchesAno && matchesEscola;
         });
-    }, [alunos, filters]);
+
+        if (!sort.field) return filtered;
+        const mod = sort.dir === 'asc' ? 1 : -1;
+        return [...filtered].sort((a, b) => {
+            let av = a[sort.field];
+            let bv = b[sort.field];
+            if (av == null && bv == null) return 0;
+            if (av == null) return mod;
+            if (bv == null) return -mod;
+            if (typeof av === 'string' && /^\d{4}-\d{2}-\d{2}/.test(av))
+                return (new Date(av) - new Date(bv)) * mod;
+            if (!isNaN(Number(av)) && !isNaN(Number(bv)))
+                return (Number(av) - Number(bv)) * mod;
+            return String(av).localeCompare(String(bv), 'pt') * mod;
+        });
+    }, [alunos, filters, sort]);
 
     useEffect(() => {
         if (!alunoSelecionado) {
@@ -1171,14 +1198,35 @@ export default function GestaoAlunos() {
                     <table className="w-full text-sm text-left">
                         <thead className="text-gray-500 border-b">
                             <tr>
-                                <th className="py-3">Nome Completo</th>
-                                <th>NIF</th>
-                                <th>Ano Escolar</th>
-                                <th>Escola</th>
-                                <th>Encarregado Educação</th>
-                                <th>Contacto</th>
-                                <th>Data Início</th>
-                                <th className="text-center">Ações</th>
+                                {[
+                                    { label: 'Nome Completo', field: 'nome' },
+                                    { label: 'NIF', field: 'nif' },
+                                    { label: 'Ano Escolar', field: 'ano' },
+                                    { label: 'Escola', field: 'escola' },
+                                    { label: 'Encarregado Educação', field: null },
+                                    { label: 'Contacto', field: null },
+                                    { label: 'Data Início', field: 'data_inicio' },
+                                ].map(({ label, field }) =>
+                                    field ? (
+                                        <th
+                                            key={label}
+                                            className="py-3 cursor-pointer select-none hover:text-gray-700 whitespace-nowrap"
+                                            onClick={() => handleSort(field)}
+                                        >
+                                            <span className="flex items-center gap-1">
+                                                {label}
+                                                {sort.field === field ? (
+                                                    sort.dir === 'asc' ? <ChevronUp size={13} className="text-indigo-500 shrink-0" /> : <ChevronDown size={13} className="text-indigo-500 shrink-0" />
+                                                ) : (
+                                                    <ChevronsUpDown size={13} className="opacity-30 shrink-0" />
+                                                )}
+                                            </span>
+                                        </th>
+                                    ) : (
+                                        <th key={label} className="py-3">{label}</th>
+                                    )
+                                )}
+                                <th className="text-center py-3">Ações</th>
                             </tr>
                         </thead>
 

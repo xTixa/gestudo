@@ -8,6 +8,9 @@ import {
     Trash2,
     Eye,
     X,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown,
 } from 'lucide-react';
 import AdminPageHeader from '../../../../components/layout/AdminPageHeader';
 import ServicePreviewDrawer from '../../../../components/services/ServicePreviewDrawer';
@@ -79,6 +82,15 @@ export default function GestaoExtraPage() {
         nivelEnsino: 'Todos',
         area: 'Todos',
     });
+    const [sort, setSort] = useState({ field: null, dir: 'asc' });
+
+    function handleSort(field) {
+        setSort((prev) =>
+            prev.field === field
+                ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                : { field, dir: 'asc' }
+        );
+    }
 
     useEffect(() => {
         let isMounted = true;
@@ -180,7 +192,7 @@ export default function GestaoExtraPage() {
     const rows = useMemo(() => {
         const term = filters.search.trim().toLowerCase();
 
-        return allRows.filter((row) => {
+        const filtered = allRows.filter((row) => {
             const matchesSearch =
                 !term ||
                 [
@@ -215,7 +227,22 @@ export default function GestaoExtraPage() {
                 matchesArea
             );
         });
-    }, [allRows, filters]);
+
+        if (!sort.field) return filtered;
+        const mod = sort.dir === 'asc' ? 1 : -1;
+        return [...filtered].sort((a, b) => {
+            let av = a[sort.field];
+            let bv = b[sort.field];
+            if (av == null && bv == null) return 0;
+            if (av == null) return mod;
+            if (bv == null) return -mod;
+            if (typeof av === 'string' && /^\d{4}-\d{2}-\d{2}/.test(av))
+                return (new Date(av) - new Date(bv)) * mod;
+            if (!isNaN(Number(av)) && !isNaN(Number(bv)))
+                return (Number(av) - Number(bv)) * mod;
+            return String(av).localeCompare(String(bv), 'pt') * mod;
+        });
+    }, [allRows, filters, sort]);
 
     function updateFilter(key, value) {
         setFilters((prev) => ({ ...prev, [key]: value }));
@@ -894,26 +921,31 @@ export default function GestaoExtraPage() {
                 <table className="min-w-[900px] w-full text-left text-sm">
                     <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
                         <tr>
-                            <th className="px-4 py-3 font-medium">
-                                Periodicidade
-                            </th>
-                            <th className="px-4 py-3 font-medium">
-                                Tipo de Serviço
-                            </th>
-                            <th className="px-4 py-3 font-medium">
-                                Modalidade
-                            </th>
-                            <th className="px-4 py-3 font-medium">
-                                Nível de Proficiência
-                            </th>
-                            <th className="px-4 py-3 font-medium">Área</th>
-                            <th className="px-4 py-3 font-medium">Nº Alunos</th>
-                            <th className="px-4 py-3 font-medium">
-                                Data de Fim
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium">
-                                Ações
-                            </th>
+                            {[
+                                { label: 'Periodicidade', field: 'periodicidade' },
+                                { label: 'Tipo de Serviço', field: 'tipoServico' },
+                                { label: 'Modalidade', field: 'modalidade' },
+                                { label: 'Nível de Proficiência', field: 'nivelEnsino' },
+                                { label: 'Área', field: 'area' },
+                                { label: 'Nº Alunos', field: 'nAlunos' },
+                                { label: 'Data de Fim', field: 'dataFim' },
+                            ].map(({ label, field }) => (
+                                <th
+                                    key={label}
+                                    className="px-4 py-3 font-medium cursor-pointer select-none hover:text-slate-700 whitespace-nowrap"
+                                    onClick={() => handleSort(field)}
+                                >
+                                    <span className="flex items-center gap-1">
+                                        {label}
+                                        {sort.field === field ? (
+                                            sort.dir === 'asc' ? <ChevronUp size={12} className="text-indigo-500 shrink-0" /> : <ChevronDown size={12} className="text-indigo-500 shrink-0" />
+                                        ) : (
+                                            <ChevronsUpDown size={12} className="opacity-30 shrink-0" />
+                                        )}
+                                    </span>
+                                </th>
+                            ))}
+                            <th className="px-4 py-3 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">

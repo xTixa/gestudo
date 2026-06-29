@@ -12,6 +12,9 @@ import {
     UserRound,
     GraduationCap,
     Funnel,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -619,7 +622,16 @@ export default function GestaoProfessores() {
         area_ensino: 'Todos',
         nivel: 'Todos',
     });
+    const [sort, setSort] = useState({ field: null, dir: 'asc' });
     const [openDropdown, setOpenDropdown] = useState(null);
+
+    function handleSort(field) {
+        setSort((prev) =>
+            prev.field === field
+                ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                : { field, dir: 'asc' }
+        );
+    }
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
     const dropdownRef = useRef(null);
 
@@ -687,7 +699,7 @@ export default function GestaoProfessores() {
     const professoresFiltrados = useMemo(() => {
         const term = filters.search.trim().toLowerCase();
 
-        return professores.filter((prof) => {
+        const filtered = professores.filter((prof) => {
             const matchesSearch =
                 !term ||
                 [prof.nome, prof.nif, prof.area_ensino, prof.nivel].some(
@@ -702,7 +714,22 @@ export default function GestaoProfessores() {
 
             return matchesSearch && matchesArea && matchesNivel;
         });
-    }, [professores, filters]);
+
+        if (!sort.field) return filtered;
+        const mod = sort.dir === 'asc' ? 1 : -1;
+        return [...filtered].sort((a, b) => {
+            let av = a[sort.field];
+            let bv = b[sort.field];
+            if (av == null && bv == null) return 0;
+            if (av == null) return mod;
+            if (bv == null) return -mod;
+            if (typeof av === 'string' && /^\d{4}-\d{2}-\d{2}/.test(av))
+                return (new Date(av) - new Date(bv)) * mod;
+            if (!isNaN(Number(av)) && !isNaN(Number(bv)))
+                return (Number(av) - Number(bv)) * mod;
+            return String(av).localeCompare(String(bv), 'pt') * mod;
+        });
+    }, [professores, filters, sort]);
 
     useEffect(() => {
         if (openDropdown === null) return;
@@ -1276,14 +1303,35 @@ export default function GestaoProfessores() {
                     <table className="w-full text-sm text-left">
                         <thead className="text-gray-500 border-b">
                             <tr>
-                                <th className="py-3">Nome Completo</th>
-                                <th>NIF</th>
-                                <th>Área Ensino</th>
-                                <th>Contacto</th>
-                                <th>Email</th>
-                                <th>Nível</th>
-                                <th>Data Entrada</th>
-                                <th className="text-center">Ações</th>
+                                {[
+                                    { label: 'Nome Completo', field: 'nome' },
+                                    { label: 'NIF', field: 'nif' },
+                                    { label: 'Área Ensino', field: 'area_ensino' },
+                                    { label: 'Contacto', field: null },
+                                    { label: 'Email', field: 'email' },
+                                    { label: 'Nível', field: 'nivel' },
+                                    { label: 'Data Entrada', field: 'data_entrada' },
+                                ].map(({ label, field }) =>
+                                    field ? (
+                                        <th
+                                            key={label}
+                                            className="py-3 cursor-pointer select-none hover:text-gray-700 whitespace-nowrap"
+                                            onClick={() => handleSort(field)}
+                                        >
+                                            <span className="flex items-center gap-1">
+                                                {label}
+                                                {sort.field === field ? (
+                                                    sort.dir === 'asc' ? <ChevronUp size={13} className="text-indigo-500 shrink-0" /> : <ChevronDown size={13} className="text-indigo-500 shrink-0" />
+                                                ) : (
+                                                    <ChevronsUpDown size={13} className="opacity-30 shrink-0" />
+                                                )}
+                                            </span>
+                                        </th>
+                                    ) : (
+                                        <th key={label} className="py-3">{label}</th>
+                                    )
+                                )}
+                                <th className="text-center py-3">Ações</th>
                             </tr>
                         </thead>
 
