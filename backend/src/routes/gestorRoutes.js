@@ -87,6 +87,7 @@ import {
     alterarEstadoGestor,
     removerGestor,
 } from '../controllers/gestorManagementController.js';
+import { limparDadosEmMassa } from '../controllers/limpezaDadosController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import {
@@ -787,6 +788,17 @@ router.delete(
     '/gestores/:id',
     validateParams({ id: 'number' }),
     removerGestor
+);
+
+// =============== LIMPEZA DE DADOS EM MASSA ===============
+
+router.post(
+    '/dados/limpar',
+    validateBody({
+        confirmacao: { type: 'string', required: true },
+        opcoes: { type: 'object', required: true },
+    }),
+    limparDadosEmMassa
 );
 
 export default router;

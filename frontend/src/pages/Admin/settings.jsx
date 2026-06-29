@@ -11,11 +11,13 @@ import {
     UserPlus,
     ToggleLeft,
     ToggleRight,
+    DatabaseZap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import AlertsPage from './alerts';
 import EmailTemplatesSettings from '../../components/settings/EmailTemplatesSettings';
+import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 
 export default function SettingsPage() {
@@ -150,12 +152,9 @@ export default function SettingsPage() {
     const tabs = [
         { id: 'alertas', label: 'Alertas e Notificações', icon: Bell },
         { id: 'emails', label: 'Templates de Email', icon: Mail },
-        {
-            id: 'manutencao',
-            label: 'Avisos de Manutenção',
-            icon: AlertTriangle,
-        },
+        { id: 'manutencao', label: 'Avisos de Manutenção', icon: AlertTriangle },
         { id: 'gestores', label: 'Administradores', icon: Shield },
+        { id: 'limpeza', label: 'Limpeza de Dados', icon: DatabaseZap },
     ];
 
     async function handleAddMaintenance() {
@@ -298,9 +297,9 @@ export default function SettingsPage() {
                 {/* Conteúdo das Abas */}
                 <div className="p-8 lg:p-10">
 
-                    {/* ABA: Alertas e Notificações */}
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
+                    {activeTab === 'limpeza' && <DataCleanupSettings />}
 
                     {/* ABA: Administradores */}
                     {activeTab === 'gestores' && (
