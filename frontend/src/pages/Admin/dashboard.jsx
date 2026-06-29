@@ -130,24 +130,28 @@ export default function DashboardGestor() {
                     value={resumo.alunosAtivos}
                     icon={Users}
                     bgColor="bg-spindle"
+                    onClick={() => navigate('/gestor/alunos')}
                 />
                 <StatCard
                     title="Professores"
                     value={resumo.professores}
                     icon={GraduationCap}
                     bgColor="bg-cruise"
+                    onClick={() => navigate('/gestor/professores')}
                 />
                 <StatCard
                     title="Serviços Curriculares"
                     value={resumo.servicosCurriculares}
                     icon={BookOpenCheck}
                     bgColor="bg-malibu-400"
+                    onClick={() => navigate('/gestor/servicos/curriculares')}
                 />
                 <StatCard
                     title="Serviços Extra-Curriculares"
                     value={resumo.servicosExtra}
                     icon={BookOpen}
                     bgColor="bg-lavender-500"
+                    onClick={() => navigate('/gestor/servicos/extra-curriculares')}
                 />
             </div>
 

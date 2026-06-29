@@ -1,8 +1,11 @@
 import React from 'react';
 
-export default function StatCard({ title, value, icon: Icon, bgColor }) {
+export default function StatCard({ title, value, icon: Icon, bgColor, onClick }) {
     return (
-        <article className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article
+            className={`flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm${onClick ? ' cursor-pointer transition hover:border-slate-300 hover:shadow-md' : ''}`}
+            onClick={onClick}
+        >
             <div>
                 <p className="text-sm text-slate-500">{title}</p>
                 <p className="mt-2 text-4xl font-semibold text-slate-700">

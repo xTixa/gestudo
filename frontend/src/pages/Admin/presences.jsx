@@ -143,25 +143,15 @@ function PresencasTable({ rows, attendanceColumnCount, title }) {
                                     return (
                                         <td
                                             key={`${aluno.id_aluno}-${index}`}
-                                            className="h-14 border border-slate-900 bg-white px-2 py-1 text-center align-middle"
+                                            className="h-10 border border-slate-900 bg-white px-1 py-1 text-center align-middle"
                                         >
                                             {presenca ? (
-                                                <div className="mx-auto flex w-full max-w-[64px] flex-col gap-1">
-                                                    <div className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[11px] font-semibold leading-none text-slate-700">
-                                                        Dia
-                                                        <div className="mt-0.5 text-sm font-bold text-slate-900">
-                                                            {formatDayMonth(
-                                                                presenca.data
-                                                            )}
-                                                        </div>
+                                                <div className="mx-auto text-center leading-tight">
+                                                    <div className="text-xs font-semibold text-slate-800">
+                                                        {formatDayMonth(presenca.data)}
                                                     </div>
-                                                    <div className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-1 text-[11px] font-semibold leading-none text-blue-700">
-                                                        Hora
-                                                        <div className="mt-0.5 text-sm font-bold text-blue-900">
-                                                            {formatHoursLabel(
-                                                                presenca.horas
-                                                            )}
-                                                        </div>
+                                                    <div className="text-xs text-slate-500">
+                                                        {formatHoursLabel(presenca.horas)}
                                                     </div>
                                                 </div>
                                             ) : null}
@@ -241,9 +231,12 @@ export default function PresencasGestorPage() {
 
     const filteredRows = useMemo(() => {
         const term = search.trim().toLowerCase();
-        if (!term) return report.alunos;
+        const withPresences = report.alunos.filter(
+            (aluno) => aluno.presencas?.length > 0
+        );
+        if (!term) return withPresences;
 
-        return report.alunos.filter((aluno) =>
+        return withPresences.filter((aluno) =>
             `${aluno?.ano || ''} ${aluno?.nome || ''}`
                 .toLowerCase()
                 .includes(term)
