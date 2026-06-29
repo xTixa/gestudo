@@ -532,6 +532,43 @@ function mapRescheduleStatusLabel(status) {
     return 'Aguardando';
 }
 
+async function ensureReagendamentoPendenteAlertDefinition() {
+    const codigo = 'reagendamento-pendente';
+    const existing = await db.query(
+        `SELECT id_alerta_definicao FROM alertas_definicoes WHERE codigo = $1 LIMIT 1`,
+        [codigo]
+    );
+    if (existing.rows[0]?.id_alerta_definicao) return existing.rows[0].id_alerta_definicao;
+    const inserted = await db.query(
+        `INSERT INTO alertas_definicoes (grupo, codigo, titulo, descricao, icone, canal_app_default, canal_email_default, ativo, ordenacao)
+         VALUES ($1, $2, $3, $4, $5, true, false, true, $6) RETURNING id_alerta_definicao`,
+        ['operacional', codigo, 'Novo pedido de reagendamento', 'Um professor submeteu um novo pedido de reagendamento de sessão.', 'CalendarClock', 85]
+    );
+    return inserted.rows[0]?.id_alerta_definicao || null;
+}
+
+async function notificarGestoresNovoPedidoReagendamento({ professorNome, tituloServico, motivo, pedidoId, idServico }) {
+    try {
+        await ensureReagendamentoPendenteAlertDefinition();
+        const { rows: gestorRows } = await db.query(
+            `SELECT id_user FROM users WHERE role = 'gestor' AND status = true`
+        );
+        const gestorIds = gestorRows.map((r) => r.id_user).filter(Boolean);
+        if (!gestorIds.length) return;
+        await dispatchAlert({
+            codigo: 'reagendamento-pendente',
+            for_user_ids: gestorIds,
+            titulo: `Novo reagendamento: ${tituloServico}`,
+            descricao: `${professorNome} submeteu um pedido de reagendamento para "${tituloServico}". Motivo: ${motivo}`,
+            nivel: 'info',
+            payload: { pedidoId, id_servico: idServico, titulo_servico: tituloServico },
+            canal: 'app',
+        });
+    } catch (err) {
+        console.warn('[professorController] Falha ao notificar gestores de reagendamento:', err.message);
+    }
+}
+
 async function ensureReagendamentoAlertDefinition(client) {
     const codigo = 'reagendamento-decisao';
 
@@ -1285,9 +1322,28 @@ export async function criarPedidoReagendamentoProfessor(req, res) {
             ]
         );
 
+        const pedidoId = inserted.rows[0]?.id_pedido_reagendamento;
+
+        // Notificar gestores do novo pedido (fire-and-forget)
+        const { rows: profNomeRows } = await db.query(
+            `SELECT COALESCE(p.nome, u.email, 'Professor') AS nome
+             FROM professores pr
+             LEFT JOIN pessoas p ON p.id_pessoa = pr.id_pessoa
+             LEFT JOIN users u ON u.id_user = pr.id_user
+             WHERE pr.id_professor = $1 LIMIT 1`,
+            [professorId]
+        );
+        notificarGestoresNovoPedidoReagendamento({
+            professorNome: profNomeRows[0]?.nome || 'Professor',
+            tituloServico: snapshot.title,
+            motivo,
+            pedidoId,
+            idServico: serviceId,
+        });
+
         return res.status(201).json({
             pedido: {
-                id: inserted.rows[0]?.id_pedido_reagendamento,
+                id: pedidoId,
                 title: snapshot.title,
                 student: snapshot.student,
                 yearLabel: snapshot.yearLabel,

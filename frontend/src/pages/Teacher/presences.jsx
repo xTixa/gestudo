@@ -16,7 +16,10 @@ import {
     ChevronUp,
     MessageSquare,
     CalendarDays,
+    Download,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { apiGet, apiPost } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
 
@@ -526,6 +529,46 @@ function AttendanceModal({
     const [showAddPanel, setShowAddPanel] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
+    function handleExportPDF() {
+        const doc = new jsPDF();
+        const titulo = service?.disciplina || service?.titulo || 'Aula';
+        const sala = service?.sala || '';
+        const hora = `${String(service?.hora_inicio || service?.horaInicio || '').slice(0, 5)} - ${String(service?.hora_fim || service?.horaFim || '').slice(0, 5)}`;
+        const dataLabel = selectedDate
+            ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })
+            : '';
+
+        doc.setFontSize(16);
+        doc.text('Folha de Presenças', 14, 16);
+        doc.setFontSize(11);
+        doc.text(`Serviço: ${titulo}`, 14, 26);
+        doc.text(`Data: ${dataLabel}`, 14, 32);
+        if (hora.trim() !== '-') doc.text(`Horário: ${hora}`, 14, 38);
+        if (sala) doc.text(`Sala: ${sala}`, 14, 44);
+
+        const statusLabel = { presente: 'Presente', falta: 'Falta', reposta: 'Reposição', justificada: 'Justificada', pendente: 'Pendente' };
+
+        autoTable(doc, {
+            startY: 52,
+            head: [['Nº', 'Nome', 'Ano', 'Turma', 'Estado', 'Observação']],
+            body: students.map((s) => [
+                s.id_aluno ? String(s.id_aluno) : (s._extra ? 'EXTRA' : '-'),
+                s.nome || '-',
+                s.ano ? `${s.ano}º` : '-',
+                s.turma || '-',
+                statusLabel[String(s.estado || 'presente').toLowerCase()] || s.estado || '-',
+                s.observacao || '',
+            ]),
+            styles: { fontSize: 9, cellPadding: 2 },
+            headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            columnStyles: { 5: { cellWidth: 'auto' } },
+        });
+
+        const fileName = `presencas-${titulo.toLowerCase().replace(/\s+/g, '-')}-${selectedDate || 'sem-data'}.pdf`;
+        doc.save(fileName);
+    }
+
     const enrolledIds = useMemo(
         () => new Set(students.map((s) => String(s.id_aluno ?? s._tempId))),
         [students]
@@ -761,19 +804,27 @@ function AttendanceModal({
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-3 border-t border-slate-100">
+                            <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition active:scale-95"
+                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition active:scale-95"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="button"
+                                    onClick={handleExportPDF}
+                                    disabled={!students.length}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition active:scale-95"
+                                >
+                                    <Download size={14} /> Exportar PDF
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => setShowConfirm(true)}
                                     disabled={saving || !students.length}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 transition active:scale-95"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 transition active:scale-95"
                                 >
                                     <Save size={15} /> Guardar Presenças
                                 </button>
@@ -872,6 +923,9 @@ export default function PresencasProfessorPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+    const [historicoServiceId, setHistoricoServiceId] = useState('');
+    const [historico, setHistorico] = useState(null);
+    const [loadingHistorico, setLoadingHistorico] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -966,6 +1020,23 @@ export default function PresencasProfessorPage() {
             isMounted = false;
         };
     }, [selectedServiceId, selectedDate]);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function loadHistorico() {
+            if (!historicoServiceId) { setHistorico(null); return; }
+            setLoadingHistorico(true);
+            try {
+                const response = await apiGet(`/api/professor/presencas/${historicoServiceId}/historico`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message);
+                if (isMounted) setHistorico(data);
+            } catch { if (isMounted) setHistorico(null); }
+            finally { if (isMounted) setLoadingHistorico(false); }
+        }
+        loadHistorico();
+        return () => { isMounted = false; };
+    }, [historicoServiceId]);
 
     const attendanceRows = useMemo(
         () => serviceDetail?.alunos || [],
@@ -1222,6 +1293,89 @@ export default function PresencasProfessorPage() {
                             </div>
                         )}
                     </div>
+                </div>
+            )}
+
+            {/* Histórico de Presenças por Aluno */}
+            {!loadingServices && services.length > 0 && (
+                <div className="space-y-4 border-t border-slate-200 pt-6">
+                    <div className="flex items-center gap-2">
+                        <Users size={19} className="text-violet-600" />
+                        <h2 className="text-2xl font-bold text-slate-900">Histórico por Aluno</h2>
+                    </div>
+                    <p className="text-sm text-slate-500">Selecione um serviço para ver o histórico acumulado de presenças e faltas de cada aluno.</p>
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={historicoServiceId}
+                            onChange={(e) => setHistoricoServiceId(e.target.value)}
+                            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200 bg-white"
+                        >
+                            <option value="">Escolher serviço...</option>
+                            {services.map((s) => (
+                                <option key={s.id} value={String(s.id)}>{s.titulo || s.disciplina}</option>
+                            ))}
+                        </select>
+                        {historicoServiceId && (
+                            <button onClick={() => setHistoricoServiceId('')} className="text-slate-400 hover:text-slate-600 p-1">
+                                <X size={18} />
+                            </button>
+                        )}
+                    </div>
+
+                    {loadingHistorico && (
+                        <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                            <Loader2 size={16} className="animate-spin" /> A carregar histórico...
+                        </div>
+                    )}
+
+                    {historico && !loadingHistorico && (
+                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                            {historico.resumo_por_aluno?.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <Users size={28} className="mx-auto mb-3 text-slate-200" />
+                                    <p className="text-sm text-slate-400">Sem registos de presenças para este serviço</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-200 bg-slate-50">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Aluno</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ano/Turma</th>
+                                                <th className="px-4 py-3 text-center text-xs font-semibold text-emerald-600 uppercase">Presenças</th>
+                                                <th className="px-4 py-3 text-center text-xs font-semibold text-rose-600 uppercase">Faltas</th>
+                                                <th className="px-4 py-3 text-center text-xs font-semibold text-blue-600 uppercase">Repostas</th>
+                                                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Total</th>
+                                                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Taxa Presença</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {historico.resumo_por_aluno.map((aluno, i) => {
+                                                const taxa = aluno.total > 0 ? Math.round(((aluno.presentes + aluno.repostas) / aluno.total) * 100) : 0;
+                                                return (
+                                                    <tr key={i} className={`hover:bg-slate-50 ${aluno.faltas > 2 ? 'bg-rose-50/40' : ''}`}>
+                                                        <td className="px-4 py-3 font-medium text-slate-800">{aluno.nome}</td>
+                                                        <td className="px-4 py-3 text-slate-500">{aluno.ano ? `${aluno.ano}º` : ''}{aluno.turma ? ` T${aluno.turma}` : ''}</td>
+                                                        <td className="px-4 py-3 text-center font-semibold text-emerald-700">{aluno.presentes}</td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <span className={`font-semibold ${aluno.faltas > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{aluno.faltas}</span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-semibold text-blue-700">{aluno.repostas}</td>
+                                                        <td className="px-4 py-3 text-center text-slate-600">{aluno.total}</td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${taxa >= 80 ? 'bg-emerald-100 text-emerald-700' : taxa >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                {taxa}%
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

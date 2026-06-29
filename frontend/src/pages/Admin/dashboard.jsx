@@ -12,6 +12,11 @@ import {
     TrendingUp,
     Maximize2,
     X,
+    ClipboardList,
+    AlertTriangle,
+    RefreshCcw,
+    CalendarClock,
+    UserCheck,
 } from 'lucide-react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import StatCard from '../../components/dashboard/StatCard';
@@ -20,6 +25,31 @@ import WeeklyChart from '../../components/dashboard/WeeklyChart';
 import MonthlyChart from '../../components/dashboard/MonthlyChart';
 import { apiGet } from '../../utils/api';
 
+function AlertMetricCard({ title, value, icon: Icon, alertColor, onClick }) {
+    const isAlert = Number(value) > 0;
+    const colors = {
+        blue: { border: 'border-l-blue-400', icon: 'text-blue-500', value: 'text-blue-700' },
+        amber: { border: 'border-l-amber-400', icon: 'text-amber-500', value: 'text-amber-700' },
+        red: { border: 'border-l-rose-400', icon: 'text-rose-500', value: 'text-rose-700' },
+        violet: { border: 'border-l-violet-400', icon: 'text-violet-500', value: 'text-violet-700' },
+        slate: { border: 'border-l-slate-300', icon: 'text-slate-400', value: 'text-slate-600' },
+    };
+    const c = isAlert ? (colors[alertColor] || colors.slate) : colors.slate;
+
+    return (
+        <article
+            className={`flex items-center gap-3 rounded-xl border border-slate-200 border-l-4 ${c.border} bg-white px-4 py-3 shadow-sm transition ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
+            onClick={onClick}
+        >
+            <Icon size={20} className={`flex-shrink-0 ${c.icon}`} />
+            <div className="min-w-0">
+                <p className="text-xs text-slate-500 leading-tight">{title}</p>
+                <p className={`text-xl font-bold leading-tight ${c.value}`}>{value}</p>
+            </div>
+        </article>
+    );
+}
+
 export default function DashboardGestor() {
     const navigate = useNavigate();
     const [resumo, setResumo] = useState({
@@ -27,6 +57,11 @@ export default function DashboardGestor() {
         professores: '-',
         servicosCurriculares: '-',
         servicosExtra: '-',
+        inscricoesAtivas: '-',
+        faltasPorResolver: '-',
+        matriculasExpiradas: '-',
+        reagendamentosPendentes: '-',
+        inscricoesPublicasPendentes: '-',
     });
     const [weeklyData, setWeeklyData] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
@@ -69,10 +104,13 @@ export default function DashboardGestor() {
                 setResumo({
                     alunosAtivos: String(data?.alunosAtivos ?? 0),
                     professores: String(data?.professores ?? 0),
-                    servicosCurriculares: String(
-                        data?.servicosCurriculares ?? 0
-                    ),
+                    servicosCurriculares: String(data?.servicosCurriculares ?? 0),
                     servicosExtra: String(data?.servicosExtra ?? 0),
+                    inscricoesAtivas: String(data?.inscricoesAtivas ?? '-'),
+                    faltasPorResolver: String(data?.faltasPorResolver ?? '-'),
+                    matriculasExpiradas: String(data?.matriculasExpiradas ?? '-'),
+                    reagendamentosPendentes: String(data?.reagendamentosPendentes ?? '-'),
+                    inscricoesPublicasPendentes: String(data?.inscricoesPublicasPendentes ?? '-'),
                 });
             } catch {
                 if (!isMounted) {
@@ -172,6 +210,41 @@ export default function DashboardGestor() {
                     icon={BookOpen}
                     bgColor="bg-lavender-500"
                     onClick={() => navigate('/gestor/servicos/extra-curriculares')}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <AlertMetricCard
+                    title="Inscrições Ativas"
+                    value={resumo.inscricoesAtivas}
+                    icon={ClipboardList}
+                    alertColor="blue"
+                />
+                <AlertMetricCard
+                    title="Faltas por Resolver"
+                    value={resumo.faltasPorResolver}
+                    icon={AlertTriangle}
+                    alertColor="red"
+                />
+                <AlertMetricCard
+                    title="Matrículas a Renovar"
+                    value={resumo.matriculasExpiradas}
+                    icon={RefreshCcw}
+                    alertColor="amber"
+                />
+                <AlertMetricCard
+                    title="Reagendamentos Pendentes"
+                    value={resumo.reagendamentosPendentes}
+                    icon={CalendarClock}
+                    alertColor="amber"
+                    onClick={() => navigate('/gestor/reagendar')}
+                />
+                <AlertMetricCard
+                    title="Inscrições Públicas Pendentes"
+                    value={resumo.inscricoesPublicasPendentes}
+                    icon={UserCheck}
+                    alertColor="violet"
+                    onClick={() => navigate('/gestor/inscricoes-publicas')}
                 />
             </div>
 

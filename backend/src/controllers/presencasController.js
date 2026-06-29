@@ -1236,3 +1236,93 @@ export async function listarMinhasPresencasAluno(req, res) {
         });
     }
 }
+
+export async function obterHistoricoPresencasServicoProfessor(req, res) {
+    try {
+        if (!req.userId) return res.status(401).json({ message: 'Autenticação necessária.' });
+
+        const idServico = Number(req.params?.id_servico);
+        if (!Number.isInteger(idServico) || idServico <= 0) {
+            return res.status(400).json({ message: 'ID de serviço inválido.' });
+        }
+
+        // Verify professor owns this service
+        const { rows: checkRows } = await db.query(
+            `SELECT sc.id_servico FROM servicos_curriculares sc
+             INNER JOIN professores pr ON pr.id_professor = sc.id_professor
+             WHERE sc.id_servico = $1 AND pr.id_user = $2
+             UNION
+             SELECT se.id_servico FROM servicos_extracurriculares se
+             INNER JOIN professores pr ON pr.id_professor = se.id_professor
+             WHERE se.id_servico = $1 AND pr.id_user = $2
+             LIMIT 1`,
+            [idServico, req.userId]
+        );
+        if (!checkRows.length) {
+            return res.status(403).json({ message: 'Acesso negado a este serviço.' });
+        }
+
+        const { rows } = await db.query(
+            `SELECT
+                p.id_presenca,
+                p.data_aula,
+                p.hora_aula,
+                p.estado,
+                p.observacao,
+                p.data_reposicao,
+                p.id_aluno,
+                COALESCE(pes.nome, 'Aluno') AS aluno_nome,
+                a.ano_escolar AS ano,
+                a.turma
+             FROM presencas p
+             LEFT JOIN alunos a ON a.id_aluno = p.id_aluno
+             LEFT JOIN pessoas pes ON pes.id_pessoa = a.id_pessoa
+             WHERE p.id_servico = $1
+             ORDER BY p.data_aula DESC, a.id_aluno`,
+            [idServico]
+        );
+
+        // Group by aluno for the summary
+        const alunoMap = new Map();
+        for (const row of rows) {
+            const key = row.id_aluno ?? `extra_${row.aluno_nome}`;
+            if (!alunoMap.has(key)) {
+                alunoMap.set(key, {
+                    id_aluno: row.id_aluno,
+                    nome: row.aluno_nome,
+                    ano: row.ano,
+                    turma: row.turma,
+                    presentes: 0,
+                    faltas: 0,
+                    repostas: 0,
+                    total: 0,
+                });
+            }
+            const entry = alunoMap.get(key);
+            entry.total += 1;
+            const est = String(row.estado || '').toLowerCase();
+            if (est === 'presente') entry.presentes += 1;
+            else if (est === 'falta') entry.faltas += 1;
+            else if (est === 'reposta') entry.repostas += 1;
+        }
+
+        return res.status(200).json({
+            registos: rows.map((r) => ({
+                id_presenca: r.id_presenca,
+                data_aula: normalizeDateOnly(r.data_aula),
+                hora_aula: String(r.hora_aula || '').slice(0, 5),
+                estado: r.estado,
+                observacao: r.observacao,
+                data_reposicao: normalizeDateOnly(r.data_reposicao),
+                id_aluno: r.id_aluno,
+                aluno_nome: r.aluno_nome,
+                ano: r.ano,
+                turma: r.turma,
+            })),
+            resumo_por_aluno: Array.from(alunoMap.values()).sort((a, b) => b.faltas - a.faltas),
+        });
+    } catch (error) {
+        console.error('Erro ao obter histórico de presenças:', error.message);
+        return res.status(500).json({ message: 'Erro ao obter histórico de presenças.' });
+    }
+}

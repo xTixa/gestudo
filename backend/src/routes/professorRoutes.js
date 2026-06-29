@@ -10,6 +10,7 @@ import {
     guardarPresencasProfessor,
     obterPresencaProfessor,
     listarServicosParaPresencaProfessor,
+    obterHistoricoPresencasServicoProfessor,
 } from '../controllers/presencasController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
@@ -23,6 +24,7 @@ router.get('/perfil', obterPerfilProfessorLogado);
 router.patch('/perfil', atualizarMeuPerfilProfessor);
 router.get('/servicos', listarServicosProfessorResumo);
 router.get('/presencas/servicos', listarServicosParaPresencaProfessor);
+router.get('/presencas/:id_servico/historico', obterHistoricoPresencasServicoProfessor);
 router.get('/presencas/:id_servico', obterPresencaProfessor);
 router.post('/presencas', guardarPresencasProfessor);
 router.get('/reagendamentos', listarPedidosReagendamentoProfessor);

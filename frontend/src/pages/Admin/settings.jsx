@@ -12,12 +12,14 @@ import {
     ToggleLeft,
     ToggleRight,
     DatabaseZap,
+    GraduationCap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import AlertsPage from './alerts';
 import EmailTemplatesSettings from '../../components/settings/EmailTemplatesSettings';
 import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
+import AcademicYearSettings from '../../components/settings/AcademicYearSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 
 export default function SettingsPage() {
@@ -155,6 +157,7 @@ export default function SettingsPage() {
         { id: 'manutencao', label: 'Avisos de Manutenção', icon: AlertTriangle },
         { id: 'gestores', label: 'Administradores', icon: Shield },
         { id: 'limpeza', label: 'Limpeza de Dados', icon: DatabaseZap },
+        { id: 'ano-letivo', label: 'Ano Lectivo', icon: GraduationCap },
     ];
 
     async function handleAddMaintenance() {
@@ -300,6 +303,7 @@ export default function SettingsPage() {
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
                     {activeTab === 'limpeza' && <DataCleanupSettings />}
+                    {activeTab === 'ano-letivo' && <AcademicYearSettings />}
 
                     {/* ABA: Administradores */}
                     {activeTab === 'gestores' && (

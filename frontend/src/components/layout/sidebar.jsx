@@ -21,6 +21,7 @@ import {
     DoorClosedIcon,
     BoxIcon,
     ClipboardCheck,
+    BarChart3,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -91,6 +92,12 @@ const menuByRole = {
             label: 'Inscrições Públicas',
             path: '/gestor/inscricoes-publicas',
             icon: FileText,
+        },
+        {
+            key: 'relatorios',
+            label: 'Relatórios',
+            path: '/gestor/relatorios',
+            icon: BarChart3,
         },
         {
             key: 'auditoria-logs',

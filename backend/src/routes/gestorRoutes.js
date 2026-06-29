@@ -88,6 +88,7 @@ import {
     removerGestor,
 } from '../controllers/gestorManagementController.js';
 import { limparDadosEmMassa } from '../controllers/limpezaDadosController.js';
+import { obterAnoLetivo, encerrarAnoLetivo } from '../controllers/anoLetivoController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import {
@@ -799,6 +800,18 @@ router.post(
         opcoes: { type: 'object', required: true },
     }),
     limparDadosEmMassa
+);
+
+// =============== GESTÃO DO ANO LECTIVO ===============
+
+router.get('/ano-letivo', obterAnoLetivo);
+router.post(
+    '/ano-letivo/encerrar',
+    validateBody({
+        confirmacao: { type: 'string', required: true },
+        opcoes: { type: 'object', required: false },
+    }),
+    encerrarAnoLetivo
 );
 
 export default router;

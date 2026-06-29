@@ -18,6 +18,7 @@ import InfosInscricaoPage from './pages/Infos/enrollment';
 import Navbar from './components/layout/navbar';
 import Sidebar from './components/layout/sidebar';
 import DashboardGestor from './pages/Admin/dashboard';
+import ReportsPage from './pages/Admin/reports';
 import AuditLogs from './pages/Admin/LogsPage';
 import AlertsPage from './pages/Admin/alerts';
 import NotificationsPage from './pages/Admin/notifications';
@@ -173,6 +174,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/configuracoes"
                         element={<SettingsPage />}
+                    />
+                    <Route
+                        path="/gestor/relatorios"
+                        element={<ReportsPage />}
                     />
                     <Route
                         path="*"
