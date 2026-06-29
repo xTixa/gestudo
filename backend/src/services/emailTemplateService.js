@@ -87,6 +87,86 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         ],
         requiredVariables: ['nome', 'decisao', 'titulo_sessao'],
     },
+    credentials_guardian: {
+        templateKey: 'credentials_guardian',
+        name: 'Credenciais iniciais - Encarregado de educacao',
+        description:
+            'Email enviado ao encarregado de educacao quando a conta do aluno e criada, com as credenciais temporarias.',
+        subject: 'Conta criada para o seu educando - Credenciais temporarias',
+        title: 'Conta criada para o seu educando',
+        introText: 'Caro(a) Encarregado(a) de Educacao,',
+        bodyText:
+            'Foi criada uma conta no MediaCenter para o seu educando {nome}.\n\nPassword temporaria de primeiro acesso: {password_temporaria}\n\nNo primeiro login, o aluno sera obrigado a definir uma nova password. Sera notificado(a) quando essa alteracao for efetuada.',
+        footerText:
+            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
+        buttonLabel: 'Aceder a plataforma',
+        allowedVariables: ['nome', 'email', 'password_temporaria', 'app_url'],
+        requiredVariables: ['nome', 'password_temporaria'],
+    },
+    password_changed_student: {
+        templateKey: 'password_changed_student',
+        name: 'Password atualizada - Aluno',
+        description:
+            'Email enviado ao aluno apos definir a sua nova password no primeiro login.',
+        subject: 'Password atualizada - Acesso ao MediaCenter',
+        title: 'A tua password foi definida com sucesso',
+        introText: 'Ola {nome},',
+        bodyText:
+            'A tua nova password de acesso ao MediaCenter foi definida com sucesso.\n\nNova password: {password_nova}\n\nGuarda esta password em local seguro e nao a partilhes com ninguem. Se nao reconheces esta alteracao, contacta o gestor do centro de imediato.',
+        footerText:
+            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
+        buttonLabel: 'Entrar na plataforma',
+        allowedVariables: ['nome', 'password_nova', 'app_url'],
+        requiredVariables: ['nome', 'password_nova'],
+    },
+    password_changed_guardian: {
+        templateKey: 'password_changed_guardian',
+        name: 'Password atualizada - Encarregado de educacao',
+        description:
+            'Email enviado ao encarregado de educacao quando o aluno define a sua nova password no primeiro login.',
+        subject: 'Notificacao: O seu educando definiu uma nova password de acesso',
+        title: 'O seu educando atualizou a password de acesso',
+        introText: 'Caro(a) Encarregado(a) de Educacao,',
+        bodyText:
+            'O seu educando {nome} definiu uma nova password de acesso ao MediaCenter.\n\nNova password: {password_nova}\n\nGuarde esta informacao em local seguro. Se nao reconhece esta alteracao, contacte o gestor do centro de imediato.',
+        footerText:
+            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
+        buttonLabel: 'Aceder a plataforma',
+        allowedVariables: ['nome', 'password_nova', 'app_url'],
+        requiredVariables: ['nome', 'password_nova'],
+    },
+    password_recovery: {
+        templateKey: 'password_recovery',
+        name: 'Recuperacao de password',
+        description:
+            'Email enviado ao utilizador quando solicita a recuperacao da sua password.',
+        subject: 'Recuperacao de password - Acesso temporario ao MediaCenter',
+        title: 'Recuperacao de password',
+        introText: 'Ola {nome},',
+        bodyText:
+            'Recebemos um pedido de recuperacao de password para a tua conta.\n\nPassword temporaria de acesso: {password_temporaria}\n\nNo proximo login, ser-te-a pedido que definas uma nova password. Se nao solicitaste esta recuperacao, contacta o gestor do centro de imediato.',
+        footerText:
+            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
+        buttonLabel: 'Recuperar acesso',
+        allowedVariables: ['nome', 'password_temporaria', 'app_url'],
+        requiredVariables: ['nome', 'password_temporaria'],
+    },
+    password_recovery_guardian: {
+        templateKey: 'password_recovery_guardian',
+        name: 'Recuperacao de password - Encarregado de educacao',
+        description:
+            'Email enviado ao encarregado de educacao quando e solicitada a recuperacao de password do aluno.',
+        subject: 'Notificacao: Pedido de recuperacao de password do seu educando',
+        title: 'Recuperacao de password do educando',
+        introText: 'Caro(a) Encarregado(a) de Educacao,',
+        bodyText:
+            'Foi solicitada uma recuperacao de password para a conta do seu educando {nome}.\n\nPassword temporaria de acesso: {password_temporaria}\n\nNo proximo login, o aluno sera obrigado a definir uma nova password. Se nao reconhece este pedido, contacte o gestor do centro de imediato.',
+        footerText:
+            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
+        buttonLabel: 'Aceder a plataforma',
+        allowedVariables: ['nome', 'password_temporaria', 'app_url'],
+        requiredVariables: ['nome', 'password_temporaria'],
+    },
 };
 
 const EDITABLE_FIELDS = [

@@ -1,7 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../config/db.js';
-import { enviarEmailCredenciaisIniciais } from '../services/emailService.js';
+import {
+    enviarEmailPasswordAlterada,
+    enviarEmailPasswordAlteradaEE,
+    enviarEmailRecuperacaoPassword,
+    enviarEmailRecuperacaoPasswordEE,
+} from '../services/emailService.js';
 import {
     createCsrfToken,
     setCsrfCookie,
@@ -462,7 +467,7 @@ export async function alterarPassword(req, res) {
                 .json({ message: 'Erro ao atualizar password.' });
         }
 
-        // Notificar encarregado de educação no primeiro login do aluno
+        // Notificar aluno e encarregado de educação no primeiro login
         if (hasFirstLogin && user.primeira_login && String(user.role || '').toLowerCase() === 'aluno') {
             try {
                 const { rows: guardianRows } = await db.query(
@@ -476,15 +481,19 @@ export async function alterarPassword(req, res) {
                     [userId]
                 );
                 const guardianInfo = guardianRows[0];
+                const nomeAluno = guardianInfo?.aluno_nome || user.email;
+
+                await enviarEmailPasswordAlterada(nomeAluno, user.email, passwordNova).catch(() => {});
+
                 if (guardianInfo?.ee_email && !guardianInfo.ee_email.includes('@placeholder.local')) {
-                    await enviarEmailCredenciaisIniciais(
-                        guardianInfo.aluno_nome || user.email,
+                    await enviarEmailPasswordAlteradaEE(
+                        nomeAluno,
                         guardianInfo.ee_email,
                         passwordNova
                     ).catch(() => {});
                 }
             } catch (guardianErr) {
-                console.error('Erro ao notificar encarregado de educação:', guardianErr.message);
+                console.error('Erro ao notificar após primeiro login:', guardianErr.message);
             }
         }
 
@@ -543,8 +552,9 @@ export async function recuperarPassword(req, res) {
     try {
         await client.query('BEGIN');
 
+        const safeRole = sanitizeIdentifier(roleColumn);
         const userQuery = `
-            SELECT ${safeId} AS id, ${safeEmail} AS email${selectNameFragment}
+            SELECT ${safeId} AS id, ${safeEmail} AS email, ${safeRole} AS role${selectNameFragment}
             FROM ${safeTable}
             WHERE LOWER(${safeEmail}) = LOWER($1)
             LIMIT 1
@@ -576,7 +586,7 @@ export async function recuperarPassword(req, res) {
         await client.query(updateQuery, [passwordHash, user.id]);
 
         const nome = user.nome || 'Utilizador';
-        const emailResult = await enviarEmailCredenciaisIniciais(
+        const emailResult = await enviarEmailRecuperacaoPassword(
             nome,
             user.email,
             passwordTemporaria
@@ -586,6 +596,27 @@ export async function recuperarPassword(req, res) {
             throw new Error(
                 emailResult.error || 'Não foi possível enviar o email.'
             );
+        }
+
+        // Se for aluno, notificar também o encarregado de educação
+        if (String(user.role || '').toLowerCase() === 'aluno') {
+            try {
+                const { rows: guardianRows } = await client.query(
+                    `SELECT ue.email AS ee_email
+                     FROM alunos a
+                     INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+                     LEFT JOIN users ue ON ue.id_user = e.id_user
+                     WHERE a.id_user = $1
+                     LIMIT 1`,
+                    [user.id]
+                );
+                const eeEmail = guardianRows[0]?.ee_email || '';
+                if (eeEmail && !eeEmail.includes('@placeholder.local')) {
+                    await enviarEmailRecuperacaoPasswordEE(nome, eeEmail, passwordTemporaria).catch(() => {});
+                }
+            } catch (eeErr) {
+                console.error('Erro ao notificar encarregado na recuperação de password:', eeErr.message);
+            }
         }
 
         await client.query('COMMIT');

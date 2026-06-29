@@ -1,6 +1,11 @@
 import { db } from '../config/db.js';
 import bcrypt from 'bcryptjs';
-import { enviarEmailCredenciaisIniciais } from '../services/emailService.js';
+import {
+    enviarEmailCredenciaisIniciais,
+    enviarEmailContaCriadaEE,
+    enviarEmailRecuperacaoPassword,
+    enviarEmailRecuperacaoPasswordEE,
+} from '../services/emailService.js';
 import {
     registarDelete,
     registarInsert,
@@ -978,7 +983,7 @@ export async function criarAluno(req, res) {
             encarregadoEmail &&
             !encarregadoEmail.includes('@placeholder.local')
         ) {
-            await enviarEmailCredenciaisIniciais(
+            await enviarEmailContaCriadaEE(
                 alunoNome,
                 encarregadoEmail,
                 passwordTemporaria
@@ -1923,7 +1928,7 @@ export async function resetarPasswordAluno(req, res) {
         client.release();
 
         // Enviar ao aluno
-        await enviarEmailCredenciaisIniciais(
+        await enviarEmailRecuperacaoPassword(
             row.nome,
             row.aluno_email,
             passwordTemporaria
@@ -1932,7 +1937,7 @@ export async function resetarPasswordAluno(req, res) {
         // Enviar ao encarregado se tiver email real
         const eeEmail = String(row.ee_email || '').trim();
         if (eeEmail && !eeEmail.includes('@placeholder.local')) {
-            await enviarEmailCredenciaisIniciais(
+            await enviarEmailRecuperacaoPasswordEE(
                 row.nome,
                 eeEmail,
                 passwordTemporaria

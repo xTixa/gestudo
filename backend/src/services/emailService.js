@@ -683,6 +683,66 @@ export async function enviarEmailPasswordTemporaria(
     return enviarEmailCredenciaisIniciais(nome, email, temporaryPassword);
 }
 
+async function enviarEmailTemplate(templateKey, to, variables, buttonPath = '/login') {
+    try {
+        const transporterResult = await getVerifiedTransporter();
+        if (!transporterResult.ok) {
+            console.error('Envio de email desativado/indisponivel:', transporterResult.error);
+            return { ok: false, error: transporterResult.error };
+        }
+        const { appUrl, from, logoUrl, transporter: t } = transporterResult;
+        await sendManagedTemplateEmail({
+            transporter: t,
+            from,
+            to,
+            templateKey,
+            variables: { ...variables, app_url: appUrl },
+            logoUrl,
+            buttonUrl: `${appUrl}${buttonPath}`,
+        });
+        console.log(`Email [${templateKey}] enviado para ${to}`);
+        return { ok: true };
+    } catch (error) {
+        console.error(`Erro ao enviar email [${templateKey}]:`, error.message);
+        return { ok: false, error: error?.message || 'Falha no envio de email' };
+    }
+}
+
+export async function enviarEmailContaCriadaEE(nomeAluno, emailEE, passwordTemp) {
+    return enviarEmailTemplate('credentials_guardian', emailEE, {
+        nome: nomeAluno,
+        password_temporaria: passwordTemp,
+    });
+}
+
+export async function enviarEmailPasswordAlterada(nome, email, passwordNova) {
+    return enviarEmailTemplate('password_changed_student', email, {
+        nome,
+        password_nova: passwordNova,
+    });
+}
+
+export async function enviarEmailPasswordAlteradaEE(nomeAluno, emailEE, passwordNova) {
+    return enviarEmailTemplate('password_changed_guardian', emailEE, {
+        nome: nomeAluno,
+        password_nova: passwordNova,
+    });
+}
+
+export async function enviarEmailRecuperacaoPassword(nome, email, passwordTemp) {
+    return enviarEmailTemplate('password_recovery', email, {
+        nome,
+        password_temporaria: passwordTemp,
+    });
+}
+
+export async function enviarEmailRecuperacaoPasswordEE(nomeAluno, emailEE, passwordTemp) {
+    return enviarEmailTemplate('password_recovery_guardian', emailEE, {
+        nome: nomeAluno,
+        password_temporaria: passwordTemp,
+    });
+}
+
 export async function enviarEmailReagendamentoSessao({
     nome,
     email,
