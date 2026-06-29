@@ -81,6 +81,12 @@ import {
     atualizarEstadoInscricaoPublica,
     apagarInscricoesPublicasAntigas,
 } from '../controllers/inscricaoController.js';
+import {
+    listarGestores,
+    criarGestor,
+    alterarEstadoGestor,
+    removerGestor,
+} from '../controllers/gestorManagementController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import {
@@ -754,5 +760,33 @@ router.get('/renovacoes/alunos-expirados', listarAlunosMatriculaExpirada);
  * Status: 200 OK | 403 Forbidden | 500 Internal Server Error
  */
 router.post('/renovacoes/suspender-expirados', suspenderAlunosExpirados);
+
+// =============== GESTÃO DE ADMINISTRADORES ===============
+
+router.get('/gestores', listarGestores);
+
+router.post(
+    '/gestores',
+    validateBody({
+        email: { type: 'email', required: true },
+        nome: { type: 'string', required: false },
+    }),
+    criarGestor
+);
+
+router.patch(
+    '/gestores/:id/estado',
+    validateParams({ id: 'number' }),
+    validateBody({
+        status: { type: 'boolean', required: true },
+    }),
+    alterarEstadoGestor
+);
+
+router.delete(
+    '/gestores/:id',
+    validateParams({ id: 'number' }),
+    removerGestor
+);
 
 export default router;

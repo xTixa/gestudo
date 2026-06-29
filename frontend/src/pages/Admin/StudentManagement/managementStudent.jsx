@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Search,
     Download,
     Upload,
     Plus,
     Eye,
-    UserCog,
+    MoreVertical,
+    Pencil,
     X,
     UserRound,
     Users,
     Funnel,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
 import { read, utils, write } from 'xlsx';
@@ -490,70 +493,70 @@ function getExportValue(row, fieldId) {
     return row[fieldId] ?? '';
 }
 
-// função para exportar uma lista de linhas de dados para um arquivo PDF, abrindo uma nova janela com o conteúdo formatado em HTML, incluindo uma tabela com os campos selecionados, e acionando a impressão da janela para que o usuário possa salvar ou imprimir o PDF, garantindo que os dados sejam apresentados de forma legível e profissional no arquivo exportado
-function exportRowsToPdf(rows, selectedFields) {
-    const printWindow = window.open('', '_blank', 'width=980,height=760');
-
-    if (!printWindow) {
-        return false;
-    }
-
+function exportRowsToPdf(rows, selectedFields, fileName) {
     const selectedColumns = EXPORTABLE_FIELDS.filter((field) =>
         selectedFields.includes(field.id)
     );
 
+    const doc = new jsPDF({ orientation: 'landscape' });
     const dateLabel = new Date().toLocaleDateString('pt-PT');
-    const tableHeader = selectedColumns
-        .map((column) => `<th>${escapeHtml(column.label)}</th>`)
-        .join('');
 
-    const tableRows = rows
-        .map((row) => {
-            const cells = selectedColumns
-                .map(
-                    (column) =>
-                        `<td>${escapeHtml(getExportValue(row, column.id))}</td>`
-                )
-                .join('');
+    doc.setFontSize(16);
+    doc.text('Lista de Alunos', 14, 15);
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Gerado em ${dateLabel}`, 14, 22);
+    doc.setTextColor(0, 0, 0);
 
-            return `
-        <tr>
-          ${cells}
-        </tr>
-      `;
-        })
-        .join('');
+    autoTable(doc, {
+        startY: 28,
+        head: [selectedColumns.map((c) => c.label)],
+        body: rows.map((row) =>
+            selectedColumns.map((c) => String(getExportValue(row, c.id)))
+        ),
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [248, 250, 252], textColor: [31, 41, 55], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+    });
 
-    printWindow.document.write(`
-    <html>
-      <head>
-        <title>Exportacao de Alunos</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
-          h1 { margin: 0 0 4px 0; font-size: 20px; }
-          p { margin: 0 0 16px 0; color: #6b7280; font-size: 12px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-          th { background: #f8fafc; }
-        </style>
-      </head>
-      <body>
-        <h1>Lista de Alunos</h1>
-        <p>Gerado em ${escapeHtml(dateLabel)}</p>
-        <table>
-          <thead>
-                        <tr>${tableHeader}</tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </body>
-    </html>
-  `);
-
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    const suggestedName = `${normalizeFileName(fileName || 'alunos')}.pdf`;
+    doc.save(suggestedName);
     return true;
+}
+
+function downloadAlunoFichaPdf(aluno) {
+    const doc = new jsPDF();
+    const dateLabel = new Date().toLocaleDateString('pt-PT');
+
+    doc.setFontSize(18);
+    doc.text('Ficha de Aluno', 14, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Gerado em ${dateLabel}`, 14, 25);
+    doc.setTextColor(0, 0, 0);
+
+    const fields = [
+        ['Nome', aluno.nome || '-'],
+        ['NIF', aluno.nif || '-'],
+        ['Ano Escolar', aluno.ano ? `${aluno.ano}º` : '-'],
+        ['Turma', aluno.turma || '-'],
+        ['Escola', aluno.escola || '-'],
+        ['Contacto', aluno.contacto || '-'],
+        ['Encarregado de Educação', getEncarregadoLabel(aluno.encarregado)],
+        ['Data de Início', aluno.data_inicio ? formatDate(aluno.data_inicio) : '-'],
+    ];
+
+    autoTable(doc, {
+        startY: 32,
+        head: [['Campo', 'Valor']],
+        body: fields,
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+    });
+
+    const name = (aluno.nome || 'aluno').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+    doc.save(`ficha_aluno_${name}.pdf`);
 }
 
 export default function GestaoAlunos() {
@@ -567,6 +570,9 @@ export default function GestaoAlunos() {
     const [error, setError] = useState('');
     const [showExportModal, setShowExportModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const dropdownRef = useRef(null);
     const [exportFormat, setExportFormat] = useState('csv');
     const [importFormat, setImportFormat] = useState('csv');
     const [selectedExportFields, setSelectedExportFields] = useState(
@@ -701,6 +707,29 @@ export default function GestaoAlunos() {
         };
     }, [alunoSelecionado]);
 
+    useEffect(() => {
+        if (openDropdown === null) return;
+
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setOpenDropdown(null);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openDropdown]);
+
+    function handleOpenDropdown(event, aluno) {
+        if (openDropdown?.id === aluno.id_aluno) {
+            setOpenDropdown(null);
+            return;
+        }
+        const rect = event.currentTarget.getBoundingClientRect();
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+        setOpenDropdown({ id: aluno.id_aluno, aluno });
+    }
+
     const modalAluno = alunoFullData || alunoSelecionado;
     const modalAlunoImage = getAlunoProfileImage(modalAluno);
 
@@ -724,21 +753,8 @@ export default function GestaoAlunos() {
         );
 
         if (exportFormat === 'pdf') {
-            const didOpenPrint = exportRowsToPdf(
-                alunosFiltrados,
-                selectedExportFields
-            );
-
-            if (!didOpenPrint) {
-                setActionError(
-                    'Nao foi possivel abrir a janela de impressao. Verifique se o browser bloqueou popups.'
-                );
-                return;
-            }
-
-            setActionMessage(
-                'PDF aberto em modo de impressao. Pode escolher Guardar como PDF na janela do browser.'
-            );
+            exportRowsToPdf(alunosFiltrados, selectedExportFields, exportFileName);
+            setActionMessage('PDF exportado com sucesso.');
             setShowExportModal(false);
             return;
         }
@@ -1213,14 +1229,10 @@ export default function GestaoAlunos() {
                                               </button>
                                               <button
                                                   className="text-gray-500 hover:text-indigo-600"
-                                                  title="Ficha Aluno e Ações"
-                                                  onClick={() =>
-                                                      navigate(
-                                                          `/gestor/alunos/ficha/${aluno.id_aluno}`
-                                                      )
-                                                  }
+                                                  title="Ações"
+                                                  onClick={(e) => handleOpenDropdown(e, aluno)}
                                               >
-                                                  <UserCog size={16} />
+                                                  <MoreVertical size={16} />
                                               </button>
                                           </td>
                                       </tr>
@@ -1750,6 +1762,50 @@ export default function GestaoAlunos() {
                     </div>
                 </div>
             ) : null}
+
+            {openDropdown !== null && (
+                <div
+                    ref={dropdownRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownPos.top}px`,
+                        left: `${dropdownPos.left}px`,
+                        zIndex: 9999,
+                    }}
+                    className="w-48 rounded-md border border-slate-200 bg-white shadow-lg py-1"
+                >
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            navigate(`/gestor/alunos/ficha/${openDropdown.id}`);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <UserRound size={14} />
+                        Ver ficha completa
+                    </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            navigate(`/gestor/alunos/update/${openDropdown.id}`);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <Pencil size={14} />
+                        Editar
+                    </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            downloadAlunoFichaPdf(openDropdown.aluno);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <Download size={14} />
+                        Download
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

@@ -474,31 +474,6 @@ export default function InfosInscricaoPage() {
                             Preencha os dados do aluno e do encarregado de
                             educação.
                         </p>
-
-                        <div className="mt-7 grid gap-3 text-xs sm:grid-cols-3 sm:text-sm">
-                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                                <p className="font-semibold">Resposta Rápida</p>
-                                <p className="mt-1 text-slate-200">
-                                    Contacto habitual em ate 48h úteis.
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                                <p className="font-semibold">
-                                    Plano Personalizado
-                                </p>
-                                <p className="mt-1 text-slate-200">
-                                    Avaliação inicial com proposta ajustada.
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                                <p className="font-semibold">
-                                    Acompanhamento Contínuo
-                                </p>
-                                <p className="mt-1 text-slate-200">
-                                    Monitorizaçãoo regular da evolução.
-                                </p>
-                            </div>
-                        </div>
                     </div>
                 </section>
 
@@ -1139,84 +1114,6 @@ export default function InfosInscricaoPage() {
                             ) : null}
                         </section>
                     </form>
-
-                    <aside className="space-y-4">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h3 className="text-base font-bold text-slate-800">
-                                Como Funciona
-                            </h3>
-                            <ol className="mt-4 space-y-3 text-sm text-slate-600">
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold text-slate-800">
-                                        1.
-                                    </span>{' '}
-                                    Preencher formulário online.
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold text-slate-800">
-                                        2.
-                                    </span>{' '}
-                                    Validação pela equipa pedagógica.
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold text-slate-800">
-                                        3.
-                                    </span>{' '}
-                                    Definição de horário e modalidade.
-                                </li>
-                                <li className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold text-slate-800">
-                                        4.
-                                    </span>{' '}
-                                    Início do acompanhamento.
-                                </li>
-                            </ol>
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h3 className="text-base font-bold text-slate-800">
-                                Apoio ao Preenchimento
-                            </h3>
-                            <p className="mt-3 text-sm text-slate-600">
-                                Se tiver dúvidas, podemos ajudar por telefone ou
-                                email durante o hórario de atendimento.
-                            </p>
-                            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                                <li>
-                                    <span className="font-semibold">
-                                        Telefone:
-                                    </span>{' '}
-                                    232 185 212
-                                </li>
-                                <li>
-                                    <span className="font-semibold">
-                                        Email:
-                                    </span>{' '}
-                                    geral@blocodenotas.pt
-                                </li>
-                                <li>
-                                    <span className="font-semibold">
-                                        Morada:
-                                    </span>{' '}
-                                    Rua Moinho de Vento, Lote 4, Loja B, Viseu
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h3 className="text-base font-bold text-slate-800">
-                                Documentos Recomendados
-                            </h3>
-                            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
-                                <li>Documento de identificação do aluno</li>
-                                <li>Informação escolar atual (ano/turma)</li>
-                                <li>Dados do encarregado de educação</li>
-                                <li>
-                                    Horário preferencial para acompanhamento
-                                </li>
-                            </ul>
-                        </div>
-                    </aside>
                 </section>
             </main>
 

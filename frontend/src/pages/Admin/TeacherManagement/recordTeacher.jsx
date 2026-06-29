@@ -9,6 +9,8 @@ import {
     UserRound,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiDelete, apiGet, apiPatch } from '../../../utils/api';
 
@@ -247,6 +249,44 @@ export default function FichaProfPage() {
 
     const profImage = getProfessorProfileImage(prof);
 
+    function handleDownloadFicha() {
+        const doc = new jsPDF();
+        const dateLabel = new Date().toLocaleDateString('pt-PT');
+
+        doc.setFontSize(18);
+        doc.text('Ficha de Professor', 14, 18);
+        doc.setFontSize(9);
+        doc.setTextColor(107, 114, 128);
+        doc.text(`Gerado em ${dateLabel}`, 14, 25);
+        doc.setTextColor(0, 0, 0);
+
+        autoTable(doc, {
+            startY: 32,
+            head: [['Campo', 'Valor']],
+            body: [
+                ['Nome Completo', prof.pessoa?.nome || '-'],
+                ['Data de Nascimento', prof.pessoa?.data_nasc ? new Date(prof.pessoa.data_nasc).toLocaleDateString('pt-PT') : '-'],
+                ['Cartão de Cidadão', prof.pessoa?.cc || '-'],
+                ['NIF', prof.pessoa?.nif || '-'],
+                ['Email', prof.pessoa?.user?.email || '-'],
+                ['Morada', prof.pessoa?.morada || '-'],
+                ['Localidade', prof.pessoa?.localidade || '-'],
+                ['Código Postal', prof.pessoa?.cod_postal || '-'],
+                ['Telemóvel', prof.pessoa?.telemovel || '-'],
+                ['Telefone', prof.pessoa?.telefone || '-'],
+                ['Habilitação', prof.habilitacao || '-'],
+                ['Área de Ensino', prof.area_ensino || '-'],
+                ['Nível', prof.nivel || '-'],
+            ],
+            styles: { fontSize: 10, cellPadding: 4 },
+            headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+        });
+
+        const name = (prof.pessoa?.nome || 'professor').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+        doc.save(`ficha_professor_${name}.pdf`);
+    }
+
     return (
         <section className="space-y-6">
             {actionMessage ? (
@@ -267,7 +307,8 @@ export default function FichaProfPage() {
                         <button
                             type="button"
                             className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                            title="Download"
+                            title="Download ficha"
+                            onClick={handleDownloadFicha}
                         >
                             <Download size={14} />
                         </button>

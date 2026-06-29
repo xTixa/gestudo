@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Search,
@@ -6,12 +6,15 @@ import {
     Upload,
     Plus,
     Eye,
-    UserCog,
+    MoreVertical,
+    Pencil,
     X,
     UserRound,
     GraduationCap,
     Funnel,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { read, utils, write } from 'xlsx';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPost } from '../../../utils/api';
@@ -493,79 +496,72 @@ async function saveBlobToDisk(blob, fileName, extension, mimeType) {
     return 'downloaded';
 }
 
-function exportRowsToPdf(rows) {
-    const printWindow = window.open('', '_blank', 'width=980,height=760');
-
-    if (!printWindow) {
-        return false;
-    }
-
+function exportRowsToPdf(rows, fileName) {
+    const doc = new jsPDF({ orientation: 'landscape' });
     const dateLabel = new Date().toLocaleDateString('pt-PT');
-    const tableRows = rows
-        .map(
-            (row) => `
-        <tr>
-          <td>${escapeHtml(row.nome)}</td>
-          <td>${escapeHtml(row.nif)}</td>
-          <td>${escapeHtml(row.data_nasc || '')}</td>
-          <td>${escapeHtml(row.cc || '')}</td>
-          <td>${escapeHtml(row.morada || '')}</td>
-          <td>${escapeHtml(row.localidade || '')}</td>
-          <td>${escapeHtml(row.cod_postal || '')}</td>
-          <td>${escapeHtml(row.contacto)}</td>
-          <td>${escapeHtml(row.telefone || '')}</td>
-          <td>${escapeHtml(row.email)}</td>
-          <td>${escapeHtml(row.habilitacao || '')}</td>
-          <td>${escapeHtml(row.area_ensino)}</td>
-          <td>${escapeHtml(row.nivel)}</td>
-        </tr>
-      `
-        )
-        .join('');
 
-    printWindow.document.write(`
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
-          h1 { margin: 0 0 4px 0; font-size: 20px; }
-          p { margin: 0 0 16px 0; color: #6b7280; font-size: 12px; }
-          table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: left; }
-          th { background: #f8fafc; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <h1>Lista de Professores</h1>
-        <p>Gerado em ${escapeHtml(dateLabel)}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>NIF</th>
-              <th>Data Nasc</th>
-              <th>CC</th>
-              <th>Morada</th>
-              <th>Localidade</th>
-              <th>Cod Postal</th>
-              <th>Contacto</th>
-              <th>Telefone</th>
-              <th>Email</th>
-              <th>Habilitacao</th>
-              <th>Area Ensino</th>
-              <th>Nivel</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </body>
-    </html>
-  `);
+    doc.setFontSize(16);
+    doc.text('Lista de Professores', 14, 15);
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Gerado em ${dateLabel}`, 14, 22);
+    doc.setTextColor(0, 0, 0);
 
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    autoTable(doc, {
+        startY: 28,
+        head: [['Nome', 'NIF', 'Data Nasc', 'Contacto', 'Email', 'Habilitacao', 'Area Ensino', 'Nivel']],
+        body: rows.map((row) => [
+            row.nome || '',
+            row.nif || '',
+            row.data_nasc ? new Date(row.data_nasc).toLocaleDateString('pt-PT') : '',
+            row.contacto || '',
+            row.email || '',
+            row.habilitacao || '',
+            row.area_ensino || '',
+            row.nivel || '',
+        ]),
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [248, 250, 252], textColor: [31, 41, 55], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+    });
+
+    const suggestedName = `${normalizeFileName(fileName || 'professores')}.pdf`;
+    doc.save(suggestedName);
     return true;
+}
+
+function downloadProfFichaPdf(prof) {
+    const doc = new jsPDF();
+    const dateLabel = new Date().toLocaleDateString('pt-PT');
+
+    doc.setFontSize(18);
+    doc.text('Ficha de Professor', 14, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Gerado em ${dateLabel}`, 14, 25);
+    doc.setTextColor(0, 0, 0);
+
+    const fields = [
+        ['Nome', prof.nome || '-'],
+        ['NIF', prof.nif || '-'],
+        ['Área de Ensino', prof.area_ensino || '-'],
+        ['Nível', prof.nivel || '-'],
+        ['Contacto', prof.contacto || '-'],
+        ['Email', prof.email || '-'],
+        ['Data de Entrada', prof.data_entrada ? new Date(prof.data_entrada).toLocaleDateString('pt-PT') : '-'],
+    ];
+
+    autoTable(doc, {
+        startY: 32,
+        head: [['Campo', 'Valor']],
+        body: fields,
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
+    });
+
+    const name = (prof.nome || 'professor').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+    doc.save(`ficha_professor_${name}.pdf`);
 }
 
 function getProfessorProfileImage(professor) {
@@ -623,6 +619,9 @@ export default function GestaoProfessores() {
         area_ensino: 'Todos',
         nivel: 'Todos',
     });
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const dropdownRef = useRef(null);
 
     const filterOptions = useMemo(
         () => ({
@@ -705,6 +704,29 @@ export default function GestaoProfessores() {
         });
     }, [professores, filters]);
 
+    useEffect(() => {
+        if (openDropdown === null) return;
+
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setOpenDropdown(null);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openDropdown]);
+
+    function handleOpenDropdown(event, prof) {
+        if (openDropdown?.id === prof.id_professor) {
+            setOpenDropdown(null);
+            return;
+        }
+        const rect = event.currentTarget.getBoundingClientRect();
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+        setOpenDropdown({ id: prof.id_professor, prof });
+    }
+
     const professorModal = professorSelecionado;
     const professorModalImage = getProfessorProfileImage(professorModal);
 
@@ -719,18 +741,8 @@ export default function GestaoProfessores() {
         }
 
         if (exportFormat === 'pdf') {
-            const didOpenPrint = exportRowsToPdf(professoresFiltrados);
-
-            if (!didOpenPrint) {
-                setActionError(
-                    'Nao foi possivel abrir a janela de impressao. Verifique se o browser bloqueou popups.'
-                );
-                return;
-            }
-
-            setActionMessage(
-                'PDF aberto em modo de impressao. Pode escolher Guardar como PDF na janela do browser.'
-            );
+            exportRowsToPdf(professoresFiltrados, exportFileName);
+            setActionMessage('PDF exportado com sucesso.');
             setShowExportModal(false);
             return;
         }
@@ -1316,15 +1328,11 @@ export default function GestaoProfessores() {
                                             <Eye size={16} />
                                         </button>
                                         <button
-                                            className="text-gray-500 hover:text-red-600"
-                                            title="Ficha professor e Ações"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/gestor/professores/ficha/${prof.id_professor}`
-                                                )
-                                            }
+                                            className="text-gray-500 hover:text-indigo-600"
+                                            title="Ações"
+                                            onClick={(e) => handleOpenDropdown(e, prof)}
                                         >
-                                            <UserCog size={16} />
+                                            <MoreVertical size={16} />
                                         </button>
                                     </td>
                                 </tr>
@@ -1709,6 +1717,50 @@ export default function GestaoProfessores() {
                     </div>
                 </div>
             ) : null}
+
+            {openDropdown !== null && (
+                <div
+                    ref={dropdownRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownPos.top}px`,
+                        left: `${dropdownPos.left}px`,
+                        zIndex: 9999,
+                    }}
+                    className="w-48 rounded-md border border-slate-200 bg-white shadow-lg py-1"
+                >
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            navigate(`/gestor/professores/ficha/${openDropdown.id}`);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <UserRound size={14} />
+                        Ver ficha completa
+                    </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            navigate(`/gestor/professores/update/${openDropdown.id}`);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <Pencil size={14} />
+                        Editar
+                    </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            downloadProfFichaPdf(openDropdown.prof);
+                            setOpenDropdown(null);
+                        }}
+                    >
+                        <Download size={14} />
+                        Download
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
