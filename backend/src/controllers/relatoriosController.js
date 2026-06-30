@@ -50,6 +50,17 @@ const REPORTS = {
             role: 'role',
         },
     },
+    'alunos-por-disciplina': {
+        view: 'vw_alunos_por_disciplina',
+        orderBy: 'disciplina ASC, aluno ASC',
+    },
+    'interesse-disciplinas': {
+        view: 'vw_interesse_disciplinas',
+        orderBy: 'disciplina ASC, created_at DESC',
+        filters: {
+            estado: 'estado',
+        },
+    },
 };
 
 function clampLimit(value) {

@@ -24,6 +24,7 @@ import AlertsPage from './pages/Admin/alerts';
 import NotificationsPage from './pages/Admin/notifications';
 import SettingsPage from './pages/Admin/settings';
 import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
+import AlunosPorDisciplinaPage from './pages/Admin/AlunosPorDisciplina';
 import AgendaPage from './pages/Admin/agenda';
 import PresencasGestorPage from './pages/Admin/presences';
 import ReagendamentosPage from './pages/Admin/rescheduling';
@@ -156,6 +157,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/alunos/update/:id"
                         element={<UpdateAlunoPage />}
+                    />
+                    <Route
+                        path="/gestor/alunos-por-disciplina"
+                        element={<AlunosPorDisciplinaPage />}
                     />
                     <Route
                         path="/gestor/professores"

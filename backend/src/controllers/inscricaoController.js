@@ -1193,6 +1193,73 @@ const CAMPOS_EDITAVEIS_INSCRICAO = [
 ];
 
 /**
+ * Quando o gestor corrige um campo de uma inscrição pública que já foi aprovada
+ * (já existe um aluno criado), propaga a correção para os registos reais do
+ * aluno/encarregado, em vez de a correção ficar presa apenas na inscrição.
+ */
+async function sincronizarAlunoComInscricaoPublica(emailAntesDaEdicao, inscricao) {
+    if (!emailAntesDaEdicao) {
+        return { synced: false };
+    }
+
+    const userResult = await db.query(
+        `SELECT id_user FROM users WHERE LOWER(email) = LOWER($1) AND role = 'aluno' LIMIT 1`,
+        [emailAntesDaEdicao]
+    );
+    const idUser = userResult.rows[0]?.id_user;
+    if (!idUser) {
+        return { synced: false };
+    }
+
+    const alunoResult = await db.query(
+        `SELECT id_aluno, id_pessoa, id_encarregado FROM alunos WHERE id_user = $1 LIMIT 1`,
+        [idUser]
+    );
+    const aluno = alunoResult.rows[0];
+    if (!aluno) {
+        return { synced: false };
+    }
+
+    await db.query(
+        `UPDATE pessoas SET nome = COALESCE($1, nome), telemovel = COALESCE($2, telemovel) WHERE id_pessoa = $3`,
+        [inscricao.nome_completo || null, inscricao.telemovel || null, aluno.id_pessoa]
+    );
+
+    await db.query(
+        `UPDATE alunos SET escola = COALESCE($1, escola), turma = COALESCE($2, turma) WHERE id_aluno = $3`,
+        [inscricao.escola || null, inscricao.turma || null, aluno.id_aluno]
+    );
+
+    if (inscricao.ee_nome && aluno.id_encarregado) {
+        await db.query(
+            `UPDATE pessoas SET nome = $1 WHERE id_pessoa = (SELECT id_pessoa FROM encarregados WHERE id_encarregado = $2)`,
+            [inscricao.ee_nome, aluno.id_encarregado]
+        );
+    }
+
+    let emailSincronizado = true;
+    if (
+        inscricao.email &&
+        inscricao.email.toLowerCase() !== String(emailAntesDaEdicao).toLowerCase()
+    ) {
+        try {
+            await db.query(`UPDATE users SET email = $1 WHERE id_user = $2`, [
+                inscricao.email,
+                idUser,
+            ]);
+        } catch (err) {
+            if (err?.code === '23505') {
+                emailSincronizado = false;
+            } else {
+                throw err;
+            }
+        }
+    }
+
+    return { synced: true, idUser, idAluno: aluno.id_aluno, emailSincronizado };
+}
+
+/**
  * PATCH /api/gestor/inscricoes-publicas/:id
  * Permite ao gestor corrigir campos da inscrição pública (ex: número de telemóvel
  * com um dígito a mais) e o plano de estudo (que pode ter várias disciplinas)
@@ -1206,6 +1273,19 @@ export async function atualizarCamposInscricaoPublica(req, res) {
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({ message: 'ID inválido.' });
         }
+
+        // Capturar o email atual antes de editar: é a chave usada para encontrar
+        // o aluno já criado (se a inscrição já tiver sido aprovada anteriormente).
+        const existingResult = await db.query(
+            `SELECT email FROM public.inscricoes_publicas WHERE id_inscricao_publica = $1`,
+            [id]
+        );
+        if (!existingResult.rows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Inscrição não encontrada.' });
+        }
+        const emailAntesDaEdicao = existingResult.rows[0].email;
 
         const body = req.body || {};
         const setClauses = [];
@@ -1306,9 +1386,25 @@ export async function atualizarCamposInscricaoPublica(req, res) {
             'alert'
         );
 
+        let alunoSincronizado = null;
+        try {
+            alunoSincronizado = await sincronizarAlunoComInscricaoPublica(
+                emailAntesDaEdicao,
+                rows[0]
+            );
+        } catch (syncError) {
+            console.warn(
+                '[inscricaoController] Falha ao sincronizar aluno a partir da inscrição:',
+                syncError.message
+            );
+        }
+
         return res.status(200).json({
-            message: 'Inscrição atualizada com sucesso.',
+            message: alunoSincronizado?.synced
+                ? 'Inscrição e ficha do aluno atualizadas com sucesso.'
+                : 'Inscrição atualizada com sucesso.',
             inscricao: rows[0],
+            alunoSincronizado: Boolean(alunoSincronizado?.synced),
         });
     } catch (error) {
         console.error(

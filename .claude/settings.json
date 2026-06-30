@@ -3,7 +3,15 @@
     "allow": [
       "Bash(rm -f ./scripts/_tmp_*.mjs)",
       "Bash(node --check src/controllers/inscricaoController.js)",
-      "Bash(node --check src/routes/gestorRoutes.js)"
+      "Bash(node --check src/routes/gestorRoutes.js)",
+      "Bash(rm -f ./scripts/_tmp_*.mjs && node --check src/controllers/inscricaoController.js && echo OK)",
+      "Bash(node ./scripts/_tmp_check_inscricoes.mjs)",
+      "Bash(rm -f ./scripts/_tmp_*.mjs *)",
+      "Bash(npx vite *)",
+      "Bash(git check-ignore *)"
+    ],
+    "additionalDirectories": [
+      "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"
     ]
   }
 }

@@ -79,6 +79,12 @@ const menuByRole = {
             path: '/gestor/alunos',
             icon: Users,
         },
+        {
+            key: 'alunos-por-disciplina',
+            label: 'Por Disciplina',
+            path: '/gestor/alunos-por-disciplina',
+            icon: BookCheck,
+        },
         { section: 'PROFESSORES' },
         {
             key: 'gestao-professores',

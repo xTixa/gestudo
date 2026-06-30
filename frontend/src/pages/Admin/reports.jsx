@@ -27,6 +27,8 @@ const REPORTS = [
     { key: 'servicos-extracurriculares', label: 'Serviços Extra-Curriculares', description: 'Resumo dos serviços extra-curriculares' },
     { key: 'utilizadores', label: 'Utilizadores', description: 'Todos os utilizadores do sistema', filter: { key: 'role', label: 'Perfil', options: ['', 'aluno', 'professor', 'gestor'] } },
     { key: 'agenda-gestor', label: 'Agenda', description: 'Todas as sessões agendadas no sistema' },
+    { key: 'alunos-por-disciplina', label: 'Alunos por Disciplina', description: 'Alunos já matriculados em serviços curriculares, agrupados por disciplina' },
+    { key: 'interesse-disciplinas', label: 'Interesse por Disciplina', description: 'Candidatos das inscrições públicas (pendentes ou aprovados) por disciplina pretendida, antes de serem colocados numa turma', filter: { key: 'estado', label: 'Estado', options: ['', 'pendente', 'aprovada'] } },
 ];
 
 const PAGE_SIZE = 50;
@@ -97,7 +99,7 @@ export default function ReportsPage() {
     const columns = useMemo(() => {
         if (!items.length) return [];
         const keys = Object.keys(items[0]);
-        return keys.filter((k) => !['id_presenca', 'id_inscricao'].includes(k));
+        return keys.filter((k) => !['id_presenca', 'id_inscricao', 'id_servico', 'id_inscricao_publica', 'id_aluno'].includes(k));
     }, [items]);
 
     useEffect(() => {
@@ -152,14 +154,14 @@ export default function ReportsPage() {
     async function handleExportPDF() {
         const rows = await loadAllForExport();
         if (!rows.length) return;
-        const cols = Object.keys(rows[0]).filter((k) => !['id_presenca', 'id_inscricao'].includes(k));
+        const cols = Object.keys(rows[0]).filter((k) => !['id_presenca', 'id_inscricao', 'id_servico', 'id_inscricao_publica', 'id_aluno'].includes(k));
         exportToPDF(selectedReport.label, cols, rows);
     }
 
     async function handleExportExcel() {
         const rows = await loadAllForExport();
         if (!rows.length) return;
-        const cols = Object.keys(rows[0]).filter((k) => !['id_presenca', 'id_inscricao'].includes(k));
+        const cols = Object.keys(rows[0]).filter((k) => !['id_presenca', 'id_inscricao', 'id_servico', 'id_inscricao_publica', 'id_aluno'].includes(k));
         exportToExcel(selectedReport.label, cols, rows);
     }
 
