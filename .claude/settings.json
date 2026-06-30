@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f ./scripts/_tmp_*.mjs)",
+      "Bash(node --check src/controllers/inscricaoController.js)",
+      "Bash(node --check src/routes/gestorRoutes.js)"
+    ]
+  }
+}

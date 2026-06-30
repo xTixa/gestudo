@@ -128,6 +128,34 @@ export default function PublicEnrollmentsPage() {
         }
     }
 
+    async function handleFieldsSave(id, fields) {
+        setSavingId(id);
+        resetMessages();
+
+        try {
+            const response = await apiPatch(
+                `/api/gestor/inscricoes-publicas/${id}`,
+                fields
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data?.message || 'Erro ao guardar alterações.');
+            }
+
+            setItems((prev) =>
+                prev.map((item) =>
+                    item.id_inscricao_publica === id ? data.inscricao : item
+                )
+            );
+
+            setSuccess('Inscrição atualizada.');
+        } finally {
+            setSavingId(null);
+        }
+    }
+
     async function handleDeleteOldRequests() {
         const days = Number.parseInt(retentionDays, 10) || 90;
 
@@ -368,6 +396,7 @@ export default function PublicEnrollmentsPage() {
                     item={selectedItem}
                     onClose={() => setSelectedId(null)}
                     onStatusChange={handleStatusChange}
+                    onFieldsSave={handleFieldsSave}
                     saving={savingId === selectedId}
                 />
             )}

@@ -79,6 +79,7 @@ import { terminarServicoImediatamente } from '../controllers/servicosTerminarCon
 import {
     listarInscricoesPublicas,
     atualizarEstadoInscricaoPublica,
+    atualizarCamposInscricaoPublica,
     apagarInscricoesPublicasAntigas,
 } from '../controllers/inscricaoController.js';
 import {
@@ -618,6 +619,11 @@ router.patch(
     validateParams({ id: 'number' }),
     validateBody({ estado: { type: 'string', required: true } }),
     atualizarEstadoInscricaoPublica
+);
+router.patch(
+    '/inscricoes-publicas/:id',
+    validateParams({ id: 'number' }),
+    atualizarCamposInscricaoPublica
 );
 router.delete(
     '/inscricoes-publicas/antigas',

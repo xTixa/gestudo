@@ -1121,7 +1121,7 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
                 UPDATE public.inscricoes_publicas
                 SET estado = $1
                 WHERE id_inscricao_publica = $2
-                RETURNING id_inscricao_publica, estado, created_at
+                RETURNING *
             `,
             [estado, id]
         );
@@ -1179,6 +1179,145 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
                     : error.message,
             detail: error?.detail || error.message,
         });
+    }
+}
+
+// Campos simples (texto) que o gestor pode corrigir antes de aprovar/rejeitar
+const CAMPOS_EDITAVEIS_INSCRICAO = [
+    'nome_completo',
+    'email',
+    'telemovel',
+    'escola',
+    'turma',
+    'ee_nome',
+];
+
+/**
+ * PATCH /api/gestor/inscricoes-publicas/:id
+ * Permite ao gestor corrigir campos da inscrição pública (ex: número de telemóvel
+ * com um dígito a mais) e o plano de estudo (que pode ter várias disciplinas)
+ * antes de aprovar ou rejeitar.
+ */
+export async function atualizarCamposInscricaoPublica(req, res) {
+    try {
+        await ensureInscricoesPublicasTable();
+
+        const id = Number.parseInt(req.params?.id, 10);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ message: 'ID inválido.' });
+        }
+
+        const body = req.body || {};
+        const setClauses = [];
+        const values = [];
+        let paramIndex = 1;
+        const dadosPatch = {};
+
+        for (const field of CAMPOS_EDITAVEIS_INSCRICAO) {
+            if (!Object.prototype.hasOwnProperty.call(body, field)) {
+                continue;
+            }
+
+            const value = String(body[field] ?? '').trim();
+            if (!value) {
+                return res.status(400).json({
+                    message: `Campo '${field}' não pode ficar vazio.`,
+                });
+            }
+
+            setClauses.push(`${field} = $${paramIndex}`);
+            values.push(value);
+            paramIndex++;
+            dadosPatch[field] = value;
+        }
+
+        if (Array.isArray(body.plano) && body.plano.length > 0) {
+            const plano = body.plano.map((item) => ({
+                disciplina: String(item?.disciplina ?? '').trim(),
+                tipo_servico: String(item?.tipo_servico ?? '').trim(),
+                modalidade: String(item?.modalidade ?? '').trim(),
+                pacote: String(item?.pacote ?? '').trim(),
+            }));
+
+            for (let i = 0; i < plano.length; i++) {
+                if (!plano[i].disciplina || !plano[i].modalidade) {
+                    return res.status(400).json({
+                        message: `Plano ${i + 1}: disciplina e modalidade são obrigatórias.`,
+                    });
+                }
+            }
+
+            const first = plano[0];
+            setClauses.push(`disciplina = $${paramIndex}`);
+            values.push(first.disciplina);
+            paramIndex++;
+            setClauses.push(`tipo_servico = $${paramIndex}`);
+            values.push(first.tipo_servico || null);
+            paramIndex++;
+            setClauses.push(`modalidade = $${paramIndex}`);
+            values.push(first.modalidade);
+            paramIndex++;
+            setClauses.push(`pacote = $${paramIndex}`);
+            values.push(first.pacote || null);
+            paramIndex++;
+
+            dadosPatch.plano = plano;
+            dadosPatch.disciplina = first.disciplina;
+            dadosPatch.tipo_servico = first.tipo_servico;
+            dadosPatch.modalidade = first.modalidade;
+            dadosPatch.pacote = first.pacote;
+        }
+
+        if (setClauses.length === 0) {
+            return res
+                .status(400)
+                .json({ message: 'Nenhum campo válido para atualizar.' });
+        }
+
+        setClauses.push(`dados = COALESCE(dados, '{}'::jsonb) || $${paramIndex}::jsonb`);
+        values.push(JSON.stringify(dadosPatch));
+        paramIndex++;
+        setClauses.push(`updated_at = NOW()`);
+
+        values.push(id);
+
+        const { rows } = await db.query(
+            `
+                UPDATE public.inscricoes_publicas
+                SET ${setClauses.join(', ')}
+                WHERE id_inscricao_publica = $${paramIndex}
+                RETURNING *
+            `,
+            values
+        );
+
+        if (!rows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Inscrição não encontrada.' });
+        }
+
+        await registarUpdate(
+            req.userId ?? null,
+            'inscricoes_publicas',
+            id,
+            null,
+            dadosPatch,
+            'alert'
+        );
+
+        return res.status(200).json({
+            message: 'Inscrição atualizada com sucesso.',
+            inscricao: rows[0],
+        });
+    } catch (error) {
+        console.error(
+            'Erro ao atualizar campos da inscrição pública:',
+            error.message
+        );
+        return res
+            .status(500)
+            .json({ message: 'Erro ao atualizar inscrição.' });
     }
 }
 

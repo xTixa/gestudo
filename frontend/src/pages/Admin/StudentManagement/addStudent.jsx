@@ -24,12 +24,10 @@ const INITIAL_FORM = {
     ee_nome_completo: '',
     ee_parentesco: '',
     ee_cartao_cidadao: '',
-    ee_nif: '',
     ee_morada: '',
     ee_localidade: '',
     ee_codigo_postal: '',
     ee_telemovel: '',
-    ee_telefone: '',
     ee_email: '',
 };
 
@@ -137,10 +135,6 @@ export default function AddAlunoPage() {
             errors.nif = 'NIF inválido. Deve conter 9 dígitos.';
         }
 
-        if (form.ee_nif && !nifRegex.test(form.ee_nif.trim())) {
-            errors.ee_nif = 'NIF inválido. Deve conter 9 dígitos.';
-        }
-
         if (
             form.codigo_postal &&
             !postalCodeRegex.test(form.codigo_postal.trim())
@@ -180,10 +174,6 @@ export default function AddAlunoPage() {
 
         if (form.telefone && !phoneRegex.test(form.telefone.trim())) {
             errors.telefone = 'Telefone inválido. Deve conter 9 dígitos.';
-        }
-
-        if (form.ee_telefone && !phoneRegex.test(form.ee_telefone.trim())) {
-            errors.ee_telefone = 'Telefone inválido. Deve conter 9 dígitos.';
         }
 
         return errors;
@@ -701,28 +691,6 @@ export default function AddAlunoPage() {
                                     className={inputBaseClass}
                                 />
                             </label>
-
-                            <label className="block text-sm text-slate-700">
-                                NIF
-                                <input
-                                    type="text"
-                                    name="ee_nif"
-                                    value={form.ee_nif}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
-                                    placeholder="000000000"
-                                    className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
-                                        showError('ee_nif')
-                                            ? 'border-red-300 focus:ring-red-200'
-                                            : 'border-slate-300 focus:ring-emerald-200'
-                                    }`}
-                                />
-                                {showError('ee_nif') ? (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {validationErrors.ee_nif}
-                                    </p>
-                                ) : null}
-                            </label>
                         </div>
                     </fieldset>
 
@@ -840,28 +808,6 @@ export default function AddAlunoPage() {
                                 {showError('ee_telemovel') ? (
                                     <p className="mt-1 text-xs text-red-600">
                                         {validationErrors.ee_telemovel}
-                                    </p>
-                                ) : null}
-                            </label>
-
-                            <label className="block text-sm text-slate-700">
-                                Telefone
-                                <input
-                                    type="text"
-                                    name="ee_telefone"
-                                    value={form.ee_telefone}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
-                                    placeholder="200 000 000"
-                                    className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
-                                        showError('ee_telefone')
-                                            ? 'border-red-300 focus:ring-red-200'
-                                            : 'border-slate-300 focus:ring-emerald-200'
-                                    }`}
-                                />
-                                {showError('ee_telefone') ? (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {validationErrors.ee_telefone}
                                     </p>
                                 ) : null}
                             </label>

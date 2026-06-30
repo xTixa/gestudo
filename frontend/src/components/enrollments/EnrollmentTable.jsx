@@ -140,6 +140,10 @@ export default function EnrollmentTable({
                                         <td className="px-4 py-3">
                                             <p className="text-slate-700">
                                                 {item.disciplina || '-'}
+                                                {Array.isArray(item.dados?.plano) &&
+                                                item.dados.plano.length > 1
+                                                    ? ` +${item.dados.plano.length - 1}`
+                                                    : ''}
                                             </p>
                                             <p className="text-xs text-slate-500">
                                                 {item.modalidade || '-'}
