@@ -12,6 +12,7 @@ import {
     setCsrfCookie,
     clearCsrfCookie,
 } from '../middlewares/securityMiddleware.js';
+import { notificarGestoresAtividadeSuspeita } from '../services/alertasDispatchService.js';
 
 /**
  * ========================================
@@ -110,7 +111,7 @@ function isLoginBlocked(key) {
     return { blocked: false, retryAfterSeconds: 0 };
 }
 
-function registerLoginFailure(key) {
+function registerLoginFailure(key, email, ip) {
     const now = Date.now();
     const current = failedLoginAttempts.get(key) || {
         count: 0,
@@ -126,11 +127,18 @@ function registerLoginFailure(key) {
 
     current.count += 1;
 
+    const justBlocked =
+        current.count === LOGIN_MAX_ATTEMPTS && !current.blockedUntil;
+
     if (current.count >= LOGIN_MAX_ATTEMPTS) {
         current.blockedUntil = now + LOGIN_BLOCK_MS;
     }
 
     failedLoginAttempts.set(key, current);
+
+    if (justBlocked) {
+        notificarGestoresAtividadeSuspeita({ email, ip }).catch(() => {});
+    }
 }
 
 function clearLoginFailures(key) {
@@ -317,7 +325,7 @@ export async function login(req, res) {
         const { rows } = await db.query(query, [email]);
 
         if (!rows.length) {
-            registerLoginFailure(loginThrottleKey);
+            registerLoginFailure(loginThrottleKey, email, getClientIp(req));
             return res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 
@@ -329,7 +337,7 @@ export async function login(req, res) {
             : password === String(user.password);
 
         if (!isValidPassword) {
-            registerLoginFailure(loginThrottleKey);
+            registerLoginFailure(loginThrottleKey, email, getClientIp(req));
             return res.status(401).json({ message: 'Credenciais inválidas.' });
         }
 

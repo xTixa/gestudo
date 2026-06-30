@@ -78,6 +78,14 @@ function gerarCartaoCidadaoPlaceholder(prefix = 'ND') {
     return `${prefix}-${timestamp}-${random}`;
 }
 
+// pessoas.nif é varchar(15) NOT NULL UNIQUE; o formulário público de inscrição não recolhe
+// o NIF do encarregado, por isso é preciso gerar um placeholder único quando ele não vem preenchido.
+function gerarNifPlaceholder() {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 4).toUpperCase();
+    return `EE${timestamp}${random}`;
+}
+
 /**
  * Procura tabela em base de dados usando lista de nomes candidatos
  *
@@ -633,11 +641,11 @@ async function integrarInscricaoAprovada(inscricao) {
                     toNullableText(inscricao?.ee_nome) || 'Encarregado',
                     '1980-01-01',
                     ccEncarregado,
-                    encarregadoNif,
-                    toNullableText(inscricao?.ee_morada),
-                    toNullableText(inscricao?.ee_localidade),
-                    toNullableText(inscricao?.ee_codigo_postal),
-                    toNullableText(inscricao?.ee_telemovel),
+                    encarregadoNif || gerarNifPlaceholder(),
+                    toNullableText(inscricao?.ee_morada) || '',
+                    toNullableText(inscricao?.ee_localidade) || '',
+                    toNullableText(inscricao?.ee_codigo_postal) || '',
+                    toNullableText(inscricao?.ee_telemovel) || '',
                     toNullableText(inscricao?.ee_telefone),
                 ]
             );
@@ -651,7 +659,7 @@ async function integrarInscricaoAprovada(inscricao) {
                 [
                     idUserEncarregado,
                     pessoaEncarregadoResult.rows[0].id_pessoa,
-                    toNullableText(inscricao?.ee_parentesco),
+                    toNullableText(inscricao?.ee_parentesco) || 'Encarregado de Educação',
                 ]
             );
 
@@ -737,14 +745,6 @@ async function integrarInscricaoAprovada(inscricao) {
     }
 }
 
-async function ensureNovaInscricaoAlertDefinition() {
-    await db.query(`
-        INSERT INTO alertas_definicoes (codigo, titulo, canal_app_default, canal_email_default, canal_sms_default, ativo)
-        VALUES ('nova-inscricao-publica', 'Nova Inscrição Pública', true, false, false, true)
-        ON CONFLICT (codigo) DO NOTHING
-    `);
-}
-
 async function notificarGestoresNovaInscricao({ nomeAluno, email, modalidade, tipoServico, id }) {
     try {
         const { rows: gestores } = await db.query(
@@ -775,9 +775,8 @@ async function notificarGestoresNovaInscricao({ nomeAluno, email, modalidade, ti
         );
 
         // Notificação in-app para cada gestor
-        await ensureNovaInscricaoAlertDefinition();
         await dispatchAlert({
-            codigo: 'nova-inscricao-publica',
+            codigo: 'novos-pedidos-inscricao',
             for_user_ids: gestores.map((g) => g.id_user),
             titulo,
             descricao,

@@ -523,7 +523,7 @@ BEGIN
                     COALESCE(p_ativo, true),
                     NOW()
                 )
-                ON CONFLICT (id_user, id_alerta_definicao)
+                ON CONFLICT ON CONSTRAINT uq_alertas_preferencias_user_definicao
                 DO UPDATE SET
                     canal_app = COALESCE(p_canal_app, alertas_preferencias_utilizador.canal_app),
                     canal_email = COALESCE(p_canal_email, alertas_preferencias_utilizador.canal_email),
@@ -538,7 +538,7 @@ BEGIN
                     alertas_preferencias_utilizador.canal_email,
                     alertas_preferencias_utilizador.canal_sms,
                     alertas_preferencias_utilizador.ativo,
-                    alertas_preferencias_utilizador.atualizado_em;
+                    alertas_preferencias_utilizador.atualizado_em::timestamptz;
             END;
             $body$;
         $fn$;

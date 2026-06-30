@@ -525,3 +525,129 @@ export async function dispatchAlertaCustomizado(
         payload,
     });
 }
+
+// Obtém os ids de todos os gestores ativos, opcionalmente excluindo quem despoletou a ação
+async function obterGestoresExcluindo(actorUserId) {
+    const { rows } = await db.query(
+        `SELECT id_user FROM users WHERE role = 'gestor' AND status = true`
+    );
+    return rows
+        .map((row) => row.id_user)
+        .filter((id) => id !== actorUserId);
+}
+
+/**
+ * Notifica os restantes gestores quando uma nova conta (professor/aluno) é criada.
+ *
+ * @param {Object} params
+ * @param {number} params.actorUserId - Gestor que criou a conta (excluído da notificação)
+ * @param {string} params.nome - Nome da pessoa cuja conta foi criada
+ * @param {string} params.email - Email da conta criada
+ * @param {'professor'|'aluno'} params.tipo - Tipo de conta criada
+ * @returns {Promise<Object>} resultado do dispatch
+ */
+export async function notificarGestoresCriacaoConta({
+    actorUserId,
+    nome,
+    email,
+    tipo,
+}) {
+    try {
+        const gestorIds = await obterGestoresExcluindo(actorUserId);
+        if (!gestorIds.length) {
+            return { success: true, eventos_criados: 0 };
+        }
+
+        const tipoLabel = tipo === 'professor' ? 'Professor' : 'Aluno';
+
+        return await dispatchAlert({
+            codigo: 'criacao-conta',
+            for_user_ids: gestorIds,
+            titulo: `Nova conta de ${tipoLabel.toLowerCase()} criada`,
+            descricao: `${tipoLabel} "${nome}" (${email}) foi criado no sistema.`,
+            nivel: 'info',
+            payload: { nome, email, tipo },
+        });
+    } catch (err) {
+        console.error(
+            '[alertasDispatchService] notificarGestoresCriacaoConta error:',
+            err.message
+        );
+        return { success: false, eventos_criados: 0, erro: err.message };
+    }
+}
+
+/**
+ * Notifica os restantes gestores quando é executada uma limpeza de dados em massa.
+ *
+ * @param {Object} params
+ * @param {number} params.actorUserId - Gestor que executou a limpeza (excluído da notificação)
+ * @param {Object} params.contagens - Resumo de quantos registos foram eliminados por categoria
+ * @returns {Promise<Object>} resultado do dispatch
+ */
+export async function notificarGestoresLimpezaDados({
+    actorUserId,
+    contagens,
+}) {
+    try {
+        const gestorIds = await obterGestoresExcluindo(actorUserId);
+        if (!gestorIds.length) {
+            return { success: true, eventos_criados: 0 };
+        }
+
+        const resumo = Object.entries(contagens || {})
+            .filter(([, total]) => Number(total) > 0)
+            .map(([categoria, total]) => `${categoria}: ${total}`)
+            .join(', ');
+
+        return await dispatchAlert({
+            codigo: 'limpeza-dados-massa',
+            for_user_ids: gestorIds,
+            titulo: 'Limpeza de dados em massa executada',
+            descricao: resumo
+                ? `Foram eliminados registos de: ${resumo}.`
+                : 'Foi executada uma limpeza de dados em massa.',
+            nivel: 'warning',
+            payload: contagens,
+        });
+    } catch (err) {
+        console.error(
+            '[alertasDispatchService] notificarGestoresLimpezaDados error:',
+            err.message
+        );
+        return { success: false, eventos_criados: 0, erro: err.message };
+    }
+}
+
+/**
+ * Notifica todos os gestores quando é detetada atividade suspeita de login
+ * (várias tentativas falhadas consecutivas para a mesma conta/IP).
+ *
+ * @param {Object} params
+ * @param {string} params.email - Email alvo das tentativas
+ * @param {string} params.ip - IP de origem das tentativas
+ * @returns {Promise<Object>} resultado do dispatch
+ */
+export async function notificarGestoresAtividadeSuspeita({ email, ip }) {
+    try {
+        const gestorIds = await obterGestoresExcluindo(null);
+        if (!gestorIds.length) {
+            return { success: true, eventos_criados: 0 };
+        }
+
+        return await dispatchAlert({
+            codigo: 'atividade-suspeita',
+            for_user_ids: gestorIds,
+            titulo: 'Atividade de login suspeita detetada',
+            descricao: `Foram registadas várias tentativas de login falhadas para "${email}" a partir do IP ${ip}. A conta foi temporariamente bloqueada.`,
+            nivel: 'danger',
+            payload: { email, ip },
+        });
+    } catch (err) {
+        console.error(
+            '[alertasDispatchService] notificarGestoresAtividadeSuspeita error:',
+            err.message
+        );
+        return { success: false, eventos_criados: 0, erro: err.message };
+    }
+}

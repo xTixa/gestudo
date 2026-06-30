@@ -11,6 +11,7 @@ import {
     registarInsert,
     registarUpdate,
 } from '../services/logService.js';
+import { notificarGestoresCriacaoConta } from '../services/alertasDispatchService.js';
 
 /**
  * ========================================
@@ -989,6 +990,13 @@ export async function criarAluno(req, res) {
                 passwordTemporaria
             ).catch(() => {});
         }
+
+        notificarGestoresCriacaoConta({
+            actorUserId: req.userId,
+            nome: alunoNome,
+            email: alunoEmail,
+            tipo: 'aluno',
+        }).catch(() => {});
 
         return res.status(201).json({
             message: emailEnviado

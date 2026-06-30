@@ -1,5 +1,6 @@
 import { db } from '../config/db.js';
 import { registarInsert } from '../services/logService.js';
+import { notificarGestoresLimpezaDados } from '../services/alertasDispatchService.js';
 
 const CONFIRMACAO_ESPERADA = 'ELIMINAR DADOS';
 
@@ -194,6 +195,11 @@ export async function limparDadosEmMassa(req, res) {
             { opcoes, contagens },
             null
         ).catch(() => {});
+
+        notificarGestoresLimpezaDados({
+            actorUserId: req.userId ?? null,
+            contagens,
+        }).catch(() => {});
 
         return res.status(200).json({
             message: 'Limpeza de dados concluída com sucesso.',

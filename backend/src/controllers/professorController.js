@@ -7,6 +7,7 @@ import {
 import {
     dispatchAlert,
     isAlertChannelEnabledForUser,
+    notificarGestoresCriacaoConta,
 } from '../services/alertasDispatchService.js';
 import {
     registarDelete,
@@ -2006,6 +2007,13 @@ export async function criarProfessor(req, res) {
             passwordTemporaria
         );
         const emailEnviado = emailResultado.ok === true;
+
+        notificarGestoresCriacaoConta({
+            actorUserId: req.userId,
+            nome: professorNome,
+            email: professorEmail,
+            tipo: 'professor',
+        }).catch(() => {});
 
         return res.status(201).json({
             message: emailEnviado
