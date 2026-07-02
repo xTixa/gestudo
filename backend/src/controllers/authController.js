@@ -452,6 +452,12 @@ export async function alterarPassword(req, res) {
                 .json({ message: 'Password atual inválida.' });
         }
 
+        if (passwordNova === passwordAtual) {
+            return res.status(400).json({
+                message: 'A nova password não pode ser igual à password atual.',
+            });
+        }
+
         // Fazer hash e atualizar
         const novaPasswordHash = await bcrypt.hash(passwordNova, 10);
         const updateFirstLoginFragment = hasFirstLogin

@@ -49,6 +49,11 @@ export default function AlterarPasswordObrigatorio() {
             return;
         }
 
+        if (passwordNova === passwordAtual) {
+            setError('A nova password não pode ser igual à password temporária.');
+            return;
+        }
+
         setLoading(true);
 
         try {

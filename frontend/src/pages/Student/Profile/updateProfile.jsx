@@ -318,6 +318,11 @@ export default function UpdatePerfilAlunoPage() {
                 setError('A nova password não coincide.');
                 return;
             }
+
+            if (form.password_nova === form.password_atual) {
+                setError('A nova password não pode ser igual à password atual.');
+                return;
+            }
         }
 
         setSubmitting(true);

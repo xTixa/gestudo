@@ -750,7 +750,12 @@ export default function GestaoProfessores() {
             return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
-        setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+        const dropdownWidth = 192; // w-48
+        const left =
+            rect.left + dropdownWidth > window.innerWidth
+                ? Math.max(8, rect.right - dropdownWidth)
+                : rect.left;
+        setDropdownPos({ top: rect.bottom + 4, left });
         setOpenDropdown({ id: prof.id_professor, prof });
     }
 
