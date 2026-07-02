@@ -590,7 +590,7 @@ export default function AddAlunoPage() {
                             </label>
 
                             <label className="block text-sm text-slate-700">
-                                Turma *
+                                Turma
                                 <input
                                     type="text"
                                     name="turma"
@@ -598,7 +598,6 @@ export default function AddAlunoPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Ex: A, B, C"
-                                    required
                                     className={inputBaseClass}
                                 />
                             </label>

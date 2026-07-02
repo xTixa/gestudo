@@ -1,6 +1,6 @@
 import { db } from '../config/db.js';
 import bcrypt from 'bcryptjs';
-import { enviarEmailCredenciaisIniciais, enviarEmailAlerta } from '../services/emailService.js';
+import { enviarEmailCredenciaisIniciais, enviarEmailContaCriadaEE, enviarEmailAlerta } from '../services/emailService.js';
 import { dispatchAlert } from '../services/alertasDispatchService.js';
 import {
     registarInsert,
@@ -546,6 +546,9 @@ async function integrarInscricaoAprovada(inscricao) {
                 email,
                 nomeAluno,
                 guardianUserRole: null,
+                encarregadoEmail: null,
+                encarregadoTemporaryPassword: null,
+                encarregadoUserCreated: false,
             };
         }
 
@@ -553,6 +556,9 @@ async function integrarInscricaoAprovada(inscricao) {
         let createdEncarregado = false;
         const guardianUserRole = await resolveGuardianUserRole(client);
         let guardianUserRoleUsed = null;
+        let encarregadoEmailFinal = null;
+        let encarregadoTemporaryPassword = null;
+        let encarregadoUserCreated = false;
 
         const encarregadoNif = toNullableText(inscricao?.ee_nif);
         if (encarregadoNif) {
@@ -577,6 +583,7 @@ async function integrarInscricaoAprovada(inscricao) {
                 toLowerEmailOrNull(inscricao?.ee_email) ||
                 toLowerEmailOrNull(inscricao?.dados?.ee_email) ||
                 `encarregado.inscricao.${inscricao?.id_inscricao_publica || Date.now()}@placeholder.local`;
+            encarregadoEmailFinal = encarregadoEmail;
 
             let idUserEncarregado = null;
 
@@ -629,6 +636,8 @@ async function integrarInscricaoAprovada(inscricao) {
                 idUserEncarregado =
                     createdEncarregadoUserResult.rows[0].id_user;
                 guardianUserRoleUsed = guardianUserRole;
+                encarregadoTemporaryPassword = encarregadoPassword;
+                encarregadoUserCreated = true;
             }
 
             // encarregados.id_user é UNIQUE: se este utilizador (ex: mesmo email
@@ -754,6 +763,9 @@ async function integrarInscricaoAprovada(inscricao) {
             email,
             nomeAluno,
             guardianUserRole: guardianUserRoleUsed,
+            encarregadoEmail: encarregadoEmailFinal,
+            encarregadoTemporaryPassword,
+            encarregadoUserCreated,
         };
     } catch (error) {
         await client.query('ROLLBACK');
@@ -1129,6 +1141,28 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
 
                 console.log(
                     `Email enviado para ${integracao.email} com inscrição aprovada`
+                );
+            }
+
+            if (
+                integracao.encarregadoUserCreated &&
+                integracao.encarregadoTemporaryPassword &&
+                integracao.encarregadoEmail &&
+                !integracao.encarregadoEmail.includes('@placeholder.local')
+            ) {
+                await enviarEmailContaCriadaEE(
+                    integracao.nomeAluno,
+                    integracao.encarregadoEmail,
+                    integracao.encarregadoTemporaryPassword
+                ).catch((err) => {
+                    console.error(
+                        'Erro ao enviar email de credenciais ao encarregado:',
+                        err.message
+                    );
+                });
+
+                console.log(
+                    `Email enviado para ${integracao.encarregadoEmail} (encarregado) com inscrição aprovada`
                 );
             }
         }
