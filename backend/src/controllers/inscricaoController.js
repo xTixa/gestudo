@@ -631,40 +631,58 @@ async function integrarInscricaoAprovada(inscricao) {
                 guardianUserRoleUsed = guardianUserRole;
             }
 
-            const pessoaEncarregadoResult = await client.query(
+            // encarregados.id_user é UNIQUE: se este utilizador (ex: mesmo email
+            // usado para um segundo educando) já tem um encarregado associado,
+            // reutiliza-o em vez de tentar inserir outro (o que violaria a
+            // constraint e devolvia "dados já registados").
+            const existingEncarregadoResult = await client.query(
                 `
-                    INSERT INTO pessoas (nome, data_nasc, cc, nif, morada, localidade, cod_postal, telemovel, telefone)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    RETURNING id_pessoa
+                    SELECT id_encarregado
+                    FROM encarregados
+                    WHERE id_user = $1
+                    LIMIT 1
                 `,
-                [
-                    toNullableText(inscricao?.ee_nome) || 'Encarregado',
-                    '1980-01-01',
-                    ccEncarregado,
-                    encarregadoNif || gerarNifPlaceholder(),
-                    toNullableText(inscricao?.ee_morada) || '',
-                    toNullableText(inscricao?.ee_localidade) || '',
-                    toNullableText(inscricao?.ee_codigo_postal) || '',
-                    toNullableText(inscricao?.ee_telemovel) || '',
-                    toNullableText(inscricao?.ee_telefone),
-                ]
+                [idUserEncarregado]
             );
 
-            const encarregadoResult = await client.query(
-                `
-                    INSERT INTO encarregados (id_user, id_pessoa, parentesco)
-                    VALUES ($1, $2, $3)
-                    RETURNING id_encarregado
-                `,
-                [
-                    idUserEncarregado,
-                    pessoaEncarregadoResult.rows[0].id_pessoa,
-                    toNullableText(inscricao?.ee_parentesco) || 'Encarregado de Educação',
-                ]
-            );
+            if (existingEncarregadoResult.rows.length > 0) {
+                idEncarregado = existingEncarregadoResult.rows[0].id_encarregado;
+            } else {
+                const pessoaEncarregadoResult = await client.query(
+                    `
+                        INSERT INTO pessoas (nome, data_nasc, cc, nif, morada, localidade, cod_postal, telemovel, telefone)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                        RETURNING id_pessoa
+                    `,
+                    [
+                        toNullableText(inscricao?.ee_nome) || 'Encarregado',
+                        '1980-01-01',
+                        ccEncarregado,
+                        encarregadoNif || gerarNifPlaceholder(),
+                        toNullableText(inscricao?.ee_morada) || '',
+                        toNullableText(inscricao?.ee_localidade) || '',
+                        toNullableText(inscricao?.ee_codigo_postal) || '',
+                        toNullableText(inscricao?.ee_telemovel) || '',
+                        toNullableText(inscricao?.ee_telefone),
+                    ]
+                );
 
-            idEncarregado = encarregadoResult.rows[0].id_encarregado;
-            createdEncarregado = true;
+                const encarregadoResult = await client.query(
+                    `
+                        INSERT INTO encarregados (id_user, id_pessoa, parentesco)
+                        VALUES ($1, $2, $3)
+                        RETURNING id_encarregado
+                    `,
+                    [
+                        idUserEncarregado,
+                        pessoaEncarregadoResult.rows[0].id_pessoa,
+                        toNullableText(inscricao?.ee_parentesco) || 'Encarregado de Educação',
+                    ]
+                );
+
+                idEncarregado = encarregadoResult.rows[0].id_encarregado;
+                createdEncarregado = true;
+            }
         }
 
         let idPessoaAluno = null;

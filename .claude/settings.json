@@ -24,7 +24,9 @@
       "Bash(node ./scripts/_tmp_find_active.mjs)",
       "Bash(node ./scripts/_tmp_debug2.mjs)",
       "Bash(sed -i \"s/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 LIMIT 1/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 AND COALESCE\\(ativo,true\\)=true LIMIT 1/g\" ./scripts/_tmp_test_teacher_fixes.mjs)",
-      "Bash(sed -i \"s/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 LIMIT 1\\\\`, \\\\[profRow.rows\\\\[0\\\\].id_professor\\\\]/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 AND COALESCE\\(ativo,true\\)=true LIMIT 1\\\\`, [profRow.rows[0].id_professor]/\" ./scripts/_tmp_test_teacher_fixes.mjs)"
+      "Bash(sed -i \"s/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 LIMIT 1\\\\`, \\\\[profRow.rows\\\\[0\\\\].id_professor\\\\]/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 AND COALESCE\\(ativo,true\\)=true LIMIT 1\\\\`, [profRow.rows[0].id_professor]/\" ./scripts/_tmp_test_teacher_fixes.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(node --check src/controllers/authController.js)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

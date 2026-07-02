@@ -212,10 +212,10 @@ export default function InfosInscricaoPage() {
     function validarFormulario(formData) {
         const requiredFields = [
             'data_inicio', 'nome_completo', 'data_nascimento', 'email',
-            'telemovel', 'telefone', 'cartao_cidadao', 'nif',
+            'telemovel', 'cartao_cidadao', 'nif',
             'morada', 'localidade', 'codigo_postal', 'escola',
             ...(isEnsinoSuperior ? [] : ['ano_escolar']),
-            'turma', 'ee_nome', 'ee_email', 'ee_telemovel',
+            'ee_nome', 'ee_email', 'ee_telemovel',
             'ee_morada', 'ee_localidade', 'ee_codigo_postal', 'ee_parentesco',
             'nivel_ensino',
         ];
@@ -238,11 +238,15 @@ export default function InfosInscricaoPage() {
 
         const phones = [
             String(formData.get('telemovel') || '').trim(),
-            String(formData.get('telefone') || '').trim(),
             String(formData.get('ee_telemovel') || '').trim(),
         ];
         if (phones.some((v) => !phoneRegex.test(v))) {
             return 'Telefone/telemóvel inválido. Deve conter 9 dígitos.';
+        }
+
+        const telefone = String(formData.get('telefone') || '').trim();
+        if (telefone && !phoneRegex.test(telefone)) {
+            return 'Telefone inválido. Deve conter 9 dígitos.';
         }
 
         const nifAluno = String(formData.get('nif') || '').trim();
@@ -441,11 +445,10 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Telefone <Req />
+                                    Telefone
                                     <input
                                         id="field-telefone"
-                                        name="telefone" type="tel" inputMode="numeric" required
-                                        aria-required="true"
+                                        name="telefone" type="tel" inputMode="numeric"
                                         aria-describedby={liveErrors.telefone ? 'err-telefone' : undefined}
                                         aria-invalid={Boolean(liveErrors.telefone)}
                                         onChange={handleLiveValidation} onBlur={handleLiveValidation}
@@ -542,8 +545,8 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Turma <Req />
-                                    <input name="turma" type="text" required placeholder="Ex: B" className={INPUT_CLS} />
+                                    Turma
+                                    <input name="turma" type="text" placeholder="Ex: B" className={INPUT_CLS} />
                                 </label>
                             </div>
                         </section>
@@ -710,11 +713,6 @@ export default function InfosInscricaoPage() {
                                                             <option key={o.id} value={o.id}>{o.label}</option>
                                                         ))}
                                                     </select>
-                                                    {isIndividual ? (
-                                                        <p className="mt-1 text-xs text-blue-700">
-                                                            Modalidade individual selecionada: preço fixo de 20EUR/h.
-                                                        </p>
-                                                    ) : null}
                                                 </label>
 
                                                 {!isIndividual ? (
@@ -821,7 +819,16 @@ export default function InfosInscricaoPage() {
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
-                                        Aceito e concordo com as condições de prestação de serviços e regulamento interno.
+                                        Aceito e concordo com as condições de prestação de serviços e{' '}
+                                        <a
+                                            href="https://blocodenotas.pt/regulamento/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-slate-800 underline hover:text-slate-600"
+                                        >
+                                            regulamento interno
+                                        </a>
+                                        .
                                     </span>
                                 </label>
                             </div>
