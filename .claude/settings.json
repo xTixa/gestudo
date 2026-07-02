@@ -8,7 +8,23 @@
       "Bash(node ./scripts/_tmp_check_inscricoes.mjs)",
       "Bash(rm -f ./scripts/_tmp_*.mjs *)",
       "Bash(npx vite *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(cd ../backend && grep -E \"^EMAIL_\" .env | sed -E 's/\\(PASSWORD=\\).*/\\\\1<hidden>/')",
+      "Read(//e/MEDIACENTER/mediacenter-main/**)",
+      "Bash(cat nodemon.json)",
+      "Bash(grep -A10 '\"nodemonConfig\"' package.json)",
+      "Bash(node --check src/controllers/professorController.js)",
+      "Bash(node --check src/controllers/presencasController.js)",
+      "Bash(node --check src/controllers/servicosController.js)",
+      "Bash(node --check src/routes/professorRoutes.js)",
+      "Bash(sed -i \"s/SELECT pr.id_professor, pr.id_user FROM professores pr LIMIT 1/SELECT pr.id_professor, pr.id_user FROM professores pr WHERE pr.id_user = 16 LIMIT 1/\" ./scripts/_tmp_test_teacher_fixes.mjs)",
+      "Bash(node ./scripts/_tmp_test_teacher_fixes.mjs)",
+      "Bash(node ./scripts/_tmp_find_prof_with_servico.mjs)",
+      "Bash(node ./scripts/_tmp_debug_404.mjs)",
+      "Bash(node ./scripts/_tmp_find_active.mjs)",
+      "Bash(node ./scripts/_tmp_debug2.mjs)",
+      "Bash(sed -i \"s/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 LIMIT 1/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 AND COALESCE\\(ativo,true\\)=true LIMIT 1/g\" ./scripts/_tmp_test_teacher_fixes.mjs)",
+      "Bash(sed -i \"s/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 LIMIT 1\\\\`, \\\\[profRow.rows\\\\[0\\\\].id_professor\\\\]/SELECT id_servico FROM servicos_curriculares WHERE id_professor = \\\\$1 AND COALESCE\\(ativo,true\\)=true LIMIT 1\\\\`, [profRow.rows[0].id_professor]/\" ./scripts/_tmp_test_teacher_fixes.mjs)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

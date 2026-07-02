@@ -508,6 +508,17 @@ function normalizeTimeLabel(value) {
         .slice(0, 5);
 }
 
+const DATA_SUGERIDA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const HORA_SUGERIDA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function isValidDataSugerida(value) {
+    if (!DATA_SUGERIDA_REGEX.test(value)) {
+        return false;
+    }
+    const date = new Date(`${value}T00:00:00`);
+    return !Number.isNaN(date.getTime());
+}
+
 function formatTimeRangeLabel(start, end) {
     const startLabel = normalizeTimeLabel(start);
     const endLabel = normalizeTimeLabel(end);
@@ -1277,7 +1288,19 @@ export async function criarPedidoReagendamentoProfessor(req, res) {
         }
 
         const dataSugerida = String(req.body?.data_sugerida || '').trim();
+        if (dataSugerida && !isValidDataSugerida(dataSugerida)) {
+            return res.status(400).json({
+                message: 'Data sugerida inválida. Use o formato AAAA-MM-DD.',
+            });
+        }
+
         const horaSugerida = normalizeTimeLabel(req.body?.hora_sugerida);
+        if (horaSugerida && !HORA_SUGERIDA_REGEX.test(horaSugerida)) {
+            return res.status(400).json({
+                message: 'Hora sugerida inválida. Use o formato HH:MM.',
+            });
+        }
+
         const salaSugerida = String(req.body?.sala_sugerida || '').trim();
 
         const inserted = await db.query(
@@ -1886,6 +1909,34 @@ export async function atualizarMeuPerfilProfessor(req, res) {
         return res
             .status(500)
             .json({ message: 'Erro ao atualizar o perfil do professor.' });
+    }
+}
+
+/**
+ * GET /api/professor/alunos
+ * Lista todos os alunos ativos do sistema, para o professor poder pesquisar
+ * e adicionar um "aluno extra" (não inscrito formalmente no serviço) ao
+ * marcar presenças.
+ */
+export async function listarAlunosParaProfessor(req, res) {
+    if (!req.userId) {
+        return res.status(401).json({ message: 'Autenticação necessária.' });
+    }
+
+    try {
+        const { rows } = await db.query(`
+            SELECT a.id_aluno, p.nome, a.ano, a.turma
+            FROM alunos a
+            INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+            INNER JOIN users u ON u.id_user = a.id_user
+            WHERE u.status = true
+            ORDER BY p.nome ASC
+        `);
+
+        return res.status(200).json({ alunos: rows });
+    } catch (error) {
+        console.error('Erro ao listar alunos para professor:', error.message);
+        return res.status(500).json({ message: 'Erro ao listar alunos.' });
     }
 }
 

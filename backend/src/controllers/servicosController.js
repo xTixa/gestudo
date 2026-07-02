@@ -1156,10 +1156,10 @@ export async function carregarDetalheServicoCurricular(client, idServico) {
 			s.dias_semana,
 			s.tipo AS tipo_canonical,
 			CASE
-				WHEN s.data_fim IS NOT NULL AND s.data_fim > s.data_inicio THEN 'PeriÃ³dico'
-				ELSE 'Ãšnico'
+				WHEN s.data_fim IS NOT NULL AND s.data_fim > s.data_inicio THEN 'Periódico'
+				ELSE 'Único'
 			END AS periodicidade,
-			COALESCE(NULLIF(ts.nome, ''), NULLIF(s.tipo, ''), 'ServiÃ§o') AS tipo_servico,
+			COALESCE(NULLIF(ts.nome, ''), NULLIF(s.tipo, ''), 'Serviço') AS tipo_servico,
 			COALESCE(m.nome, 'Sem modalidade') AS modalidade,
 			d.id_nivel AS nivel_ensino,
 			COALESCE(d.nome, 'Sem disciplina') AS area,

@@ -404,7 +404,7 @@ function expandServiceSessions(rows, fromDate, toDate, markedSessions) {
                     id_servico: serviceId,
                     id: serviceId,
                     sessionKey: `${serviceId}:${dateKey}`,
-                    titulo: String(row.disciplina || 'ServiÃ§o').trim(),
+                    titulo: String(row.disciplina || 'Serviço').trim(),
                     disciplina: row.disciplina,
                     sala: String(row.sala || 'Sem sala').trim() || 'Sem sala',
                     data_inicio: dateKey,
@@ -784,7 +784,25 @@ export async function guardarPresencasProfessor(req, res) {
         payload.some((item) => item.estado === 'reposta' && !item.data_reposicao)
     ) {
         return res.status(400).json({
-            message: 'Indique a data de reposiÃ§Ã£o para as aulas repostas.',
+            message: 'Indique a data de reposição para as aulas repostas.',
+        });
+    }
+
+    // Confirma que todos os ids de aluno (incluindo "alunos extra" não inscritos
+    // nesta sessão) correspondem a alunos reais, antes de tentar gravar.
+    const idsAlunoUnicos = [...new Set(payload.map((item) => item.id_aluno))];
+    const alunosExistentesResult = await db.query(
+        `SELECT id_aluno FROM alunos WHERE id_aluno = ANY($1::int[])`,
+        [idsAlunoUnicos]
+    );
+    const idsExistentes = new Set(
+        alunosExistentesResult.rows.map((row) => row.id_aluno)
+    );
+    const idsInvalidos = idsAlunoUnicos.filter((id) => !idsExistentes.has(id));
+
+    if (idsInvalidos.length) {
+        return res.status(400).json({
+            message: `Aluno(s) inválido(s) ou inexistente(s): ${idsInvalidos.join(', ')}.`,
         });
     }
 
@@ -931,6 +949,13 @@ export async function guardarPresencasProfessor(req, res) {
         }
 
         console.error('Erro ao guardar presenças do professor:', error.message);
+
+        if (error?.code === '23503') {
+            return res.status(400).json({
+                message: 'Um ou mais alunos indicados são inválidos.',
+            });
+        }
+
         return res.status(500).json({
             message: 'Erro ao guardar presenças.',
         });

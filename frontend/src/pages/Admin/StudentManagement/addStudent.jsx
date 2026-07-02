@@ -554,7 +554,7 @@ export default function AddAlunoPage() {
                                     required
                                     className={inputBaseClass}
                                 >
-                                    <option value="">Selecionar nÃ­vel</option>
+                                    <option value="">Selecionar nível</option>
                                     {EDUCATION_LEVELS.map((level) => (
                                         <option
                                             key={level.value}

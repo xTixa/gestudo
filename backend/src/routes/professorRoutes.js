@@ -3,6 +3,7 @@ import {
     criarPedidoReagendamentoProfessor,
     listarPedidosReagendamentoProfessor,
     listarServicosProfessorResumo,
+    listarAlunosParaProfessor,
     obterPerfilProfessorLogado,
     atualizarMeuPerfilProfessor,
 } from '../controllers/professorController.js';
@@ -23,6 +24,7 @@ router.use(roleMiddleware('professor'));
 router.get('/perfil', obterPerfilProfessorLogado);
 router.patch('/perfil', atualizarMeuPerfilProfessor);
 router.get('/servicos', listarServicosProfessorResumo);
+router.get('/alunos', listarAlunosParaProfessor);
 router.get('/presencas/servicos', listarServicosParaPresencaProfessor);
 router.get('/presencas/:id_servico/historico', obterHistoricoPresencasServicoProfessor);
 router.get('/presencas/:id_servico', obterPresencaProfessor);
