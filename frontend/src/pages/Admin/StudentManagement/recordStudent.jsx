@@ -105,6 +105,14 @@ export default function FichaAlunoPage() {
         mode: null,
         keyword: '',
     });
+    const [servicoModal, setServicoModal] = useState({
+        open: false,
+        loading: false,
+        submitting: false,
+        error: '',
+        servicos: [],
+        selectedId: '',
+    });
     useEffect(() => {
         let isMounted = true;
 
@@ -382,6 +390,102 @@ export default function FichaAlunoPage() {
         gerarFichaAlunoPdf(aluno);
     }
 
+    async function refetchAluno() {
+        const response = await apiGet(`/api/gestor/alunos/${alunoId}`);
+        const data = await response.json();
+        if (response.ok) {
+            setAluno(data.aluno);
+        }
+    }
+
+    async function abrirModalServico() {
+        setServicoModal({
+            open: true,
+            loading: true,
+            submitting: false,
+            error: '',
+            servicos: [],
+            selectedId: '',
+        });
+
+        try {
+            const response = await apiGet('/api/gestor/servicos/curriculares');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message || 'Erro ao carregar serviços curriculares.'
+                );
+            }
+
+            const todosServicos = Array.isArray(data?.servicos)
+                ? data.servicos
+                : [];
+            const disponiveis = todosServicos.filter(
+                (servico) =>
+                    !servico.alunosIds?.includes(Number(alunoId))
+            );
+
+            setServicoModal((prev) => ({
+                ...prev,
+                loading: false,
+                servicos: disponiveis,
+                selectedId: disponiveis[0]?.id ? String(disponiveis[0].id) : '',
+            }));
+        } catch (err) {
+            setServicoModal((prev) => ({
+                ...prev,
+                loading: false,
+                error:
+                    err?.message || 'Erro ao carregar serviços curriculares.',
+            }));
+        }
+    }
+
+    function fecharModalServico() {
+        if (servicoModal.submitting) return;
+        setServicoModal({
+            open: false,
+            loading: false,
+            submitting: false,
+            error: '',
+            servicos: [],
+            selectedId: '',
+        });
+    }
+
+    async function confirmarNovoServico() {
+        if (!servicoModal.selectedId) return;
+
+        setServicoModal((prev) => ({ ...prev, submitting: true, error: '' }));
+
+        try {
+            const response = await apiPost(
+                `/api/gestor/alunos/${alunoId}/servicos-curriculares`,
+                { id_servico: Number(servicoModal.selectedId) }
+            );
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message || 'Não foi possível adicionar o serviço.'
+                );
+            }
+
+            await refetchAluno();
+            fecharModalServico();
+            setActionMessage(
+                data?.message || 'Serviço adicionado com sucesso.'
+            );
+        } catch (err) {
+            setServicoModal((prev) => ({
+                ...prev,
+                submitting: false,
+                error: err?.message || 'Não foi possível adicionar o serviço.',
+            }));
+        }
+    }
+
     return (
         <section className="space-y-6">
             {actionMessage ? (
@@ -638,6 +742,7 @@ export default function FichaAlunoPage() {
                     </div>
                     <button
                         type="button"
+                        onClick={abrirModalServico}
                         className="inline-flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-100"
                     >
                         <Plus size={14} />
@@ -956,6 +1061,99 @@ export default function FichaAlunoPage() {
                                     : confirmModal.mode === 'delete'
                                       ? 'Eliminar definitivamente'
                                       : 'Confirmar stand by'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {servicoModal.open ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-slate-900/45"
+                        onClick={fecharModalServico}
+                        aria-label="Fechar"
+                    />
+
+                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div className="border-b border-slate-200 px-6 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Serviços Subscritos
+                            </p>
+                            <h3 className="mt-1 text-lg font-semibold text-slate-800">
+                                Adicionar Novo Serviço
+                            </h3>
+                        </div>
+
+                        <div className="space-y-4 px-6 py-5">
+                            {servicoModal.error ? (
+                                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                    {servicoModal.error}
+                                </p>
+                            ) : null}
+
+                            {servicoModal.loading ? (
+                                <p className="text-sm text-slate-500">
+                                    A carregar serviços disponíveis...
+                                </p>
+                            ) : servicoModal.servicos.length === 0 ? (
+                                <p className="text-sm text-slate-500">
+                                    Não existem serviços curriculares
+                                    disponíveis para adicionar (o aluno já
+                                    está inscrito em todos, ou não há
+                                    serviços ativos).
+                                </p>
+                            ) : (
+                                <label className="block">
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Serviço
+                                    </span>
+                                    <select
+                                        value={servicoModal.selectedId}
+                                        onChange={(event) =>
+                                            setServicoModal((prev) => ({
+                                                ...prev,
+                                                selectedId: event.target.value,
+                                            }))
+                                        }
+                                        className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                    >
+                                        {servicoModal.servicos.map((servico) => (
+                                            <option key={servico.id} value={servico.id}>
+                                                {servico.area} — {servico.modalidade}
+                                                {servico.tipoServico
+                                                    ? ` (${servico.tipoServico})`
+                                                    : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+                            <button
+                                type="button"
+                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                onClick={fecharModalServico}
+                                disabled={servicoModal.submitting}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                onClick={confirmarNovoServico}
+                                disabled={
+                                    servicoModal.submitting ||
+                                    servicoModal.loading ||
+                                    !servicoModal.selectedId
+                                }
+                            >
+                                {servicoModal.submitting
+                                    ? 'A adicionar...'
+                                    : 'Adicionar'}
                             </button>
                         </div>
                     </div>

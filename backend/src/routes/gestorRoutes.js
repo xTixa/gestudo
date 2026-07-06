@@ -7,6 +7,7 @@ import {
     alterarEstadoAluno,
     eliminarAlunoDefinitivo,
     resetarPasswordAluno,
+    adicionarServicoCurricularAluno,
 } from '../controllers/alunoController.js';
 import {
     listarProfessores,
@@ -272,6 +273,12 @@ router.post(
     '/alunos/:id/reset-password',
     validateParams({ id: 'number' }),
     resetarPasswordAluno
+);
+router.post(
+    '/alunos/:id/servicos-curriculares',
+    validateParams({ id: 'number' }),
+    validateBody({ id_servico: { type: 'number', required: true } }),
+    adicionarServicoCurricularAluno
 );
 router.patch(
     '/alunos/:id/status',

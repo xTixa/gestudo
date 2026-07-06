@@ -12,6 +12,7 @@ import {
     registarUpdate,
 } from '../services/logService.js';
 import { notificarGestoresCriacaoConta } from '../services/alertasDispatchService.js';
+import { inserirInscricoesServicoCurricular } from './servicosController.js';
 
 /**
  * ========================================
@@ -1893,6 +1894,114 @@ export async function eliminarAlunoDefinitivo(req, res) {
         return res
             .status(500)
             .json({ message: 'Erro ao eliminar aluno definitivamente.' });
+    } finally {
+        client.release();
+    }
+}
+
+/**
+ * Inscreve um aluno existente num serviço curricular já existente, sem
+ * afetar as inscrições dos restantes alunos desse serviço.
+ *
+ * @param {Object} req - Objecto de requisição (params: id, body: id_servico)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Confirmação da inscrição
+ */
+export async function adicionarServicoCurricularAluno(req, res) {
+    const { id } = req.params;
+    const idServico = Number(req.body?.id_servico);
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de aluno inválido.' });
+    }
+
+    if (!Number.isInteger(idServico) || idServico <= 0) {
+        return res.status(400).json({ message: 'ID de serviço inválido.' });
+    }
+
+    const client = await db.connect();
+
+    try {
+        const alunoResult = await client.query(
+            `SELECT id_aluno FROM alunos WHERE id_aluno = $1 LIMIT 1`,
+            [id]
+        );
+
+        if (!alunoResult.rows.length) {
+            return res.status(404).json({ message: 'Aluno não encontrado.' });
+        }
+
+        const servicoResult = await client.query(
+            `
+                SELECT id_servico, id_disciplina, id_modalidade
+                FROM servicos_curriculares
+                WHERE id_servico = $1
+                  AND COALESCE(ativo, true) = true
+                LIMIT 1
+            `,
+            [idServico]
+        );
+
+        if (!servicoResult.rows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Serviço curricular não encontrado.' });
+        }
+
+        const servico = servicoResult.rows[0];
+
+        const inscricoesServicoColumn =
+            await resolveInscricoesServicoColumn(client);
+
+        if (inscricoesServicoColumn) {
+            const existenteResult = await client.query(
+                `
+                    SELECT 1
+                    FROM inscricoes
+                    WHERE id_aluno = $1
+                      AND ${inscricoesServicoColumn} = $2
+                      AND LOWER(COALESCE(estado, 'ativa')) = 'ativa'
+                    LIMIT 1
+                `,
+                [id, idServico]
+            );
+
+            if (existenteResult.rows.length) {
+                return res
+                    .status(409)
+                    .json({ message: 'Aluno já está inscrito neste serviço.' });
+            }
+        }
+
+        await client.query('BEGIN');
+        await inserirInscricoesServicoCurricular(
+            client,
+            idServico,
+            [Number(id)],
+            servico.id_disciplina,
+            servico.id_modalidade
+        );
+        await client.query('COMMIT');
+
+        await registarInsert(req.userId ?? null, 'inscricoes', {
+            id_aluno: Number(id),
+            id_servico: idServico,
+        });
+
+        return res
+            .status(201)
+            .json({ message: 'Aluno inscrito no serviço com sucesso.' });
+    } catch (error) {
+        try {
+            await client.query('ROLLBACK');
+        } catch {
+            // noop
+        }
+
+        console.error('Erro ao inscrever aluno em serviço curricular:', error.message);
+        return res
+            .status(500)
+            .json({ message: error.message || 'Erro ao inscrever aluno no serviço.' });
     } finally {
         client.release();
     }

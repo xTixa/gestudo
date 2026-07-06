@@ -37,7 +37,8 @@
       "Bash(node --check src/controllers/inscricaoFormTextosController.js)",
       "Bash(node --check src/routes/publicRoutes.js)",
       "Bash(node run_migration_008.mjs)",
-      "Bash(node test_inscricao_textos.mjs)"
+      "Bash(node test_inscricao_textos.mjs)",
+      "Bash(node test_add_servico.mjs)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"
