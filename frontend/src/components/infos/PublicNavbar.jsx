@@ -4,7 +4,7 @@ import logo from '../../assets/img/Asset-31.svg';
 export default function PublicNavbar() {
     return (
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
                 <Link to="/" className="flex items-center gap-3">
                     <img
                         src={logo}
