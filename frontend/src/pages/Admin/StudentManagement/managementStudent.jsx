@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     Search,
     Download,
@@ -744,9 +744,35 @@ export default function GestaoAlunos() {
             rect.left + dropdownWidth > window.innerWidth
                 ? Math.max(8, rect.right - dropdownWidth)
                 : rect.left;
-        setDropdownPos({ top: rect.bottom + 4, left });
+        setDropdownPos({
+            top: rect.bottom + 4,
+            left,
+            triggerTop: rect.top,
+            triggerBottom: rect.bottom,
+        });
         setOpenDropdown({ id: aluno.id_aluno, aluno });
     }
+
+    useLayoutEffect(() => {
+        if (openDropdown === null || !dropdownRef.current) return;
+
+        const height = dropdownRef.current.getBoundingClientRect().height;
+
+        setDropdownPos((prev) => {
+            if (prev.triggerBottom == null) return prev;
+
+            const spaceBelow = window.innerHeight - prev.triggerBottom;
+            const fitsBelow = spaceBelow >= height + 8;
+
+            if (fitsBelow) return prev;
+
+            const openUpwardTop = prev.triggerTop - height - 4;
+            return {
+                ...prev,
+                top: Math.max(8, openUpwardTop),
+            };
+        });
+    }, [openDropdown]);
 
     const modalAluno = alunoFullData || alunoSelecionado;
     const modalAlunoImage = getAlunoProfileImage(modalAluno);

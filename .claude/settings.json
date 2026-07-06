@@ -31,7 +31,8 @@
       "Bash(node --check src/controllers/alunoController.js)",
       "Bash(node check_columns.mjs)",
       "Bash(node test_queries.mjs)",
-      "Bash(node test_insert_plan.mjs)"
+      "Bash(node test_insert_plan.mjs)",
+      "Bash(grep -v \"escapeHtml\\\\|set-state-in-effect\\\\|updateFilter\\\\|Calling setState\\\\|Effects are intended\\\\|^\\\\s*$\\\\|react.dev\\\\|^\\\\s*\\\\*\\\\|^\\\\s*[0-9]* |\\\\s*\\\\^\")"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

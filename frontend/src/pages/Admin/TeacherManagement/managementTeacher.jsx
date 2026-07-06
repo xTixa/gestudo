@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Search,
@@ -764,9 +764,35 @@ export default function GestaoProfessores() {
             rect.left + dropdownWidth > window.innerWidth
                 ? Math.max(8, rect.right - dropdownWidth)
                 : rect.left;
-        setDropdownPos({ top: rect.bottom + 4, left });
+        setDropdownPos({
+            top: rect.bottom + 4,
+            left,
+            triggerTop: rect.top,
+            triggerBottom: rect.bottom,
+        });
         setOpenDropdown({ id: prof.id_professor, prof });
     }
+
+    useLayoutEffect(() => {
+        if (openDropdown === null || !dropdownRef.current) return;
+
+        const height = dropdownRef.current.getBoundingClientRect().height;
+
+        setDropdownPos((prev) => {
+            if (prev.triggerBottom == null) return prev;
+
+            const spaceBelow = window.innerHeight - prev.triggerBottom;
+            const fitsBelow = spaceBelow >= height + 8;
+
+            if (fitsBelow) return prev;
+
+            const openUpwardTop = prev.triggerTop - height - 4;
+            return {
+                ...prev,
+                top: Math.max(8, openUpwardTop),
+            };
+        });
+    }, [openDropdown]);
 
     function abrirConfirmacaoLinha(mode, prof) {
         setRowConfirmModal({ open: true, mode, prof, keyword: '' });
