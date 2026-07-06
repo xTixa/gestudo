@@ -9,11 +9,6 @@ import {
 import Login from './pages/Auth/Login';
 import RecoverPassword from './pages/Auth/RecoverPassword';
 import AlterarPasswordObrigatorio from './pages/Auth/AlterPassword';
-import InfosHomePage from './pages/Infos/index';
-import InfosAboutPage from './pages/Infos/about';
-import InfosServicosPage from './pages/Infos/services';
-import InfosContactsPage from './pages/Infos/contacts';
-import InfosServicoDetalhePage from './pages/Infos/servicesDetails';
 import InfosInscricaoPage from './pages/Infos/enrollment';
 import Navbar from './components/layout/navbar';
 import Sidebar from './components/layout/sidebar';
@@ -457,15 +452,7 @@ function App() {
     if (!user) {
         return (
             <Routes>
-                <Route path="/" element={<InfosHomePage />} />
-                <Route path="/sobre" element={<InfosAboutPage />} />
-                <Route path="/servicos" element={<InfosServicosPage />} />
-                <Route
-                    path="/servicos/:slug"
-                    element={<InfosServicoDetalhePage />}
-                />
                 <Route path="/inscricao" element={<InfosInscricaoPage />} />
-                <Route path="/contactos" element={<InfosContactsPage />} />
                 <Route
                     path="/login"
                     element={<Login onLogin={handleLogin} />}

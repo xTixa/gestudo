@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import PublicNavbar from '../../components/infos/PublicNavbar';
-import PublicFooter from '../../components/infos/PublicFooter';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const API_BASES = Array.from(
@@ -849,8 +848,6 @@ export default function InfosInscricaoPage() {
                     </form>
                 </section>
             </main>
-
-            <PublicFooter />
         </div>
     );
 }
