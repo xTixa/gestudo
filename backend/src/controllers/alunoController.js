@@ -712,7 +712,7 @@ export async function listarAlunos(req, res) {
                 pe.telemovel AS ee_contacto,
                 e.parentesco AS ee_parentesco,
                 ue.email AS ee_email,
-                u.created_at AS data_inicio,
+                COALESCE(a.data_inicio, u.created_at::date) AS data_inicio,
                 u.email,
                 u.imagem_perfil_url,
                 u.status
@@ -1061,7 +1061,14 @@ export async function obterAluno(req, res) {
 				a.id_encarregado,
 				a.escola,
 				a.ano,
-				a.turma
+				a.turma,
+				a.nivel_ensino,
+				a.data_inicio,
+				a.observacoes,
+				a.aut_saida_nome_1,
+				a.aut_saida_parentesco_1,
+				a.aut_saida_nome_2,
+				a.aut_saida_parentesco_2
 			FROM alunos a
 			WHERE a.id_aluno = $1
 		`;
@@ -1222,6 +1229,13 @@ export async function obterAluno(req, res) {
                 escola: aluno.escola,
                 ano: aluno.ano,
                 turma: aluno.turma,
+                nivel_ensino: aluno.nivel_ensino,
+                data_inicio: aluno.data_inicio,
+                observacoes: aluno.observacoes,
+                aut_saida_nome_1: aluno.aut_saida_nome_1,
+                aut_saida_parentesco_1: aluno.aut_saida_parentesco_1,
+                aut_saida_nome_2: aluno.aut_saida_nome_2,
+                aut_saida_parentesco_2: aluno.aut_saida_parentesco_2,
                 pessoa: pessoa
                     ? {
                           ...pessoa,

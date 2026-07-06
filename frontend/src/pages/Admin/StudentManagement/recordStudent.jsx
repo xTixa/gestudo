@@ -10,16 +10,29 @@ import {
     RefreshCw,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
+import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
 
 function formatDate(value) {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('pt-PT');
+}
+
+function formatNivelEnsino(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    const map = {
+        '1_ciclo': '1º Ciclo',
+        '2_ciclo': '2º Ciclo',
+        '3_ciclo': '3º Ciclo',
+        secundario: 'Secundário',
+        ensino_superior: 'Ensino Superior',
+    };
+    const key = raw.toLowerCase().replace(/\s+/g, '_');
+    return map[key] || raw.replace(/_/g, ' ');
 }
 
 function formatCurrency(value) {
@@ -366,41 +379,7 @@ export default function FichaAlunoPage() {
         : [];
 
     function handleDownloadFicha() {
-        const doc = new jsPDF();
-        const dateLabel = new Date().toLocaleDateString('pt-PT');
-
-        doc.setFontSize(18);
-        doc.text('Ficha de Aluno', 14, 18);
-        doc.setFontSize(9);
-        doc.setTextColor(107, 114, 128);
-        doc.text(`Gerado em ${dateLabel}`, 14, 25);
-        doc.setTextColor(0, 0, 0);
-
-        autoTable(doc, {
-            startY: 32,
-            head: [['Campo', 'Valor']],
-            body: [
-                ['Nome Completo', aluno.pessoa?.nome || '-'],
-                ['Data de Nascimento', aluno.pessoa?.data_nasc ? new Date(aluno.pessoa.data_nasc).toLocaleDateString('pt-PT') : '-'],
-                ['Cartão de Cidadão', aluno.pessoa?.cc || '-'],
-                ['NIF', aluno.pessoa?.nif || '-'],
-                ['Email', aluno.pessoa?.user?.email || '-'],
-                ['Morada', aluno.pessoa?.morada || '-'],
-                ['Localidade', aluno.pessoa?.localidade || '-'],
-                ['Código Postal', aluno.pessoa?.cod_postal || '-'],
-                ['Telemóvel', aluno.pessoa?.telemovel || '-'],
-                ['Telefone', aluno.pessoa?.telefone || '-'],
-                ['Escola', aluno.escola || '-'],
-                ['Ano', aluno.ano ? `${aluno.ano}º` : '-'],
-                ['Turma', aluno.turma || '-'],
-            ],
-            styles: { fontSize: 10, cellPadding: 4 },
-            headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
-        });
-
-        const name = (aluno.pessoa?.nome || 'aluno').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
-        doc.save(`ficha_aluno_${name}.pdf`);
+        gerarFichaAlunoPdf(aluno);
     }
 
     return (
@@ -629,6 +608,22 @@ export default function FichaAlunoPage() {
                             {aluno.turma || '-'}
                         </p>
                     </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Nível de Ensino
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {formatNivelEnsino(aluno.nivel_ensino)}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Data de Início
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {formatDate(aluno.data_inicio)}
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -720,6 +715,16 @@ export default function FichaAlunoPage() {
                                             {formatDate(servico.dataInicio)}
                                         </p>
                                     </div>
+                                    {servico.pacoteDescricao ? (
+                                        <div className="md:col-span-2">
+                                            <p className="text-xs font-semibold uppercase text-slate-500">
+                                                Pacote
+                                            </p>
+                                            <p className="mt-1 text-sm text-slate-700">
+                                                {servico.pacoteDescricao}
+                                            </p>
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                         ))}
@@ -769,7 +774,97 @@ export default function FichaAlunoPage() {
                             {aluno.encarregado?.pessoa?.telemovel || '-'}
                         </p>
                     </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Telefone
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.encarregado?.pessoa?.telefone || '-'}
+                        </p>
+                    </div>
+                    <div className="md:col-span-2">
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Morada
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.encarregado?.pessoa?.morada || '-'}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Localidade
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.encarregado?.pessoa?.localidade || '-'}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Código Postal
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.encarregado?.pessoa?.cod_postal || '-'}
+                        </p>
+                    </div>
                 </div>
+            </div>
+
+            {/* Autorização de Saída */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                    <div className="h-5 w-1 rounded bg-blue-500" />
+                    <h2 className="text-base font-semibold text-slate-800">
+                        Autorização de Saída
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Nome (1)
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.aut_saida_nome_1 || '-'}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Parentesco (1)
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.aut_saida_parentesco_1 || '-'}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Nome (2)
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.aut_saida_nome_2 || '-'}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                            Parentesco (2)
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                            {aluno.aut_saida_parentesco_2 || '-'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Observações */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                    <div className="h-5 w-1 rounded bg-blue-500" />
+                    <h2 className="text-base font-semibold text-slate-800">
+                        Observações
+                    </h2>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-slate-700">
+                    {aluno.observacoes || '-'}
+                </p>
             </div>
 
             {confirmModal.open ? (

@@ -5,6 +5,8 @@ import {
     Upload,
     Plus,
     Eye,
+    EyeOff,
+    Trash,
     MoreVertical,
     Pencil,
     X,
@@ -21,7 +23,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
 import { read, utils, write } from 'xlsx';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
-import { apiGet, apiPost } from '../../../utils/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
+import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -527,39 +530,15 @@ function exportRowsToPdf(rows, selectedFields, fileName) {
     return true;
 }
 
-function downloadAlunoFichaPdf(aluno) {
-    const doc = new jsPDF();
-    const dateLabel = new Date().toLocaleDateString('pt-PT');
+async function downloadAlunoFichaPdf(aluno) {
+    const response = await apiGet(`/api/gestor/alunos/${aluno.id_aluno}`);
+    const data = await response.json();
 
-    doc.setFontSize(18);
-    doc.text('Ficha de Aluno', 14, 18);
-    doc.setFontSize(9);
-    doc.setTextColor(107, 114, 128);
-    doc.text(`Gerado em ${dateLabel}`, 14, 25);
-    doc.setTextColor(0, 0, 0);
+    if (!response.ok) {
+        throw new Error(data?.message || 'Não foi possível obter a ficha do aluno.');
+    }
 
-    const fields = [
-        ['Nome', aluno.nome || '-'],
-        ['NIF', aluno.nif || '-'],
-        ['Ano Escolar', aluno.ano ? `${aluno.ano}º` : '-'],
-        ['Turma', aluno.turma || '-'],
-        ['Escola', aluno.escola || '-'],
-        ['Contacto', aluno.contacto || '-'],
-        ['Encarregado de Educação', getEncarregadoLabel(aluno.encarregado)],
-        ['Data de Início', aluno.data_inicio ? formatDate(aluno.data_inicio) : '-'],
-    ];
-
-    autoTable(doc, {
-        startY: 32,
-        head: [['Campo', 'Valor']],
-        body: fields,
-        styles: { fontSize: 10, cellPadding: 4 },
-        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
-    });
-
-    const name = (aluno.nome || 'aluno').replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
-    doc.save(`ficha_aluno_${name}.pdf`);
+    gerarFichaAlunoPdf(data.aluno);
 }
 
 export default function GestaoAlunos() {
@@ -586,6 +565,13 @@ export default function GestaoAlunos() {
     const [selectedImportFile, setSelectedImportFile] = useState(null);
     const [actionMessage, setActionMessage] = useState('');
     const [actionError, setActionError] = useState('');
+    const [rowConfirmModal, setRowConfirmModal] = useState({
+        open: false,
+        mode: null,
+        aluno: null,
+        keyword: '',
+    });
+    const [rowActionLoading, setRowActionLoading] = useState(false);
     const [filters, setFilters] = useState({
         search: '',
         ano: 'Todos',
@@ -873,6 +859,75 @@ export default function GestaoAlunos() {
         }
 
         setAlunos(data.alunos || []);
+    }
+
+    function abrirConfirmacaoLinha(mode, aluno) {
+        setRowConfirmModal({ open: true, mode, aluno, keyword: '' });
+    }
+
+    function fecharConfirmacaoLinha() {
+        if (rowActionLoading) return;
+        setRowConfirmModal({ open: false, mode: null, aluno: null, keyword: '' });
+    }
+
+    async function confirmarAcaoLinha() {
+        const { mode, aluno } = rowConfirmModal;
+        if (!aluno) return;
+
+        if (mode === 'delete' && rowConfirmModal.keyword !== 'ELIMINAR') {
+            setActionError('Confirmação inválida. Escreve ELIMINAR para continuar.');
+            return;
+        }
+
+        setRowActionLoading(true);
+        setActionError('');
+        setActionMessage('');
+
+        try {
+            if (mode === 'delete') {
+                const response = await apiDelete(
+                    `/api/gestor/alunos/${aluno.id_aluno}`
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data?.message || 'Não foi possível eliminar o aluno.'
+                    );
+                }
+
+                setActionMessage(
+                    data?.message || 'Aluno eliminado definitivamente.'
+                );
+            } else {
+                const novoStatus = !aluno.status;
+                const response = await apiPatch(
+                    `/api/gestor/alunos/${aluno.id_aluno}/status`,
+                    { status: novoStatus }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data?.message || 'Não foi possível alterar o estado do aluno.'
+                    );
+                }
+
+                setActionMessage(
+                    data?.message ||
+                        (novoStatus
+                            ? 'Aluno reativado com sucesso.'
+                            : 'Aluno colocado em stand by com sucesso.')
+                );
+            }
+
+            await refreshAlunos();
+            setRowConfirmModal({ open: false, mode: null, aluno: null, keyword: '' });
+        } catch (err) {
+            setActionError(err?.message || 'Não foi possível concluir a ação.');
+        } finally {
+            setRowActionLoading(false);
+        }
     }
 
     async function handleDownloadImportTemplate() {
@@ -1849,16 +1904,146 @@ export default function GestaoAlunos() {
                     </button>
                     <button
                         className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            downloadAlunoFichaPdf(openDropdown.aluno);
+                        onClick={async () => {
+                            const aluno = openDropdown.aluno;
                             setOpenDropdown(null);
+                            try {
+                                await downloadAlunoFichaPdf(aluno);
+                            } catch (err) {
+                                setActionError(
+                                    err?.message ||
+                                        'Não foi possível gerar o PDF da ficha.'
+                                );
+                            }
                         }}
                     >
                         <Download size={14} />
                         Download
                     </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                            const aluno = openDropdown.aluno;
+                            setOpenDropdown(null);
+                            abrirConfirmacaoLinha('status', aluno);
+                        }}
+                    >
+                        <EyeOff size={14} />
+                        {openDropdown.aluno.status ? 'Desativar' : 'Ativar'}
+                    </button>
+                    <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                            const aluno = openDropdown.aluno;
+                            setOpenDropdown(null);
+                            abrirConfirmacaoLinha('delete', aluno);
+                        }}
+                    >
+                        <Trash size={14} />
+                        Eliminar definitivamente
+                    </button>
                 </div>
             )}
+
+            {rowConfirmModal.open ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-slate-900/45"
+                        onClick={fecharConfirmacaoLinha}
+                        aria-label="Fechar confirmação"
+                    />
+
+                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div className="border-b border-slate-200 px-6 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Confirmação
+                            </p>
+                            <h3
+                                className={`mt-1 text-lg font-semibold ${
+                                    rowConfirmModal.mode === 'delete'
+                                        ? 'text-red-700'
+                                        : 'text-slate-800'
+                                }`}
+                            >
+                                {rowConfirmModal.mode === 'delete'
+                                    ? 'Eliminar aluno definitivamente?'
+                                    : rowConfirmModal.aluno?.status
+                                      ? 'Colocar aluno em stand by?'
+                                      : 'Reativar aluno?'}
+                            </h3>
+                        </div>
+
+                        <div className="space-y-4 px-6 py-5">
+                            <p className="text-sm text-slate-600">
+                                {rowConfirmModal.mode === 'delete'
+                                    ? 'Esta ação é irreversível e remove os dados do aluno. Para continuar, confirma explicitamente abaixo.'
+                                    : rowConfirmModal.aluno?.status
+                                      ? 'O aluno ficará inativo e deixará de aceder à plataforma até ser reativado.'
+                                      : 'O aluno volta a ter acesso à plataforma.'}
+                            </p>
+
+                            {rowConfirmModal.mode === 'delete' ? (
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="confirmar-eliminar-aluno-linha"
+                                        className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                                    >
+                                        Escreve ELIMINAR para confirmar
+                                    </label>
+                                    <input
+                                        id="confirmar-eliminar-aluno-linha"
+                                        type="text"
+                                        value={rowConfirmModal.keyword}
+                                        onChange={(event) =>
+                                            setRowConfirmModal((prev) => ({
+                                                ...prev,
+                                                keyword: event.target.value || '',
+                                            }))
+                                        }
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                                        placeholder="ELIMINAR"
+                                        autoComplete="off"
+                                    />
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+                            <button
+                                type="button"
+                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                onClick={fecharConfirmacaoLinha}
+                                disabled={rowActionLoading}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
+                                    rowConfirmModal.mode === 'delete'
+                                        ? 'bg-red-600 hover:bg-red-700'
+                                        : 'bg-amber-600 hover:bg-amber-700'
+                                } disabled:cursor-not-allowed disabled:opacity-60`}
+                                onClick={confirmarAcaoLinha}
+                                disabled={
+                                    rowActionLoading ||
+                                    (rowConfirmModal.mode === 'delete' &&
+                                        rowConfirmModal.keyword !== 'ELIMINAR')
+                                }
+                            >
+                                {rowActionLoading
+                                    ? 'A processar...'
+                                    : rowConfirmModal.mode === 'delete'
+                                      ? 'Eliminar definitivamente'
+                                      : rowConfirmModal.aluno?.status
+                                        ? 'Confirmar stand by'
+                                        : 'Confirmar reativação'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

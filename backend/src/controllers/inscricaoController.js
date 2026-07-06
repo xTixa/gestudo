@@ -740,8 +740,13 @@ async function integrarInscricaoAprovada(inscricao) {
 
         await client.query(
             `
-                INSERT INTO alunos (id_user, id_pessoa, id_encarregado, ano, turma, escola)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO alunos (
+                    id_user, id_pessoa, id_encarregado, ano, turma, escola,
+                    nivel_ensino, data_inicio, observacoes,
+                    aut_saida_nome_1, aut_saida_parentesco_1,
+                    aut_saida_nome_2, aut_saida_parentesco_2
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             `,
             [
                 idUser,
@@ -750,6 +755,13 @@ async function integrarInscricaoAprovada(inscricao) {
                 Number.isFinite(anoEscolar) ? anoEscolar : null,
                 toNullableText(inscricao?.turma),
                 toNullableText(inscricao?.escola),
+                toNullableText(inscricao?.nivel_ensino),
+                toSqlDateOrNull(inscricao?.data_inicio),
+                toNullableText(inscricao?.obs),
+                toNullableText(inscricao?.aut_saida_nome_1),
+                toNullableText(inscricao?.aut_saida_parentesco_1),
+                toNullableText(inscricao?.aut_saida_nome_2),
+                toNullableText(inscricao?.aut_saida_parentesco_2),
             ]
         );
 
