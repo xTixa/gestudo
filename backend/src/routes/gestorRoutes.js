@@ -53,6 +53,11 @@ import {
     reporEmailTemplate,
 } from '../controllers/emailTemplatesController.js';
 import {
+    listarInscricaoTextos,
+    atualizarInscricaoTextos,
+    reporInscricaoTexto,
+} from '../controllers/inscricaoFormTextosController.js';
+import {
     listarAlunosMatriculaExpirada,
     suspenderAlunosExpirados,
 } from '../controllers/renovacaoMatriculaController.js';
@@ -686,6 +691,14 @@ router.post(
     '/email-templates/:key/reset',
     validateParams({ key: 'string' }),
     reporEmailTemplate
+);
+
+router.get('/inscricao-textos', listarInscricaoTextos);
+router.patch('/inscricao-textos', atualizarInscricaoTextos);
+router.post(
+    '/inscricao-textos/:key/reset',
+    validateParams({ key: 'string' }),
+    reporInscricaoTexto
 );
 
 /**

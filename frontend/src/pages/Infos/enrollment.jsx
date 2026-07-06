@@ -87,6 +87,7 @@ export default function InfosInscricaoPage() {
     const [loadingOpcoes, setLoadingOpcoes] = useState(true);
     const [erroOpcoes, setErroOpcoes] = useState('');
     const [liveErrors, setLiveErrors] = useState({});
+    const [textos, setTextos] = useState({});
 
     // Multi-discipline plan
     const [planoItems, setPlanoItems] = useState([newPlanoItem(1)]);
@@ -139,6 +140,27 @@ export default function InfosInscricaoPage() {
         carregarOpcoes();
         return () => { isMounted = false; };
     }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function carregarTextos() {
+            try {
+                const response = await fetchWithFallback('/api/public/inscricao-textos');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!isMounted) return;
+                setTextos(data?.textos && typeof data.textos === 'object' ? data.textos : {});
+            } catch {
+                // Falha silenciosa: mantém os textos por omissão hardcoded no JSX.
+            }
+        }
+        carregarTextos();
+        return () => { isMounted = false; };
+    }, []);
+
+    function t(key, fallback) {
+        return textos[key] ?? fallback;
+    }
 
     const nivelSelecionado = niveisEnsinoOptions.find((n) => String(n.id) === selectedNivel);
     const anosEscolaresOptions = getAnosEscolaresPorNivel(nivelSelecionado);
@@ -376,13 +398,13 @@ export default function InfosInscricaoPage() {
                 <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
                     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-200">
-                            Inscrições
+                            {t('hero_eyebrow', 'Inscrições')}
                         </p>
                         <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
-                            Formulário de Inscrição 2025/2026
+                            {t('hero_title', 'Formulário de Inscrição 2025/2026')}
                         </h1>
                         <p className="mt-4 max-w-2xl text-sm text-slate-200 sm:text-base">
-                            Preencha os dados do aluno e do encarregado de educação.
+                            {t('hero_subtitle', 'Preencha os dados do aluno e do encarregado de educação.')}
                         </p>
                     </div>
                 </section>
@@ -401,35 +423,33 @@ export default function InfosInscricaoPage() {
                         ) : null}
 
                         <p className="text-xs text-slate-500">
-                            Os campos marcados com{' '}
-                            <span className="font-semibold text-red-500">*</span>{' '}
-                            são obrigatórios.
+                            {t('required_fields_note', 'Os campos marcados com * são obrigatórios.')}
                         </p>
 
                         {/* ── Dados do Aluno ─────────────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
-                                Dados do Aluno
+                                {t('section_aluno_heading', 'Dados do Aluno')}
                             </h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                                 <label className={LABEL_CLS}>
-                                    Data de Início <Req />
+                                    {t('label_data_inicio', 'Data de Início')} <Req />
                                     <input name="data_inicio" type="date" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Nome Completo <Req />
+                                    {t('label_nome_completo', 'Nome Completo')} <Req />
                                     <input name="nome_completo" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Data de Nascimento <Req />
+                                    {t('label_data_nascimento', 'Data de Nascimento')} <Req />
                                     <input name="data_nascimento" type="date" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Email <Req />
+                                    {t('label_email_aluno', 'Email')} <Req />
                                     <input name="email" type="email" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Telemóvel <Req />
+                                    {t('label_telemovel_aluno', 'Telemóvel')} <Req />
                                     <input
                                         id="field-telemovel"
                                         name="telemovel" type="tel" inputMode="numeric" required
@@ -444,7 +464,7 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Telefone
+                                    {t('label_telefone_aluno', 'Telefone')}
                                     <input
                                         id="field-telefone"
                                         name="telefone" type="tel" inputMode="numeric"
@@ -458,11 +478,11 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Cartão de Cidadão <Req />
+                                    {t('label_cc', 'Cartão de Cidadão')} <Req />
                                     <input name="cartao_cidadao" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    NIF <Req />
+                                    {t('label_nif', 'NIF')} <Req />
                                     <input
                                         id="field-nif"
                                         name="nif" type="text" inputMode="numeric" required
@@ -477,15 +497,15 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Morada <Req />
+                                    {t('label_morada_aluno', 'Morada')} <Req />
                                     <input ref={alunoMoradaRef} name="morada" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Localidade <Req />
+                                    {t('label_localidade_aluno', 'Localidade')} <Req />
                                     <input ref={alunoLocalidadeRef} name="localidade" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Código Postal <Req />
+                                    {t('label_codigo_postal_aluno', 'Código Postal')} <Req />
                                     <input
                                         id="field-codigo-postal"
                                         ref={alunoCodigoPostalRef}
@@ -501,11 +521,11 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Escola <Req />
+                                    {t('label_escola', 'Escola')} <Req />
                                     <input name="escola" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Nível de Ensino <Req />
+                                    {t('label_nivel_ensino', 'Nível de Ensino')} <Req />
                                     <select
                                         required name="nivel_ensino" value={selectedNivel}
                                         onChange={(e) => setSelectedNivel(e.target.value)}
@@ -519,7 +539,7 @@ export default function InfosInscricaoPage() {
                                     </select>
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Ano Escolar {!isEnsinoSuperior && <Req />}
+                                    {t('label_ano_escolar', 'Ano Escolar')} {!isEnsinoSuperior && <Req />}
                                     <select
                                         required name="ano_escolar" value={selectedAnoEscolar}
                                         onChange={(e) => setSelectedAnoEscolar(e.target.value)}
@@ -538,14 +558,14 @@ export default function InfosInscricaoPage() {
                                     {selectedNivel && !loadingOpcoes ? (
                                         <p className="mt-1 text-xs text-slate-500">
                                             {isEnsinoSuperior
-                                                ? 'Ensino superior não usa ano escolar neste formulário.'
-                                                : 'Anos apresentados conforme o nível selecionado.'}
+                                                ? t('help_ensino_superior', 'Ensino superior não usa ano escolar neste formulário.')
+                                                : t('help_anos_nivel', 'Anos apresentados conforme o nível selecionado.')}
                                         </p>
                                     ) : null}
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Turma
-                                    <input name="turma" type="text" placeholder="Ex: B" className={INPUT_CLS} />
+                                    {t('label_turma', 'Turma')}
+                                    <input name="turma" type="text" placeholder={t('placeholder_turma', 'Ex: B')} className={INPUT_CLS} />
                                 </label>
                             </div>
                         </section>
@@ -553,19 +573,19 @@ export default function InfosInscricaoPage() {
                         {/* ── Encarregado de Educação ────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
-                                Encarregado de Educação
+                                {t('section_encarregado_heading', 'Encarregado de Educação')}
                             </h2>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Nome <Req />
+                                    {t('label_ee_nome', 'Nome')} <Req />
                                     <input name="ee_nome" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Email <Req />
+                                    {t('label_ee_email', 'Email')} <Req />
                                     <input name="ee_email" type="email" required className={INPUT_CLS} />
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Telemóvel <Req />
+                                    {t('label_ee_telemovel', 'Telemóvel')} <Req />
                                     <input
                                         id="field-ee-telemovel"
                                         name="ee_telemovel" type="tel" inputMode="numeric" required
@@ -582,25 +602,25 @@ export default function InfosInscricaoPage() {
 
                                 <div className="flex items-center justify-between sm:col-span-2">
                                     <span className={LABEL_CLS}>
-                                        Morada <Req />
+                                        {t('label_ee_morada', 'Morada')} <Req />
                                     </span>
                                     <button
                                         type="button"
                                         onClick={copiarMoradaAluno}
                                         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
                                     >
-                                        Copiar morada do aluno
+                                        {t('button_copiar_morada', 'Copiar morada do aluno')}
                                     </button>
                                 </div>
                                 <div className="sm:col-span-2">
                                     <input ref={eeMoradaRef} name="ee_morada" type="text" required className={INPUT_CLS} />
                                 </div>
                                 <label className={LABEL_CLS}>
-                                    Localidade <Req />
+                                    {t('label_ee_localidade', 'Localidade')} <Req />
                                     <input ref={eeLocalidadeRef} name="ee_localidade" type="text" required className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Código Postal <Req />
+                                    {t('label_ee_codigo_postal', 'Código Postal')} <Req />
                                     <input
                                         id="field-ee-codigo-postal"
                                         ref={eeCodigoPostalRef}
@@ -616,10 +636,10 @@ export default function InfosInscricaoPage() {
                                     ) : null}
                                 </label>
                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                    Parentesco <Req />
+                                    {t('label_ee_parentesco', 'Parentesco')} <Req />
                                     <input
                                         name="ee_parentesco" type="text" required
-                                        placeholder="Ex: Mãe, Pai, Tio, Avô"
+                                        placeholder={t('placeholder_ee_parentesco', 'Ex: Mãe, Pai, Tio, Avô')}
                                         className={INPUT_CLS}
                                     />
                                 </label>
@@ -628,9 +648,9 @@ export default function InfosInscricaoPage() {
 
                         {/* ── Plano ─────────────────────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                            <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Plano</h2>
+                            <h2 className="text-lg font-bold text-slate-800 sm:text-xl">{t('section_plano_heading', 'Plano')}</h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e pacote.
+                                {t('section_plano_descricao', 'Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e pacote.')}
                             </p>
 
                             <div className="mt-5 space-y-4">
@@ -646,7 +666,7 @@ export default function InfosInscricaoPage() {
                                         >
                                             <div className="mb-3 flex items-center justify-between">
                                                 <span className="text-sm font-bold text-slate-700">
-                                                    Disciplina {index + 1}
+                                                    {t('label_disciplina', 'Disciplina')} {index + 1}
                                                 </span>
                                                 {planoItems.length > 1 ? (
                                                     <button
@@ -654,14 +674,14 @@ export default function InfosInscricaoPage() {
                                                         onClick={() => removePlanoItem(item.id)}
                                                         className="text-xs font-semibold text-red-600 transition hover:text-red-800"
                                                     >
-                                                        Remover
+                                                        {t('button_remover', 'Remover')}
                                                     </button>
                                                 ) : null}
                                             </div>
 
                                             <div className="grid gap-4 sm:grid-cols-2">
                                                 <label className={LABEL_CLS}>
-                                                    Disciplina <Req />
+                                                    {t('label_disciplina', 'Disciplina')} <Req />
                                                     <select
                                                         value={item.disciplina}
                                                         onChange={(e) => updatePlanoItem(item.id, 'disciplina', e.target.value)}
@@ -677,13 +697,13 @@ export default function InfosInscricaoPage() {
                                                     </select>
                                                     {selectedNivel && !loadingOpcoes && disciplinasFiltradas.length === 0 ? (
                                                         <p className="mt-1 text-xs text-amber-600">
-                                                            Sem disciplinas para este nível.
+                                                            {t('help_sem_disciplinas', 'Sem disciplinas para este nível.')}
                                                         </p>
                                                     ) : null}
                                                 </label>
 
                                                 <label className={LABEL_CLS}>
-                                                    Tipo de Serviço <Req />
+                                                    {t('label_tipo_servico', 'Tipo de Serviço')} <Req />
                                                     <select
                                                         value={item.tipoServico}
                                                         onChange={(e) => updatePlanoItem(item.id, 'tipoServico', e.target.value)}
@@ -698,7 +718,7 @@ export default function InfosInscricaoPage() {
                                                 </label>
 
                                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                                    Modalidade <Req />
+                                                    {t('label_modalidade', 'Modalidade')} <Req />
                                                     <select
                                                         value={item.modalidade}
                                                         onChange={(e) => updatePlanoItem(item.id, 'modalidade', e.target.value)}
@@ -717,7 +737,7 @@ export default function InfosInscricaoPage() {
                                                 {!isIndividual ? (
                                                     <fieldset className="sm:col-span-2" disabled={!podePacote}>
                                                         <legend className={LABEL_CLS}>
-                                                            Pacote {podePacote && <Req />}
+                                                            {t('label_pacote', 'Pacote')} {podePacote && <Req />}
                                                         </legend>
                                                         <div className="mt-2 grid gap-2">
                                                             {PACOTE_OPTIONS.map((p) => (
@@ -740,13 +760,13 @@ export default function InfosInscricaoPage() {
                                                         </div>
                                                         {!item.modalidade ? (
                                                             <p className="mt-2 text-xs text-slate-500">
-                                                                Selecione primeiro a modalidade para escolher um pacote.
+                                                                {t('help_pacote_sem_modalidade', 'Selecione primeiro a modalidade para escolher um pacote.')}
                                                             </p>
                                                         ) : null}
                                                     </fieldset>
                                                 ) : (
                                                     <p className="text-xs text-slate-500 sm:col-span-2">
-                                                        Pacotes não disponíveis para explicação individual.
+                                                        {t('text_pacotes_individual', 'Pacotes não disponíveis para explicação individual.')}
                                                     </p>
                                                 )}
                                             </div>
@@ -759,17 +779,17 @@ export default function InfosInscricaoPage() {
                                     onClick={addPlanoItem}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
                                 >
-                                    + Adicionar outra disciplina
+                                    {t('button_adicionar_disciplina', '+ Adicionar outra disciplina')}
                                 </button>
                             </div>
 
                             <label className={`${LABEL_CLS} mt-5 block`}>
-                                Observações
+                                {t('label_observacoes', 'Observações')}
                                 <textarea
                                     name="obs"
                                     rows={4}
                                     className={`${INPUT_CLS} resize-none`}
-                                    placeholder="Informações relevantes sobre o aluno, objetivos ou disponibilidade."
+                                    placeholder={t('placeholder_observacoes', 'Informações relevantes sobre o aluno, objetivos ou disponibilidade.')}
                                 />
                             </label>
                         </section>
@@ -777,26 +797,26 @@ export default function InfosInscricaoPage() {
                         {/* ── Autorização de Saída ───────────────────────── */}
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
-                                Autorização de Saída
+                                {t('section_autorizacao_heading', 'Autorização de Saída')}
                             </h2>
                             <p className="mt-2 text-sm text-slate-600">
-                                Indique as pessoas autorizadas com que o aluno pode sair no final das atividades.
+                                {t('section_autorizacao_descricao', 'Indique as pessoas autorizadas com que o aluno pode sair no final das atividades.')}
                             </p>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
                                 <label className={LABEL_CLS}>
-                                    Nome (1)
+                                    {t('label_aut_nome_1', 'Nome (1)')}
                                     <input name="aut_saida_nome_1" type="text" className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Parentesco (1)
+                                    {t('label_aut_parentesco_1', 'Parentesco (1)')}
                                     <input name="aut_saida_parentesco_1" type="text" className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Nome (2)
+                                    {t('label_aut_nome_2', 'Nome (2)')}
                                     <input name="aut_saida_nome_2" type="text" className={INPUT_CLS} />
                                 </label>
                                 <label className={LABEL_CLS}>
-                                    Parentesco (2)
+                                    {t('label_aut_parentesco_2', 'Parentesco (2)')}
                                     <input name="aut_saida_parentesco_2" type="text" className={INPUT_CLS} />
                                 </label>
                             </div>
@@ -808,8 +828,7 @@ export default function InfosInscricaoPage() {
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
-                                        Consinto a utilização dos dados para procedimentos de gestão e comunicação
-                                        interna, incluindo contacto telefónico, SMS, email e correspondência postal.
+                                        {t('consent_dados_texto', 'Consinto a utilização dos dados para procedimentos de gestão e comunicação interna, incluindo contacto telefónico, SMS, email e correspondência postal.')}
                                     </span>
                                 </label>
                                 <label className="flex items-start gap-3 text-sm text-slate-700">
@@ -836,12 +855,12 @@ export default function InfosInscricaoPage() {
                                 type="submit"
                                 className="mt-5 w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
                             >
-                                Enviar Inscrição
+                                {t('button_enviar', 'Enviar Inscrição')}
                             </button>
 
                             {sent ? (
                                 <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                                    Inscrição enviada com sucesso. Aguarde a confirmação por parte do administrador.
+                                    {t('mensagem_sucesso', 'Inscrição enviada com sucesso. Aguarde a confirmação por parte do administrador.')}
                                 </p>
                             ) : null}
                         </section>

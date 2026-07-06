@@ -32,7 +32,12 @@
       "Bash(node check_columns.mjs)",
       "Bash(node test_queries.mjs)",
       "Bash(node test_insert_plan.mjs)",
-      "Bash(grep -v \"escapeHtml\\\\|set-state-in-effect\\\\|updateFilter\\\\|Calling setState\\\\|Effects are intended\\\\|^\\\\s*$\\\\|react.dev\\\\|^\\\\s*\\\\*\\\\|^\\\\s*[0-9]* |\\\\s*\\\\^\")"
+      "Bash(grep -v \"escapeHtml\\\\|set-state-in-effect\\\\|updateFilter\\\\|Calling setState\\\\|Effects are intended\\\\|^\\\\s*$\\\\|react.dev\\\\|^\\\\s*\\\\*\\\\|^\\\\s*[0-9]* |\\\\s*\\\\^\")",
+      "Bash(node --check src/services/inscricaoFormTextosService.js)",
+      "Bash(node --check src/controllers/inscricaoFormTextosController.js)",
+      "Bash(node --check src/routes/publicRoutes.js)",
+      "Bash(node run_migration_008.mjs)",
+      "Bash(node test_inscricao_textos.mjs)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

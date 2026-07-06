@@ -13,6 +13,7 @@ import {
     ToggleRight,
     DatabaseZap,
     GraduationCap,
+    FileText,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
@@ -20,6 +21,7 @@ import AlertsPage from './alerts';
 import EmailTemplatesSettings from '../../components/settings/EmailTemplatesSettings';
 import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
 import AcademicYearSettings from '../../components/settings/AcademicYearSettings';
+import EnrollmentFormTextsSettings from '../../components/settings/EnrollmentFormTextsSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 
 export default function SettingsPage() {
@@ -158,6 +160,7 @@ export default function SettingsPage() {
         { id: 'gestores', label: 'Administradores', icon: Shield },
         { id: 'limpeza', label: 'Limpeza de Dados', icon: DatabaseZap },
         { id: 'ano-letivo', label: 'Ano Lectivo', icon: GraduationCap },
+        { id: 'inscricao-textos', label: 'Formulário de Inscrição', icon: FileText },
     ];
 
     async function handleAddMaintenance() {
@@ -304,6 +307,7 @@ export default function SettingsPage() {
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
                     {activeTab === 'limpeza' && <DataCleanupSettings />}
                     {activeTab === 'ano-letivo' && <AcademicYearSettings />}
+                    {activeTab === 'inscricao-textos' && <EnrollmentFormTextsSettings />}
 
                     {/* ABA: Administradores */}
                     {activeTab === 'gestores' && (

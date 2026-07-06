@@ -3,6 +3,7 @@ import {
     listarOpcoesInscricao,
     criarInscricaoPublica,
 } from '../controllers/inscricaoController.js';
+import { obterInscricaoTextosPublico } from '../controllers/inscricaoFormTextosController.js';
 import { listarAgenda } from '../controllers/agendaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
@@ -34,6 +35,7 @@ const router = express.Router();
  * Status: 200 OK | 500 Internal Server Error
  */
 router.get('/inscricao-opcoes', listarOpcoesInscricao);
+router.get('/inscricao-textos', obterInscricaoTextosPublico);
 router.post(
     '/inscricao',
     validateBody({
