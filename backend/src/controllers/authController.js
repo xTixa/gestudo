@@ -497,13 +497,12 @@ export async function alterarPassword(req, res) {
                 const guardianInfo = guardianRows[0];
                 const nomeAluno = guardianInfo?.aluno_nome || user.email;
 
-                await enviarEmailPasswordAlterada(nomeAluno, user.email, passwordNova).catch(() => {});
+                await enviarEmailPasswordAlterada(nomeAluno, user.email).catch(() => {});
 
                 if (guardianInfo?.ee_email && !guardianInfo.ee_email.includes('@placeholder.local')) {
                     await enviarEmailPasswordAlteradaEE(
                         nomeAluno,
-                        guardianInfo.ee_email,
-                        passwordNova
+                        guardianInfo.ee_email
                     ).catch(() => {});
                 }
             } catch (guardianErr) {

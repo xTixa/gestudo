@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, UserCircle2, Upload } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPatch } from '../../../utils/api';
@@ -26,7 +26,9 @@ export default function UpdateProfPage() {
         habilitacao: '',
         area_ensino: '',
         nivel: '',
+        imagem_perfil_url: '',
     });
+    const [photoName, setPhotoName] = useState('');
 
     useEffect(() => {
         let isMounted = true;
@@ -66,6 +68,9 @@ export default function UpdateProfPage() {
                         habilitacao: data?.professor?.habilitacao || '',
                         area_ensino: data?.professor?.area_ensino || '',
                         nivel: data?.professor?.nivel || '',
+                        imagem_perfil_url:
+                            data?.professor?.pessoa?.user
+                                ?.imagem_perfil_url || '',
                     });
                     setError('');
                     return;
@@ -149,6 +154,30 @@ export default function UpdateProfPage() {
         setForm((prev) => ({ ...prev, [field]: value }));
     }
 
+    function handlePhotoChange(event) {
+        const file = event.target.files?.[0];
+
+        if (!file || !file.type.startsWith('image/')) {
+            return;
+        }
+
+        if (file.size > 3 * 1024 * 1024) {
+            setError('A foto não pode exceder 3MB.');
+            return;
+        }
+
+        setPhotoName(file.name);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setForm((prev) => ({
+                ...prev,
+                imagem_perfil_url: String(reader.result || ''),
+            }));
+        };
+        reader.readAsDataURL(file);
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
         setSubmitting(true);
@@ -172,6 +201,7 @@ export default function UpdateProfPage() {
                     habilitacao: form.habilitacao.trim(),
                     area_ensino: form.area_ensino.trim(),
                     nivel: form.nivel.trim(),
+                    imagem_perfil_url: form.imagem_perfil_url || undefined,
                 }
             );
 
@@ -242,6 +272,39 @@ export default function UpdateProfPage() {
                         {successMessage}
                     </div>
                 ) : null}
+
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        {form.imagem_perfil_url ? (
+                            <img
+                                src={form.imagem_perfil_url}
+                                alt="Pré-visualização do professor"
+                                className="h-16 w-16 rounded-full border border-slate-200 object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400">
+                                <UserCircle2 size={36} />
+                            </div>
+                        )}
+                    </div>
+
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-york-400 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500">
+                        <Upload size={16} />
+                        Alterar Foto
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePhotoChange}
+                        />
+                    </label>
+
+                    {photoName ? (
+                        <span className="text-xs text-slate-500">
+                            {photoName}
+                        </span>
+                    ) : null}
+                </div>
 
                 <fieldset className="rounded-xl border border-slate-200 p-4">
                     <legend className="px-2 text-sm font-semibold text-slate-700">

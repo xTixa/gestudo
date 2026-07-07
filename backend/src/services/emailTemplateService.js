@@ -112,12 +112,12 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         title: 'A tua password foi definida com sucesso',
         introText: 'Ola {nome},',
         bodyText:
-            'A tua nova password de acesso ao MediaCenter foi definida com sucesso.\n\nNova password: {password_nova}\n\nGuarda esta password em local seguro e nao a partilhes com ninguem. Se nao reconheces esta alteracao, contacta o gestor do centro de imediato.',
+            'A tua password de acesso ao MediaCenter foi alterada com sucesso.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconheces esta alteracao, contacta o gestor do centro de imediato.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
         buttonLabel: 'Entrar na plataforma',
-        allowedVariables: ['nome', 'password_nova', 'app_url'],
-        requiredVariables: ['nome', 'password_nova'],
+        allowedVariables: ['nome', 'app_url'],
+        requiredVariables: ['nome'],
     },
     password_changed_guardian: {
         templateKey: 'password_changed_guardian',
@@ -128,12 +128,12 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         title: 'O seu educando atualizou a password de acesso',
         introText: 'Caro(a) Encarregado(a) de Educacao,',
         bodyText:
-            'O seu educando {nome} definiu uma nova password de acesso ao MediaCenter.\n\nNova password: {password_nova}\n\nGuarde esta informacao em local seguro. Se nao reconhece esta alteracao, contacte o gestor do centro de imediato.',
+            'O seu educando {nome} alterou a password de acesso ao MediaCenter.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconhece esta alteracao, contacte o gestor do centro de imediato.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
         buttonLabel: 'Aceder a plataforma',
-        allowedVariables: ['nome', 'password_nova', 'app_url'],
-        requiredVariables: ['nome', 'password_nova'],
+        allowedVariables: ['nome', 'app_url'],
+        requiredVariables: ['nome'],
     },
     password_recovery: {
         templateKey: 'password_recovery',

@@ -271,6 +271,303 @@ export async function listarPacotesCatalogo(req, res) {
     return listarCatalogo(['pacotes', 'pacote'], 'pacotes', res);
 }
 
+/**
+ * Obtém informações sobre a tabela de pacotes (naming flexíbel)
+ * Localiza nomes de colunas: nome, preço, horas, modalidade, disciplina, chave primária
+ *
+ * @returns {Object|null} Objecto com {table, columns, primaryKeyColumn, ...} ou null
+ */
+async function getPacotesTableInfo() {
+    const table = await findTableByCandidates(['pacotes', 'pacote']);
+
+    if (!table) {
+        return null;
+    }
+
+    const columns = await getTableColumns(table);
+    const primaryKeyColumn = await getPrimaryKeyColumn(table);
+
+    const nomeColumn = ['nome', 'designacao', 'designação', 'titulo'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const precoColumn = ['preco', 'preço', 'valor'].find((candidate) =>
+        columns.includes(candidate)
+    );
+    const horasColumn = ['horas_mensais', 'horas', 'carga_horaria'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const modalidadeColumn = ['id_modalidade', 'modalidade_id'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const disciplinaColumn = ['id_disciplina', 'disciplina_id'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const ativoColumn = ['ativo', 'status'].find((candidate) =>
+        columns.includes(candidate)
+    );
+
+    return {
+        table,
+        columns,
+        primaryKeyColumn,
+        nomeColumn,
+        precoColumn,
+        horasColumn,
+        modalidadeColumn,
+        disciplinaColumn,
+        ativoColumn,
+    };
+}
+
+export async function criarPacoteCatalogo(req, res) {
+    try {
+        const info = await getPacotesTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de pacotes não encontrada.' });
+        }
+
+        if (!info.nomeColumn || !info.precoColumn) {
+            return res.status(400).json({
+                message:
+                    'A tabela de pacotes não possui colunas de nome/preço.',
+            });
+        }
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const precoRaw = req.body?.preco;
+        const horasRaw = req.body?.horas;
+        const idModalidadeRaw = req.body?.idModalidade;
+        const idDisciplinaRaw = req.body?.idDisciplina;
+
+        if (!nome) {
+            return res
+                .status(400)
+                .json({ message: 'Nome do pacote é obrigatório.' });
+        }
+
+        const preco = Number(precoRaw);
+        if (precoRaw === '' || precoRaw == null || Number.isNaN(preco)) {
+            return res
+                .status(400)
+                .json({ message: 'Preço do pacote é obrigatório e deve ser um número válido.' });
+        }
+
+        const insertColumns = [info.nomeColumn, info.precoColumn];
+        const insertValues = [nome, preco];
+
+        if (info.horasColumn) {
+            const horas =
+                horasRaw === '' || horasRaw == null ? null : Number(horasRaw);
+            if (horas != null && Number.isNaN(horas)) {
+                return res.status(400).json({ message: 'Horas inválidas.' });
+            }
+            insertColumns.push(info.horasColumn);
+            insertValues.push(horas);
+        }
+
+        if (info.modalidadeColumn) {
+            insertColumns.push(info.modalidadeColumn);
+            insertValues.push(
+                idModalidadeRaw === '' || idModalidadeRaw == null
+                    ? null
+                    : Number(idModalidadeRaw)
+            );
+        }
+
+        if (info.disciplinaColumn) {
+            insertColumns.push(info.disciplinaColumn);
+            insertValues.push(
+                idDisciplinaRaw === '' || idDisciplinaRaw == null
+                    ? null
+                    : Number(idDisciplinaRaw)
+            );
+        }
+
+        if (info.ativoColumn) {
+            insertColumns.push(info.ativoColumn);
+            insertValues.push(true);
+        }
+
+        const placeholders = insertValues.map((_, index) => `$${index + 1}`);
+        const query = `
+      INSERT INTO ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      (${insertColumns.map((column) => quoteIdent(column)).join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, insertValues);
+        const novoRegisto = rows[0];
+
+        await registarInsert(
+            req.userId,
+            'pacotes',
+            novoRegisto,
+            novoRegisto[info.primaryKeyColumn]
+        );
+
+        return res.status(201).json(novoRegisto);
+    } catch (error) {
+        console.error('Erro ao criar pacote:', error.message);
+        return res.status(500).json({ message: 'Erro ao criar pacote.' });
+    }
+}
+
+export async function atualizarPacoteCatalogo(req, res) {
+    try {
+        const info = await getPacotesTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de pacotes não encontrada.' });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message: 'Não foi possível identificar a chave primária de pacotes.',
+            });
+        }
+
+        const id = req.params.id;
+
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res.status(404).json({ message: 'Pacote não encontrado.' });
+        }
+        const dadosAntigos = oldRows[0];
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const precoRaw = req.body?.preco;
+        const horasRaw = req.body?.horas;
+        const idModalidadeRaw = req.body?.idModalidade;
+        const idDisciplinaRaw = req.body?.idDisciplina;
+
+        const setClauses = [];
+        const values = [];
+
+        if (info.nomeColumn && nome) {
+            values.push(nome);
+            setClauses.push(`${quoteIdent(info.nomeColumn)} = $${values.length}`);
+        }
+
+        if (info.precoColumn && precoRaw !== undefined) {
+            const preco = Number(precoRaw);
+            if (precoRaw === '' || precoRaw == null || Number.isNaN(preco)) {
+                return res.status(400).json({ message: 'Preço inválido.' });
+            }
+            values.push(preco);
+            setClauses.push(`${quoteIdent(info.precoColumn)} = $${values.length}`);
+        }
+
+        if (info.horasColumn && horasRaw !== undefined) {
+            const horas =
+                horasRaw === '' || horasRaw == null ? null : Number(horasRaw);
+            if (horas != null && Number.isNaN(horas)) {
+                return res.status(400).json({ message: 'Horas inválidas.' });
+            }
+            values.push(horas);
+            setClauses.push(`${quoteIdent(info.horasColumn)} = $${values.length}`);
+        }
+
+        if (info.modalidadeColumn && idModalidadeRaw !== undefined) {
+            values.push(
+                idModalidadeRaw === '' || idModalidadeRaw == null
+                    ? null
+                    : Number(idModalidadeRaw)
+            );
+            setClauses.push(
+                `${quoteIdent(info.modalidadeColumn)} = $${values.length}`
+            );
+        }
+
+        if (info.disciplinaColumn && idDisciplinaRaw !== undefined) {
+            values.push(
+                idDisciplinaRaw === '' || idDisciplinaRaw == null
+                    ? null
+                    : Number(idDisciplinaRaw)
+            );
+            setClauses.push(
+                `${quoteIdent(info.disciplinaColumn)} = $${values.length}`
+            );
+        }
+
+        if (!setClauses.length) {
+            return res
+                .status(400)
+                .json({ message: 'Sem campos válidos para atualizar.' });
+        }
+
+        values.push(id);
+
+        const query = `
+      UPDATE ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      SET ${setClauses.join(', ')}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $${values.length}
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, values);
+
+        await registarUpdate(req.userId, 'pacotes', id, dadosAntigos, rows[0]);
+
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao atualizar pacote:', error.message);
+        return res.status(500).json({ message: 'Erro ao atualizar pacote.' });
+    }
+}
+
+export async function eliminarPacoteCatalogo(req, res) {
+    try {
+        const info = await getPacotesTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de pacotes não encontrada.' });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message: 'Não foi possível identificar a chave primária de pacotes.',
+            });
+        }
+
+        const id = req.params.id;
+
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res.status(404).json({ message: 'Pacote não encontrado.' });
+        }
+
+        const query = `
+      DELETE FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, [id]);
+
+        await registarDelete(req.userId, 'pacotes', id, oldRows[0], 'alert');
+
+        return res
+            .status(200)
+            .json({ message: 'Pacote eliminado com sucesso.' });
+    } catch (error) {
+        console.error('Erro ao eliminar pacote:', error.message);
+        return res.status(500).json({ message: 'Erro ao eliminar pacote.' });
+    }
+}
+
 export async function criarDisciplinaCatalogo(req, res) {
     try {
         const info = await getDisciplinasTableInfo();
@@ -742,11 +1039,8 @@ export async function criarSalaCatalogo(req, res) {
 
         return res.status(201).json(novoRegisto);
     } catch (error) {
-        console.error('Erro ao criar sala COMPLETO:', error.stack); // ← stack trace completo
-        return res.status(500).json({
-            message: 'Erro ao criar sala.',
-            debug: error.message, // ← remove isto em produção depois de resolver
-        });
+        console.error('Erro ao criar sala:', error.message);
+        return res.status(500).json({ message: 'Erro ao criar sala.' });
     }
 }
 

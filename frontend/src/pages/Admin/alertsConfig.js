@@ -120,6 +120,15 @@ export const DEFAULT_ALERT_GROUPS = [
                 emailEnabled: true,
                 smsEnabled: false,
             },
+            {
+                id: 'aluno-eliminado',
+                title: 'Aluno Eliminado',
+                description: 'Quando um aluno e eliminado definitivamente do sistema',
+                icon: 'UserMinus',
+                appEnabled: true,
+                emailEnabled: true,
+                smsEnabled: false,
+            },
         ],
     },
 ];

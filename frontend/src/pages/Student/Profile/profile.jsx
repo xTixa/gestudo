@@ -175,10 +175,17 @@ function ServiceCard({ service }) {
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
                 <Field
-                    label="Valor"
-                    value={service.valor == null ? '-' : `${service.valor} €`}
+                    label="Início"
+                    value={formatDateLabel(service.dataInicio)}
                 />
-                <Field label="Pacote" value={service.pacoteDescricao || '-'} />
+                <Field
+                    label="Horário"
+                    value={
+                        service.horaInicio && service.horaFim
+                            ? `${service.horaInicio} - ${service.horaFim}`
+                            : '-'
+                    }
+                />
             </div>
         </div>
     );
@@ -254,6 +261,16 @@ export default function PerfilAlunoPage() {
                 <Pencil size={16} />
                 Editar perfil
             </button>
+
+            {!loading && profile?.alteracaoPendente ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 shadow-sm">
+                    Tens alterações ao perfil submetidas em{' '}
+                    {new Date(
+                        profile.alteracaoPendente.criadoEm
+                    ).toLocaleDateString('pt-PT')}{' '}
+                    que ainda aguardam aprovação do gestor.
+                </div>
+            ) : null}
 
             {loading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-sm text-slate-500 shadow-sm">

@@ -29,6 +29,7 @@ const INITIAL_FORM = {
     ee_codigo_postal: '',
     ee_telemovel: '',
     ee_email: '',
+    imagem_perfil_url: '',
 };
 
 // lista de campos obrigatórios para o formulário, usada para calcular o progresso do preenchimento e para validar os dados antes de enviar ao servidor
@@ -109,7 +110,6 @@ export default function AddAlunoPage() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [form, setForm] = useState(INITIAL_FORM);
-    const [photoPreview, setPhotoPreview] = useState('');
     const [photoName, setPhotoName] = useState('');
     const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -203,8 +203,8 @@ export default function AddAlunoPage() {
         const file = event.target.files?.[0];
 
         if (!file) {
-            setPhotoPreview('');
             setPhotoName('');
+            setForm((prev) => ({ ...prev, imagem_perfil_url: '' }));
             return;
         }
 
@@ -212,8 +212,21 @@ export default function AddAlunoPage() {
             return;
         }
 
+        if (file.size > 3 * 1024 * 1024) {
+            setSubmitError('A foto não pode exceder 3MB.');
+            return;
+        }
+
         setPhotoName(file.name);
-        setPhotoPreview(URL.createObjectURL(file));
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setForm((prev) => ({
+                ...prev,
+                imagem_perfil_url: String(reader.result || ''),
+            }));
+        };
+        reader.readAsDataURL(file);
     }
 
     async function handleSubmit(event) {
@@ -256,9 +269,9 @@ export default function AddAlunoPage() {
     }
 
     function handleCancel() {
-        const hasData =
-            Object.values(form).some((value) => String(value).trim() !== '') ||
-            Boolean(photoPreview);
+        const hasData = Object.values(form).some(
+            (value) => String(value).trim() !== ''
+        );
 
         if (
             !hasData ||
@@ -302,9 +315,9 @@ export default function AddAlunoPage() {
 
                 <div className="mb-5 flex items-center gap-4">
                     <div className="relative">
-                        {photoPreview ? (
+                        {form.imagem_perfil_url ? (
                             <img
-                                src={photoPreview}
+                                src={form.imagem_perfil_url}
                                 alt="Pré-visualização do aluno"
                                 className="h-16 w-16 rounded-full border border-slate-200 object-cover"
                             />

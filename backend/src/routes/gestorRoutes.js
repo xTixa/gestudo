@@ -8,6 +8,9 @@ import {
     eliminarAlunoDefinitivo,
     resetarPasswordAluno,
     adicionarServicoCurricularAluno,
+    listarAlteracoesPendentesPerfil,
+    aprovarAlteracaoPendentePerfil,
+    rejeitarAlteracaoPendentePerfil,
 } from '../controllers/alunoController.js';
 import {
     listarProfessores,
@@ -31,6 +34,7 @@ import {
     listarDisciplinasCatalogo,
     criarDisciplinaCatalogo,
     atualizarDisciplinaCatalogo,
+    eliminarDisciplinaCatalogo,
     listarModalidadesCatalogo,
     criarModalidadeCatalogo,
     atualizarModalidadeCatalogo,
@@ -40,6 +44,9 @@ import {
     atualizarSalaCatalogo,
     eliminarSalaCatalogo,
     listarPacotesCatalogo,
+    criarPacoteCatalogo,
+    atualizarPacoteCatalogo,
+    eliminarPacoteCatalogo,
 } from '../controllers/gestaoInternaController.js';
 import {
     criarAvisoManutencao,
@@ -274,6 +281,32 @@ router.post(
     validateParams({ id: 'number' }),
     resetarPasswordAluno
 );
+
+/**
+ * GET /api/gestor/alteracoes-pendentes
+ * Lista pedidos de alteração de perfil de aluno pendentes de aprovação
+ */
+router.get('/alteracoes-pendentes', listarAlteracoesPendentesPerfil);
+
+/**
+ * POST /api/gestor/alteracoes-pendentes/:id/aprovar
+ * Aprova um pedido de alteração de perfil, aplicando os dados propostos
+ */
+router.post(
+    '/alteracoes-pendentes/:id/aprovar',
+    validateParams({ id: 'number' }),
+    aprovarAlteracaoPendentePerfil
+);
+
+/**
+ * POST /api/gestor/alteracoes-pendentes/:id/rejeitar
+ * Rejeita um pedido de alteração de perfil, sem aplicar as alterações
+ */
+router.post(
+    '/alteracoes-pendentes/:id/rejeitar',
+    validateParams({ id: 'number' }),
+    rejeitarAlteracaoPendentePerfil
+);
 router.post(
     '/alunos/:id/servicos-curriculares',
     validateParams({ id: 'number' }),
@@ -391,6 +424,16 @@ router.patch(
 );
 
 /**
+ * DELETE /api/gestor/disciplinas/:id
+ * Remove disciplina existente
+ */
+router.delete(
+    '/disciplinas/:id',
+    validateParams({ id: 'number' }),
+    eliminarDisciplinaCatalogo
+);
+
+/**
  * GET /api/gestor/modalidades
  * Lista todas as modalidades
  */
@@ -481,6 +524,49 @@ router.delete(
  * Lista todos os pacotes
  */
 router.get('/pacotes', listarPacotesCatalogo);
+
+/**
+ * POST /api/gestor/pacotes
+ * Cria novo pacote
+ */
+router.post(
+    '/pacotes',
+    validateBody({
+        nome: { type: 'string', required: true, min: 1 },
+        preco: { type: 'number', required: true },
+        horas: { type: 'number', required: false },
+        idModalidade: { type: 'number', required: false },
+        idDisciplina: { type: 'number', required: false },
+    }),
+    criarPacoteCatalogo
+);
+
+/**
+ * PATCH /api/gestor/pacotes/:id
+ * Atualiza pacote existente
+ */
+router.patch(
+    '/pacotes/:id',
+    validateParams({ id: 'number' }),
+    validateBody({
+        nome: { type: 'string', required: false, min: 1 },
+        preco: { type: 'number', required: false },
+        horas: { type: 'number', required: false },
+        idModalidade: { type: 'number', required: false },
+        idDisciplina: { type: 'number', required: false },
+    }),
+    atualizarPacoteCatalogo
+);
+
+/**
+ * DELETE /api/gestor/pacotes/:id
+ * Remove pacote existente
+ */
+router.delete(
+    '/pacotes/:id',
+    validateParams({ id: 'number' }),
+    eliminarPacoteCatalogo
+);
 
 // =============== GESTÃO DE SERVIÇOS ===============
 

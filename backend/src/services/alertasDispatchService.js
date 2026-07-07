@@ -536,6 +536,81 @@ async function obterGestoresExcluindo(actorUserId) {
         .filter((id) => id !== actorUserId);
 }
 
+// Obtém os ids de todos os gestores ativos, incluindo sempre quem despoletou a ação
+// (usado em eventos críticos, como eliminações, onde o próprio autor também deve ser notificado)
+async function obterTodosOsGestores() {
+    const { rows } = await db.query(
+        `SELECT id_user FROM users WHERE role = 'gestor' AND status = true`
+    );
+    return rows.map((row) => row.id_user);
+}
+
+async function ensureAlunoEliminadoAlertDefinition() {
+    const codigo = 'aluno-eliminado';
+    const existing = await db.query(
+        `SELECT id_alerta_definicao FROM alertas_definicoes WHERE codigo = $1 LIMIT 1`,
+        [codigo]
+    );
+    if (existing.rows[0]?.id_alerta_definicao) {
+        return existing.rows[0].id_alerta_definicao;
+    }
+
+    const inserted = await db.query(
+        `INSERT INTO alertas_definicoes (grupo, codigo, titulo, descricao, icone, canal_app_default, canal_email_default, ativo, ordenacao)
+         VALUES ($1, $2, $3, $4, $5, true, true, true, $6) RETURNING id_alerta_definicao`,
+        [
+            'sistema',
+            codigo,
+            'Aluno eliminado',
+            'Quando um aluno é eliminado definitivamente do sistema.',
+            'UserMinus',
+            95,
+        ]
+    );
+    return inserted.rows[0]?.id_alerta_definicao || null;
+}
+
+/**
+ * Notifica todos os gestores (incluindo quem executou a ação) quando um aluno
+ * é eliminado definitivamente do sistema.
+ *
+ * @param {Object} params
+ * @param {number} params.actorUserId - Gestor que eliminou o aluno
+ * @param {string} params.nome - Nome do aluno eliminado
+ * @param {string} [params.email] - Email do aluno eliminado
+ * @returns {Promise<Object>} resultado do dispatch
+ */
+export async function notificarGestoresAlunoEliminado({
+    actorUserId,
+    nome,
+    email,
+}) {
+    try {
+        await ensureAlunoEliminadoAlertDefinition();
+        const gestorIds = await obterTodosOsGestores();
+        if (!gestorIds.length) {
+            return { success: true, eventos_criados: 0 };
+        }
+
+        return await dispatchAlert({
+            codigo: 'aluno-eliminado',
+            for_user_ids: gestorIds,
+            titulo: 'Aluno eliminado definitivamente',
+            descricao: email
+                ? `O aluno "${nome}" (${email}) foi eliminado definitivamente do sistema.`
+                : `O aluno "${nome}" foi eliminado definitivamente do sistema.`,
+            nivel: 'warning',
+            payload: { actorUserId, nome, email },
+        });
+    } catch (err) {
+        console.error(
+            '[alertasDispatchService] notificarGestoresAlunoEliminado error:',
+            err.message
+        );
+        return { success: false, eventos_criados: 0, erro: err.message };
+    }
+}
+
 /**
  * Notifica os restantes gestores quando uma nova conta (professor/aluno) é criada.
  *
@@ -578,10 +653,11 @@ export async function notificarGestoresCriacaoConta({
 }
 
 /**
- * Notifica os restantes gestores quando é executada uma limpeza de dados em massa.
+ * Notifica todos os gestores (incluindo quem executou a ação) quando é
+ * executada uma limpeza de dados em massa.
  *
  * @param {Object} params
- * @param {number} params.actorUserId - Gestor que executou a limpeza (excluído da notificação)
+ * @param {number} params.actorUserId - Gestor que executou a limpeza
  * @param {Object} params.contagens - Resumo de quantos registos foram eliminados por categoria
  * @returns {Promise<Object>} resultado do dispatch
  */
@@ -590,7 +666,9 @@ export async function notificarGestoresLimpezaDados({
     contagens,
 }) {
     try {
-        const gestorIds = await obterGestoresExcluindo(actorUserId);
+        // Inclui sempre quem executou a limpeza: é um evento crítico e,
+        // em instalações com um único gestor, ninguém seria notificado.
+        const gestorIds = await obterTodosOsGestores();
         if (!gestorIds.length) {
             return { success: true, eventos_criados: 0 };
         }

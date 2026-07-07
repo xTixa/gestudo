@@ -1955,6 +1955,7 @@ export async function criarProfessor(req, res) {
         data_nascimento,
         telemovel,
         telefone,
+        imagem_perfil_url,
     } = req.body || {};
 
     const professorEmail = String(email || '')
@@ -1995,11 +1996,17 @@ export async function criarProfessor(req, res) {
 
         const userResult = await client.query(
             `
-				INSERT INTO users (email, password, role, status, primeira_login)
-				VALUES ($1, $2, 'professor', true, true)
+				INSERT INTO users (email, password, role, status, primeira_login, imagem_perfil_url)
+				VALUES ($1, $2, 'professor', true, true, $3)
 				RETURNING id_user, email, created_at, status
 			`,
-            [professorEmail, passwordHash]
+            [
+                professorEmail,
+                passwordHash,
+                imagem_perfil_url == null
+                    ? null
+                    : String(imagem_perfil_url).trim() || null,
+            ]
         );
 
         const pessoaResult = await client.query(

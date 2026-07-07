@@ -715,17 +715,15 @@ export async function enviarEmailContaCriadaEE(nomeAluno, emailEE, passwordTemp)
     });
 }
 
-export async function enviarEmailPasswordAlterada(nome, email, passwordNova) {
+export async function enviarEmailPasswordAlterada(nome, email) {
     return enviarEmailTemplate('password_changed_student', email, {
         nome,
-        password_nova: passwordNova,
     });
 }
 
-export async function enviarEmailPasswordAlteradaEE(nomeAluno, emailEE, passwordNova) {
+export async function enviarEmailPasswordAlteradaEE(nomeAluno, emailEE) {
     return enviarEmailTemplate('password_changed_guardian', emailEE, {
         nome: nomeAluno,
-        password_nova: passwordNova,
     });
 }
 

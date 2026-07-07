@@ -386,18 +386,6 @@ export default function UpdatePerfilAlunoPage() {
                 );
             }
 
-            const nextUser = {
-                ...storedUser,
-                nome: payload.nome,
-                email: payload.email,
-                imagem_perfil_url: payload.imagem_perfil_url,
-            };
-            localStorage.setItem('mc_user', JSON.stringify(nextUser));
-            localStorage.setItem('user', JSON.stringify(nextUser));
-            window.dispatchEvent(
-                new CustomEvent('mc:user-updated', { detail: nextUser })
-            );
-
             if (passwordFieldsFilled) {
                 const passwordResponse = await apiPost(
                     '/api/auth/alterar-password',
@@ -417,8 +405,11 @@ export default function UpdatePerfilAlunoPage() {
                 }
             }
 
-            setSuccess('Perfil atualizado com sucesso.');
-            setTimeout(() => navigate('/aluno/perfil'), 700);
+            setSuccess(
+                data?.message ||
+                    'As suas alterações foram submetidas e aguardam aprovação do gestor.'
+            );
+            setTimeout(() => navigate('/aluno/perfil'), 1200);
         } catch (submitError) {
             setError(submitError?.message || 'Erro ao guardar alterações.');
         } finally {

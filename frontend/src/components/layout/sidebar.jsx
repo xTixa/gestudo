@@ -22,6 +22,7 @@ import {
     BoxIcon,
     ClipboardCheck,
     BarChart3,
+    ClipboardEdit,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -98,6 +99,12 @@ const menuByRole = {
             label: 'Inscrições Públicas',
             path: '/gestor/inscricoes-publicas',
             icon: FileText,
+        },
+        {
+            key: 'alteracoes-pendentes',
+            label: 'Alterações Pendentes',
+            path: '/gestor/alteracoes-pendentes',
+            icon: ClipboardEdit,
         },
         {
             key: 'relatorios',

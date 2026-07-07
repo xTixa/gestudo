@@ -11,7 +11,10 @@ import {
     registarInsert,
     registarUpdate,
 } from '../services/logService.js';
-import { notificarGestoresCriacaoConta } from '../services/alertasDispatchService.js';
+import {
+    notificarGestoresCriacaoConta,
+    notificarGestoresAlunoEliminado,
+} from '../services/alertasDispatchService.js';
 import { inserirInscricoesServicoCurricular } from './servicosController.js';
 
 /**
@@ -39,6 +42,13 @@ function gerarCartaoCidadaoPlaceholder(prefix = 'ND') {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).slice(2, 8).toUpperCase();
     return `${prefix}-${timestamp}-${random}`;
+}
+
+// nif tem limite de 15 caracteres na BD, por isso usa um formato mais curto
+function gerarNifPlaceholder() {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 4).toUpperCase();
+    return `EE${timestamp}${random}`;
 }
 
 function toNullableText(value) {
@@ -759,6 +769,7 @@ export async function criarAluno(req, res) {
         ee_telemovel,
         ee_telefone,
         ee_parentesco,
+        imagem_perfil_url,
     } = req.body || {};
 
     const alunoNome = String(nome_completo || '').trim();
@@ -816,11 +827,17 @@ export async function criarAluno(req, res) {
 
         const userResult = await client.query(
             `
-				INSERT INTO users (email, password, role, status, primeira_login)
-				VALUES ($1, $2, 'aluno', true, true)
+				INSERT INTO users (email, password, role, status, primeira_login, imagem_perfil_url)
+				VALUES ($1, $2, 'aluno', true, true, $3)
 				RETURNING id_user, email, created_at, status
 			`,
-            [alunoEmail, passwordHash]
+            [
+                alunoEmail,
+                passwordHash,
+                imagem_perfil_url == null
+                    ? null
+                    : String(imagem_perfil_url).trim() || null,
+            ]
         );
 
         const pessoaAlunoResult = await client.query(
@@ -906,7 +923,7 @@ export async function criarAluno(req, res) {
                     '1980-01-01',
                     toNullableText(ee_cartao_cidadao) ||
                         gerarCartaoCidadaoPlaceholder('EE'),
-                    encarregadoNif || null,
+                    encarregadoNif || gerarNifPlaceholder(),
                     String(ee_morada || '').trim() || null,
                     String(ee_localidade || '').trim() || null,
                     String(ee_codigo_postal || '').trim() || null,
@@ -1029,6 +1046,18 @@ export async function criarAluno(req, res) {
         if (error?.code === '23505') {
             return res.status(400).json({
                 message: getDuplicateErrorMessage(error),
+            });
+        }
+
+        if (error?.code === '23502') {
+            return res.status(400).json({
+                message: `Campo obrigatório em falta: ${error?.column || 'desconhecido'}.`,
+            });
+        }
+
+        if (error?.code === '23503') {
+            return res.status(400).json({
+                message: `Referência inválida (${error?.constraint || 'FK desconhecida'}).`,
             });
         }
 
@@ -1295,7 +1324,33 @@ export async function obterMeuPerfil(req, res) {
                 .json({ message: 'Perfil de aluno não encontrado.' });
         }
 
-        return res.status(200).json({ aluno: perfil });
+        // O aluno não deve ver preços/pacotes (informação interna de gestão)
+        const perfilSemPrecos = {
+            ...perfil,
+            servicosSubscritos: (perfil.servicosSubscritos || []).map(
+                ({ valor, idPacote, pacoteDescricao, ...servico }) => servico
+            ),
+        };
+
+        const alteracaoPendenteResult = await db.query(
+            `
+                SELECT id_alteracao, dados_propostos, criado_em
+                FROM alteracoes_pendentes_perfil
+                WHERE id_aluno = $1 AND estado = 'pendente'
+                LIMIT 1
+            `,
+            [alunoResult.rows[0].id_aluno]
+        );
+
+        perfilSemPrecos.alteracaoPendente = alteracaoPendenteResult.rows[0]
+            ? {
+                  id: alteracaoPendenteResult.rows[0].id_alteracao,
+                  dadosPropostos: alteracaoPendenteResult.rows[0].dados_propostos,
+                  criadoEm: alteracaoPendenteResult.rows[0].criado_em,
+              }
+            : null;
+
+        return res.status(200).json({ aluno: perfilSemPrecos });
     } catch (error) {
         console.error('Erro ao obter perfil do aluno:', error.message);
         return res
@@ -1304,12 +1359,41 @@ export async function obterMeuPerfil(req, res) {
     }
 }
 
+// Campos que o aluno pode propor alterar no seu próprio perfil (mesmos que
+// atualizarAluno aceita). Qualquer alteração fica pendente de aprovação do
+// gestor em vez de ser gravada de imediato.
+const CAMPOS_PERFIL_ALUNO = [
+    'nome',
+    'data_nasc',
+    'cc',
+    'nif',
+    'morada',
+    'localidade',
+    'cod_postal',
+    'telemovel',
+    'telefone',
+    'email',
+    'imagem_perfil_url',
+    'escola',
+    'ano',
+    'turma',
+    'encarregado_nome',
+    'encarregado_parentesco',
+    'encarregado_morada',
+    'encarregado_localidade',
+    'encarregado_cod_postal',
+    'encarregado_telemovel',
+    'encarregado_telefone',
+    'encarregado_email',
+];
+
 /**
- * Atualiza o perfil do aluno autenticado
+ * Submete um pedido de alteração ao perfil do aluno autenticado, que fica
+ * pendente de aprovação do gestor (não é gravado de imediato).
  *
  * @param {Object} req - Objecto de requisição (req.userId, body)
  * @param {Object} res - Objecto de resposta
- * @returns {JSON} Resposta do update do aluno
+ * @returns {JSON} Confirmação de submissão do pedido
  */
 export async function atualizarMeuPerfil(req, res) {
     if (!req.userId) {
@@ -1334,21 +1418,229 @@ export async function atualizarMeuPerfil(req, res) {
         }
 
         const alunoId = alunoResult.rows[0].id_aluno;
-        return atualizarAluno(
-            {
-                ...req,
-                params: {
-                    ...(req.params || {}),
-                    id: String(alunoId),
-                },
-            },
-            res
+
+        const dadosPropostos = {};
+        CAMPOS_PERFIL_ALUNO.forEach((campo) => {
+            const valor = req.body?.[campo];
+            if (valor !== undefined) {
+                dadosPropostos[campo] = valor;
+            }
+        });
+
+        if (!Object.keys(dadosPropostos).length) {
+            return res.status(400).json({ message: 'Sem dados para atualizar.' });
+        }
+
+        const existente = await db.query(
+            `
+                SELECT id_alteracao, dados_propostos
+                FROM alteracoes_pendentes_perfil
+                WHERE id_aluno = $1 AND estado = 'pendente'
+                LIMIT 1
+            `,
+            [alunoId]
         );
+
+        if (existente.rows.length) {
+            const mergedDados = {
+                ...existente.rows[0].dados_propostos,
+                ...dadosPropostos,
+            };
+
+            await db.query(
+                `
+                    UPDATE alteracoes_pendentes_perfil
+                    SET dados_propostos = $1::jsonb, atualizado_em = now()
+                    WHERE id_alteracao = $2
+                `,
+                [JSON.stringify(mergedDados), existente.rows[0].id_alteracao]
+            );
+        } else {
+            const perfilAtual = await carregarPerfilAlunoPorIdAluno(db, alunoId);
+
+            await db.query(
+                `
+                    INSERT INTO alteracoes_pendentes_perfil
+                        (id_aluno, dados_propostos, dados_anteriores, estado)
+                    VALUES ($1, $2::jsonb, $3::jsonb, 'pendente')
+                `,
+                [
+                    alunoId,
+                    JSON.stringify(dadosPropostos),
+                    JSON.stringify(perfilAtual),
+                ]
+            );
+        }
+
+        return res.status(202).json({
+            message:
+                'As suas alterações foram submetidas e aguardam aprovação do gestor.',
+            pendente: true,
+        });
     } catch (error) {
         console.error('Erro ao atualizar perfil do aluno:', error.message);
         return res
             .status(500)
             .json({ message: 'Erro ao atualizar o perfil do aluno.' });
+    }
+}
+
+/**
+ * Lista pedidos de alteração de perfil de aluno pendentes de aprovação.
+ *
+ * @param {Object} req - Objecto de requisição
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Lista de alterações pendentes
+ */
+export async function listarAlteracoesPendentesPerfil(req, res) {
+    try {
+        const { rows } = await db.query(
+            `
+                SELECT
+                    ap.id_alteracao,
+                    ap.id_aluno,
+                    ap.dados_propostos,
+                    ap.dados_anteriores,
+                    ap.estado,
+                    ap.criado_em,
+                    ap.atualizado_em,
+                    p.nome AS aluno_nome
+                FROM alteracoes_pendentes_perfil ap
+                INNER JOIN alunos a ON a.id_aluno = ap.id_aluno
+                INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                WHERE ap.estado = 'pendente'
+                ORDER BY ap.criado_em ASC
+            `
+        );
+
+        return res.status(200).json({ alteracoes: rows });
+    } catch (error) {
+        console.error('Erro ao listar alterações pendentes:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao listar alterações pendentes.' });
+    }
+}
+
+/**
+ * Aprova um pedido de alteração de perfil de aluno: aplica os dados
+ * propostos ao registo do aluno e marca o pedido como aprovado.
+ *
+ * @param {Object} req - Objecto de requisição (params: id)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Confirmação de aprovação
+ */
+export async function aprovarAlteracaoPendentePerfil(req, res) {
+    const { id } = req.params;
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de alteração inválido.' });
+    }
+
+    try {
+        const { rows } = await db.query(
+            `
+                SELECT id_alteracao, id_aluno, dados_propostos
+                FROM alteracoes_pendentes_perfil
+                WHERE id_alteracao = $1 AND estado = 'pendente'
+                LIMIT 1
+            `,
+            [id]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({
+                message: 'Pedido de alteração não encontrado ou já revisto.',
+            });
+        }
+
+        const pedido = rows[0];
+
+        const resultado = await new Promise((resolve) => {
+            const fakeRes = {
+                status(code) {
+                    this.statusCode = code;
+                    return this;
+                },
+                json(payload) {
+                    resolve({ statusCode: this.statusCode || 200, payload });
+                },
+            };
+
+            atualizarAluno(
+                {
+                    params: { id: String(pedido.id_aluno) },
+                    body: pedido.dados_propostos,
+                    userId: req.userId,
+                },
+                fakeRes
+            );
+        });
+
+        if (resultado.statusCode >= 400) {
+            return res.status(resultado.statusCode).json(resultado.payload);
+        }
+
+        await db.query(
+            `
+                UPDATE alteracoes_pendentes_perfil
+                SET estado = 'aprovada', revisto_por = $1, revisto_em = now(), atualizado_em = now()
+                WHERE id_alteracao = $2
+            `,
+            [req.userId ?? null, id]
+        );
+
+        return res.status(200).json({
+            message: 'Alteração aprovada e aplicada ao perfil do aluno.',
+        });
+    } catch (error) {
+        console.error('Erro ao aprovar alteração pendente:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao aprovar alteração pendente.' });
+    }
+}
+
+/**
+ * Rejeita um pedido de alteração de perfil de aluno, sem aplicar as
+ * alterações propostas.
+ *
+ * @param {Object} req - Objecto de requisição (params: id, body: motivo?)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Confirmação de rejeição
+ */
+export async function rejeitarAlteracaoPendentePerfil(req, res) {
+    const { id } = req.params;
+    const motivo = String(req.body?.motivo ?? '').trim() || null;
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de alteração inválido.' });
+    }
+
+    try {
+        const { rows } = await db.query(
+            `
+                UPDATE alteracoes_pendentes_perfil
+                SET estado = 'rejeitada', revisto_por = $1, revisto_em = now(),
+                    atualizado_em = now(), motivo_rejeicao = $2
+                WHERE id_alteracao = $3 AND estado = 'pendente'
+                RETURNING id_alteracao
+            `,
+            [req.userId ?? null, motivo, id]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({
+                message: 'Pedido de alteração não encontrado ou já revisto.',
+            });
+        }
+
+        return res.status(200).json({ message: 'Alteração rejeitada.' });
+    } catch (error) {
+        console.error('Erro ao rejeitar alteração pendente:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao rejeitar alteração pendente.' });
     }
 }
 
@@ -1871,6 +2163,12 @@ export async function eliminarAlunoDefinitivo(req, res) {
             Number(id),
             beforePerfil
         );
+
+        notificarGestoresAlunoEliminado({
+            actorUserId: req.userId ?? null,
+            nome: beforePerfil?.pessoa?.nome || `Aluno #${id}`,
+            email: beforePerfil?.pessoa?.user?.email || null,
+        }).catch(() => {});
 
         return res.status(200).json({
             message:
