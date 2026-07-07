@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../loadEnv.js';
 import { Pool } from 'pg';
 
 // Verifica se as variáveis de ambiente para configuração de banco de dados estão presentes, permitindo o uso de uma URL de conexão única ou configurações discretas, e garantindo que a configuração seja flexível e adaptável a diferentes ambientes de implantação

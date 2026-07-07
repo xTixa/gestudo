@@ -18,6 +18,18 @@ import { apiDelete, apiGet, apiPatch, apiPost } from '../../../../utils/api.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// mensagens de erro de rede do browser (ex: "Load failed", "Failed to fetch")
+// não são compreensíveis para o utilizador; traduzimos para algo claro
+const NETWORK_ERROR_PATTERNS = ['load failed', 'failed to fetch', 'networkerror'];
+
+function friendlyErrorMessage(error, fallback) {
+    const raw = String(error?.message || '').toLowerCase();
+    if (NETWORK_ERROR_PATTERNS.some((pattern) => raw.includes(pattern))) {
+        return 'Não foi possível ligar ao servidor. Verifique a sua ligação e tente novamente.';
+    }
+    return error?.message || fallback;
+}
+
 // opções fixas para os dias da semana, com chaves que correspondem ao formato esperado pela API e rótulos legíveis para exibição no formulário
 const weekDayOptions = [
     { key: 'segunda', label: 'Segunda-feira' },
@@ -399,7 +411,10 @@ export default function GestaoCurricularPage() {
             } catch (fetchError) {
                 if (isMounted) {
                     setPageError(
-                        fetchError.message || 'Erro ao carregar dados.'
+                        friendlyErrorMessage(
+                            fetchError,
+                            'Erro ao carregar dados.'
+                        )
                     );
                 }
             } finally {
@@ -501,7 +516,10 @@ export default function GestaoCurricularPage() {
                     setSalasDisponiveis([]);
                     setSalasDisponiveisReady(false);
                     setSalasError(
-                        error.message || 'Erro ao carregar salas disponiveis.'
+                        friendlyErrorMessage(
+                            error,
+                            'Erro ao carregar salas disponiveis.'
+                        )
                     );
                 }
             } finally {
@@ -633,7 +651,9 @@ export default function GestaoCurricularPage() {
             );
             setPendingDeleteServiceId(null);
         } catch (deleteError) {
-            setPageError(deleteError.message || 'Erro ao eliminar serviço.');
+            setPageError(
+                friendlyErrorMessage(deleteError, 'Erro ao eliminar serviço.')
+            );
         } finally {
             setDeletingServiceId(null);
         }
@@ -646,8 +666,6 @@ export default function GestaoCurricularPage() {
             !formData.tipoServico ||
             !formData.modalidadeId ||
             !formData.disciplinaId ||
-            !formData.professorId ||
-            !formData.salaId ||
             !formData.dataInicio ||
             !formData.horaInicio ||
             !formData.duracao ||
@@ -717,7 +735,9 @@ export default function GestaoCurricularPage() {
             }
             closeModal();
         } catch (submitError) {
-            setFormError(submitError.message || 'Erro ao guardar serviço.');
+            setFormError(
+                friendlyErrorMessage(submitError, 'Erro ao guardar serviço.')
+            );
         } finally {
             setSubmitting(false);
         }
@@ -1006,7 +1026,7 @@ export default function GestaoCurricularPage() {
 
                                 <label>
                                     <span className={fieldLabelClass}>
-                                        Professor *
+                                        Professor
                                     </span>
                                     <select
                                         value={formData.professorId}
@@ -1033,7 +1053,7 @@ export default function GestaoCurricularPage() {
 
                                 <label>
                                     <span className={fieldLabelClass}>
-                                        Sala *
+                                        Sala
                                     </span>
                                     <select
                                         value={formData.salaId}

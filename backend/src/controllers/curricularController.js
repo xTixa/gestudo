@@ -140,18 +140,17 @@ export async function listarOpcoesServicoCurricular(req, res) {
                 `SELECT id_modalidade AS id, nome FROM modalidades WHERE COALESCE(ativa, true) = true ORDER BY nome`
             ),
             db.query(
-                `SELECT id_disciplina AS id, nome, id_nivel FROM disciplinas WHERE COALESCE(ativa, true) = true ORDER BY nome`
+                `SELECT id_disciplina AS id, nome, id_nivel FROM disciplinas ORDER BY nome`
             ),
             db.query(`
 				SELECT p.id_professor AS id, COALESCE(u.email, CONCAT('Professor #', p.id_professor::text)) AS nome
 				FROM professores p
 				LEFT JOIN users u ON u.id_user = p.id_user
 				WHERE COALESCE(u.role, '') = 'professor'
-				  AND COALESCE(u.status, true) = true
 				ORDER BY nome
 			`),
             db.query(
-                `SELECT id_sala AS id, nome FROM salas WHERE COALESCE(ativa, true) = true ORDER BY nome`
+                `SELECT id_sala AS id, nome FROM salas ORDER BY nome`
             ),
             db.query(`
 				SELECT a.id_aluno AS id, COALESCE(u.email, CONCAT('Aluno #', a.id_aluno::text)) AS nome, COALESCE(a.ano::text, '') AS ano
@@ -265,8 +264,6 @@ export async function criarServicoCurricular(req, res) {
             !tipoServico ||
             !modalidadeId ||
             !(disciplinaId || areaId) ||
-            !professorId ||
-            !salaId ||
             !dataInicio ||
             !horaInicio ||
             !duracao
@@ -317,41 +314,45 @@ export async function criarServicoCurricular(req, res) {
             ? getDataFimAnoLetivo(dataInicio)
             : dataInicio;
 
-        const salaCheck = await verificarConflitoSalaDatabase(
-            Number(salaId),
-            dataInicio,
-            dataFimValidacao,
-            horaInicio,
-            horaFim,
-            diasSemanaJson,
-            null
-        );
-        if (salaCheck.hasConflict) {
-            return res.status(409).json({
-                code: 'SALA_CONFLICT',
-                message:
-                    'Sala possui conflito de horario com servico(s) existente(s).',
-                conflicts: salaCheck.conflicts,
-            });
+        if (salaId) {
+            const salaCheck = await verificarConflitoSalaDatabase(
+                Number(salaId),
+                dataInicio,
+                dataFimValidacao,
+                horaInicio,
+                horaFim,
+                diasSemanaJson,
+                null
+            );
+            if (salaCheck.hasConflict) {
+                return res.status(409).json({
+                    code: 'SALA_CONFLICT',
+                    message:
+                        'Sala possui conflito de horario com servico(s) existente(s).',
+                    conflicts: salaCheck.conflicts,
+                });
+            }
         }
 
         // Validar sobreposição de professor
-        const professorCheck = await verificarSobrepoisaoProfessor(
-            Number(professorId),
-            dataInicio,
-            dataFimValidacao,
-            horaInicio,
-            horaFim,
-            diasSemanaJson,
-            null
-        );
-        if (professorCheck.hasConflict) {
-            return res.status(409).json({
-                code: 'PROFESSOR_CONFLICT',
-                message:
-                    'Professor possui conflito de horário com aula(s) existente(s).',
-                conflicts: professorCheck.conflicts,
-            });
+        if (professorId) {
+            const professorCheck = await verificarSobrepoisaoProfessor(
+                Number(professorId),
+                dataInicio,
+                dataFimValidacao,
+                horaInicio,
+                horaFim,
+                diasSemanaJson,
+                null
+            );
+            if (professorCheck.hasConflict) {
+                return res.status(409).json({
+                    code: 'PROFESSOR_CONFLICT',
+                    message:
+                        'Professor possui conflito de horário com aula(s) existente(s).',
+                    conflicts: professorCheck.conflicts,
+                });
+            }
         }
 
         // Validar sobreposição de alunos
@@ -425,11 +426,11 @@ export async function criarServicoCurricular(req, res) {
             : dataInicio;
 
         const insertValues = [
-            Number(professorId),
+            professorId ? Number(professorId) : null,
             Number(disciplinaId),
             Number(modalidadeId),
             tipoServicoResolvedId,
-            Number(salaId),
+            salaId ? Number(salaId) : null,
             tipoDb,
             anoLetivo,
             dataInicio,
@@ -616,7 +617,14 @@ export async function atualizarServicoCurricular(req, res) {
             });
         }
 
-        const nextSalaId = Number(salaId ?? oldServico.id_sala);
+        const nextSalaId =
+            salaId !== undefined
+                ? salaId
+                    ? Number(salaId)
+                    : null
+                : oldServico.id_sala != null
+                  ? Number(oldServico.id_sala)
+                  : null;
         const nextHoraInicio =
             normalizeTimeLabel(horaInicio) ||
             normalizeTimeLabel(oldServico.hora_inicio);
@@ -629,8 +637,8 @@ export async function atualizarServicoCurricular(req, res) {
         const nextHoraFim = addMinutesToTime(nextHoraInicio, nextDuracao);
 
         if (
-            !Number.isInteger(nextSalaId) ||
-            nextSalaId <= 0 ||
+            (nextSalaId != null &&
+                (!Number.isInteger(nextSalaId) || nextSalaId <= 0)) ||
             !nextHoraInicio ||
             !nextHoraFim
         ) {
@@ -654,43 +662,47 @@ export async function atualizarServicoCurricular(req, res) {
               )
             : await carregarAlunosIdsServico(client, idServico);
 
-        const salaCheck = await verificarConflitoSalaDatabase(
-            nextSalaId,
-            effectiveDate,
-            oldEnd,
-            nextHoraInicio,
-            nextHoraFim,
-            nextDiasSemanaJson,
-            idServico,
-            client
-        );
-        if (salaCheck.hasConflict) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({
-                code: 'SALA_CONFLICT',
-                message:
-                    'Sala possui conflito de horario com servico(s) existente(s).',
-                conflicts: salaCheck.conflicts,
-            });
+        if (nextSalaId) {
+            const salaCheck = await verificarConflitoSalaDatabase(
+                nextSalaId,
+                effectiveDate,
+                oldEnd,
+                nextHoraInicio,
+                nextHoraFim,
+                nextDiasSemanaJson,
+                idServico,
+                client
+            );
+            if (salaCheck.hasConflict) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    code: 'SALA_CONFLICT',
+                    message:
+                        'Sala possui conflito de horario com servico(s) existente(s).',
+                    conflicts: salaCheck.conflicts,
+                });
+            }
         }
 
-        const professorCheck = await verificarSobrepoisaoProfessor(
-            Number(oldServico.id_professor),
-            effectiveDate,
-            oldEnd,
-            nextHoraInicio,
-            nextHoraFim,
-            nextDiasSemanaJson,
-            idServico,
-            client
-        );
-        if (professorCheck.hasConflict) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({
-                code: 'PROFESSOR_CONFLICT',
-                message: `Professor possui conflito de horário com ${professorCheck.conflicts.length} aula(s) existente(s).`,
-                conflicts: professorCheck.conflicts,
-            });
+        if (oldServico.id_professor) {
+            const professorCheck = await verificarSobrepoisaoProfessor(
+                Number(oldServico.id_professor),
+                effectiveDate,
+                oldEnd,
+                nextHoraInicio,
+                nextHoraFim,
+                nextDiasSemanaJson,
+                idServico,
+                client
+            );
+            if (professorCheck.hasConflict) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    code: 'PROFESSOR_CONFLICT',
+                    message: `Professor possui conflito de horário com ${professorCheck.conflicts.length} aula(s) existente(s).`,
+                    conflicts: professorCheck.conflicts,
+                });
+            }
         }
 
         if (selectedAlunos.length) {

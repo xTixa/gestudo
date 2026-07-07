@@ -29,6 +29,21 @@ function quoteIdent(identifier) {
 }
 
 /**
+ * Verifica se um erro de eliminação é causado por registos associados
+ * (violação de FK RESTRICT/foreign key) e responde com uma mensagem clara.
+ * Devolve true se o erro foi tratado (resposta já enviada).
+ */
+function respondIfRestrictedDelete(error, res, entidadeLabel) {
+    if (error?.code === '23001' || error?.code === '23503') {
+        res.status(409).json({
+            message: `Não é possível eliminar ${entidadeLabel}: existem registos associados (serviços ou pacotes).`,
+        });
+        return true;
+    }
+    return false;
+}
+
+/**
  * Procura tabela em base de dados usando lista de nomes candidatos
  * Tenta match exato primeiro, depois match parcial da string
  *
@@ -563,6 +578,7 @@ export async function eliminarPacoteCatalogo(req, res) {
             .status(200)
             .json({ message: 'Pacote eliminado com sucesso.' });
     } catch (error) {
+        if (respondIfRestrictedDelete(error, res, 'o pacote')) return;
         console.error('Erro ao eliminar pacote:', error.message);
         return res.status(500).json({ message: 'Erro ao eliminar pacote.' });
     }
@@ -767,6 +783,7 @@ export async function eliminarDisciplinaCatalogo(req, res) {
             .status(200)
             .json({ message: 'Disciplina eliminada com sucesso.' });
     } catch (error) {
+        if (respondIfRestrictedDelete(error, res, 'a disciplina')) return;
         console.error('Erro ao eliminar disciplina:', error.message);
         return res
             .status(500)
@@ -969,6 +986,7 @@ export async function eliminarModalidadeCatalogo(req, res) {
             .status(200)
             .json({ message: 'Modalidade eliminada com sucesso.' });
     } catch (error) {
+        if (respondIfRestrictedDelete(error, res, 'a modalidade')) return;
         console.error('Erro ao eliminar modalidade:', error.message);
         return res
             .status(500)
@@ -1171,6 +1189,7 @@ export async function eliminarSalaCatalogo(req, res) {
 
         return res.status(200).json({ message: 'Sala eliminada com sucesso.' });
     } catch (error) {
+        if (respondIfRestrictedDelete(error, res, 'a sala')) return;
         console.error('Erro ao eliminar sala:', error.message);
         return res.status(500).json({ message: 'Erro ao eliminar sala.' });
     }

@@ -45,7 +45,19 @@
       "Bash(node --check src/services/emailService.js)",
       "Bash(node --check src/services/emailTemplateService.js)",
       "Bash(node --check src/services/alertasDispatchService.js)",
-      "Bash(node --experimental-vm-modules -e ' *)"
+      "Bash(node --experimental-vm-modules -e ' *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; grep -n \"JOIN.*professores\\\\|id_professor\" {} | head -5')",
+      "Bash(node --check src/controllers/curricularController.js)",
+      "Bash(node --check src/controllers/renovacaoMatriculaController.js)",
+      "Bash(curl -s -D - -o /dev/null -X OPTIONS https://api.alunos.blocodenotas.pt/api/auth/login -H 'Origin: https://alunos.blocodenotas.pt' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type' --max-time 15)",
+      "Bash(curl -v -X OPTIONS https://api.alunos.blocodenotas.pt/api/auth/login -H 'Origin: https://alunos.blocodenotas.pt' -H 'Access-Control-Request-Method: POST' --max-time 15)",
+      "Bash(curl -s -D - -o /dev/null --ssl-no-revoke -X OPTIONS https://api.alunos.blocodenotas.pt/api/auth/login -H 'Origin: https://alunos.blocodenotas.pt' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type' --max-time 15)",
+      "Bash(curl -s --ssl-no-revoke -X GET \"https://api.alunos.blocodenotas.pt/\" --max-time 15)",
+      "Bash(node --check src/server.js)",
+      "Bash(node --check src/loadEnv.js)",
+      "Bash(node --check src/config/db.js)",
+      "Bash(timeout 5 node backend/src/loader.cjs)",
+      "Bash(timeout 8 node backend/src/loader.cjs)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

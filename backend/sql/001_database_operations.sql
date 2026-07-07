@@ -589,7 +589,7 @@ BEGIN
             RETURNS TABLE (
                 id_aluno bigint,
                 id_user bigint,
-                data_renovacao_ultima timestamptz,
+                data_renovacao_ultima timestamp,
                 ano_letivo_renovacao text
             )
             LANGUAGE plpgsql
