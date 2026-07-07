@@ -81,10 +81,10 @@ export default function AlterarPasswordObrigatorio() {
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.removeItem('mc_token');
 
-            setSuccess('Password alterada com sucesso!');
+            setSuccess('Password alterada com sucesso! Faça login novamente.');
 
             setTimeout(() => {
-                navigate('/');
+                navigate('/login', { replace: true });
             }, 1500);
         } catch (err) {
             setError(err.message || 'Erro ao processar pedido.');
