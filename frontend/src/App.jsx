@@ -351,6 +351,19 @@ function App() {
     }, [currentRole, isKnownRole, location.pathname, navigate, user]);
 
     useEffect(() => {
+        if (!user || isKnownRole) {
+            return;
+        }
+
+        setUser(null);
+        localStorage.removeItem('mc_user');
+        localStorage.removeItem('mc_token');
+        localStorage.removeItem('mc_csrf_token');
+        window.csrfToken = undefined;
+        navigate('/login', { replace: true });
+    }, [isKnownRole, navigate, user]);
+
+    useEffect(() => {
         function handleUnauthorized() {
             setUser(null);
             localStorage.removeItem('mc_user');
@@ -453,10 +466,12 @@ function App() {
         },
         [navigate]
     );
+    const isAdminRole = currentRole === 'gestor';
 
     if (!user) {
         return (
             <Routes>
+                <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/inscricao" element={<InfosInscricaoPage />} />
                 <Route
                     path="/login"
@@ -470,41 +485,13 @@ function App() {
                     path="/auth/alterar-password-obrigatorio"
                     element={<AlterarPasswordObrigatorio />}
                 />
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={<NotFound homePath="/login" />} />
             </Routes>
         );
     }
 
     if (!isKnownRole) {
-        localStorage.removeItem('mc_user');
-        localStorage.removeItem('mc_token');
-        localStorage.removeItem('mc_csrf_token');
-        return (
-            <Routes>
-                <Route path="/" element={<InfosHomePage />} />
-                <Route path="/sobre" element={<InfosAboutPage />} />
-                <Route path="/servicos" element={<InfosServicosPage />} />
-                <Route
-                    path="/servicos/:slug"
-                    element={<InfosServicoDetalhePage />}
-                />
-                <Route path="/inscricao" element={<InfosInscricaoPage />} />
-                <Route path="/contactos" element={<InfosContactsPage />} />
-                <Route
-                    path="/login"
-                    element={<Login onLogin={handleLogin} />}
-                />
-                <Route
-                    path="/recuperar-password"
-                    element={<RecoverPassword />}
-                />
-                <Route
-                    path="/auth/alterar-password-obrigatorio"
-                    element={<AlterarPasswordObrigatorio />}
-                />
-                <Route path="*" element={<NotFound />} />
-            </Routes>
-        );
+        return null;
     }
 
     return (
@@ -527,10 +514,16 @@ function App() {
                         user={user}
                         onLogout={handleLogout}
                         onNavigate={handleNavigate}
+                        compact={isAdminRole}
                     />
 
                     {/* Conteúdo da página */}
-                    <main className="flex-1 p-4 sm:p-6 overflow-auto">
+                    <main
+                        data-admin-compact={isAdminRole ? 'true' : undefined}
+                        className={`flex-1 overflow-auto ${
+                            isAdminRole ? 'p-3 sm:p-4' : 'p-4 sm:p-6'
+                        }`}
+                    >
                         <ErrorBoundary>
                             <AuthenticatedRoutes
                                 currentRole={currentRole}

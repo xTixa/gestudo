@@ -374,7 +374,8 @@ export async function marcarLido(req, res) {
 export async function listarEventos(req, res) {
     try {
         const idUser = req.userId;
-        const { limite = 50, offset = 0, lido, grupo, canal } = req.query;
+        const { limite = 15, offset = 0, lido, grupo, canal } = req.query;
+        const pageLimit = Math.min(15, Math.max(1, parseInt(limite, 10) || 15));
 
         if (!idUser) {
             return res.status(401).json({
@@ -443,7 +444,7 @@ export async function listarEventos(req, res) {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-        params.push(parseInt(limite, 10), parseInt(offset, 10));
+        params.push(pageLimit, parseInt(offset, 10));
 
         const { rows } = await db.query(dataQuery, params);
 
@@ -451,7 +452,7 @@ export async function listarEventos(req, res) {
             success: true,
             data: rows,
             total,
-            limite: parseInt(limite, 10),
+            limite: pageLimit,
             offset: parseInt(offset, 10),
         });
     } catch (error) {

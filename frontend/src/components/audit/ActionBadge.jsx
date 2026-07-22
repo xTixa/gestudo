@@ -9,17 +9,17 @@ export default function ActionBadge({ action }) {
     };
 
     const styles = {
-        CREATE: 'bg-green-100 text-green-700',
-        INSERT: 'bg-green-100 text-green-700',
-        UPDATE: 'bg-blue-100 text-blue-700',
-        DELETE: 'bg-red-100 text-red-700',
-        LOGIN: 'bg-yellow-100 text-yellow-700',
-        READ: 'bg-purple-100 text-purple-700',
+        CREATE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        INSERT: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        UPDATE: 'border-blue-200 bg-blue-50 text-blue-700',
+        DELETE: 'border-red-200 bg-red-50 text-red-700',
+        LOGIN: 'border-slate-200 bg-slate-50 text-slate-700',
+        READ: 'border-slate-200 bg-slate-50 text-slate-700',
     };
 
     return (
         <span
-            className={`px-2 py-1 text-xs rounded-full font-medium ${styles[action] || 'bg-slate-100 text-slate-700'}`}
+            className={`inline-flex rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold ${styles[action] || 'border-slate-200 bg-slate-50 text-slate-700'}`}
         >
             {labels[action] || action}
         </span>

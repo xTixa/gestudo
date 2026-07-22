@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FileQuestion, ArrowLeft } from 'lucide-react';
 
-export default function NotFound() {
+export default function NotFound({ homePath = '/' }) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-50 p-8 text-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-100">
@@ -17,7 +17,7 @@ export default function NotFound() {
                 </p>
             </div>
             <Link
-                to="/"
+                to={homePath}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
             >
                 <ArrowLeft size={16} />

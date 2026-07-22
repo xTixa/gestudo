@@ -94,10 +94,10 @@ export default function AlterarPasswordObrigatorio() {
     }
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-brand-cream p-4 font-sans text-brand-grey">
+        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#63738c]">
             <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center">
-                <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
-                    <div className="hidden bg-brand-navy p-10 text-white md:flex md:items-center md:justify-center">
+                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#1c293d]/15 backdrop-blur md:grid-cols-2">
+                    <div className="hidden bg-[linear-gradient(160deg,#1c293d_0%,#1e3a5f_58%,#14ad81_150%)] p-10 text-white md:flex md:items-center md:justify-center">
                         <div className="max-w-sm">
                             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
                                 Segurança de Conta
@@ -129,10 +129,10 @@ export default function AlterarPasswordObrigatorio() {
                                 alt="Bloco de Notas"
                                 className="mx-auto mb-4 h-16 object-contain md:mx-0"
                             />
-                            <h1 className="text-2xl font-bold text-brand-navy">
+                            <h1 className="text-2xl font-bold text-[#1e3a5f]">
                                 Alterar palavra-passe
                             </h1>
-                            <p className="mt-1 text-sm text-brand-grey">
+                            <p className="mt-1 text-sm text-[#63738c]">
                                 Defina uma nova palavra-passe para concluir o
                                 primeiro acesso
                             </p>
@@ -140,7 +140,7 @@ export default function AlterarPasswordObrigatorio() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-brand-navy">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
                                     Password Atual
                                 </label>
                                 <div className="relative">
@@ -153,7 +153,7 @@ export default function AlterarPasswordObrigatorio() {
                                             setPasswordAtual(e.target.value)
                                         }
                                         placeholder="Digite a password temporária"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -162,7 +162,7 @@ export default function AlterarPasswordObrigatorio() {
                                         onClick={() =>
                                             setShowPassword(!showPassword)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-grey transition hover:text-brand-navy"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
                                         aria-label="Mostrar ou ocultar password atual"
                                     >
                                         {showPassword ? (
@@ -175,7 +175,7 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-brand-navy">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
                                     Nova Password
                                 </label>
                                 <div className="relative">
@@ -190,7 +190,7 @@ export default function AlterarPasswordObrigatorio() {
                                             setPasswordNova(e.target.value)
                                         }
                                         placeholder="Mínimo 8 caracteres"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -201,7 +201,7 @@ export default function AlterarPasswordObrigatorio() {
                                                 !showPasswordNova
                                             )
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-grey transition hover:text-brand-navy"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
                                         aria-label="Mostrar ou ocultar nova password"
                                     >
                                         {showPasswordNova ? (
@@ -214,7 +214,7 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-brand-navy">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
                                     Confirmar Nova Password
                                 </label>
                                 <div className="relative">
@@ -231,7 +231,7 @@ export default function AlterarPasswordObrigatorio() {
                                             )
                                         }
                                         placeholder="Repita a nova password"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -242,7 +242,7 @@ export default function AlterarPasswordObrigatorio() {
                                                 !showPasswordNovaConfirm
                                             )
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-grey transition hover:text-brand-navy"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
                                         aria-label="Mostrar ou ocultar confirmação da nova password"
                                     >
                                         {showPasswordNovaConfirm ? (
@@ -257,7 +257,7 @@ export default function AlterarPasswordObrigatorio() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex w-full items-center justify-center rounded-xl bg-brand-navy py-3.5 font-bold text-white shadow-lg shadow-brand-blue-dark/20 transition hover:bg-brand-blue-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex w-full items-center justify-center rounded-xl bg-[#1e3a5f] py-3.5 font-bold text-white shadow-lg shadow-[#1c293d]/20 transition hover:bg-[#1c293d] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {loading
                                     ? 'A processar...'
@@ -282,8 +282,8 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
                         )}
 
-                        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-brand-cream p-4">
-                            <p className="text-xs text-brand-grey">
+                        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f2f1ef] p-4">
+                            <p className="text-xs text-[#63738c]">
                                 Dica de segurança: evite reutilizar passwords de
                                 outros serviços.
                             </p>

@@ -256,7 +256,7 @@ export default function NotificationsPage() {
             try {
                 setLoading(true);
                 setError('');
-                const result = await listarEventos({ limite: 100, offset: 0 });
+                const result = await listarEventos({ limite: 15, offset: 0 });
 
                 if (!result?.success) {
                     throw new Error(

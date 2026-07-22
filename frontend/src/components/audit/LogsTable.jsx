@@ -4,6 +4,7 @@ import LogDetailsCell from './LogDetailsCell';
 import { apiGet } from '../../utils/api.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const LOGS_PAGE_SIZE = 15;
 
 function getPeriodDates(period) {
     const now = new Date();
@@ -44,12 +45,12 @@ function getPeriodDates(period) {
     return { from: '', to: '' };
 }
 
-function buildQueryParams(pageValue, limitValue, currentFilters) {
+function buildQueryParams(pageValue, currentFilters) {
     const periodRange = getPeriodDates(currentFilters?.period || 'all');
     const params = new URLSearchParams();
 
     params.set('page', String(pageValue));
-    params.set('limit', String(limitValue));
+    params.set('limit', String(LOGS_PAGE_SIZE));
 
     if (currentFilters?.search) params.set('search', currentFilters.search);
     if (currentFilters?.action) params.set('action', currentFilters.action);
@@ -68,61 +69,24 @@ function normalizeEntityKey(value) {
         .replace(/[\s-]+/g, '_');
 }
 
-function getActionLabel(value) {
-    const action = String(value || '').toUpperCase();
-    const map = {
-        INSERT: 'Creation',
-        CREATE: 'Creation',
-        UPDATE: 'Update',
-        DELETE: 'Removal',
-        LOGIN: 'Login',
-        READ: 'Read',
-    };
-
-    return map[action] || action || 'Action';
-}
-
 function getEntityLabel(value) {
     const entity = normalizeEntityKey(value);
     const map = {
-        users: 'Users',
-        alunos: 'Students',
-        professores: 'Teachers',
-        inscricoes_publicas: 'Public Enrollments',
-        inscricao_publica: 'Public Enrollments',
-        inscricoes: 'Enrollments',
-        notificacao_broadcast: 'Notification',
-        servicos_curriculares: 'Curricular Services',
-        servico_curricular: 'Curricular Services',
-        servicos_extracurriculares: 'Extracurricular Services',
-        servico_extra_curricular: 'Extracurricular Services',
-        sistema: 'System',
+        users: 'Utilizadores',
+        alunos: 'Alunos',
+        professores: 'Professores',
+        inscricoes_publicas: 'Inscricoes publicas',
+        inscricao_publica: 'Inscricoes publicas',
+        inscricoes: 'Inscricoes',
+        notificacao_broadcast: 'Notificacao',
+        servicos_curriculares: 'Servicos curriculares',
+        servico_curricular: 'Servicos curriculares',
+        servicos_extracurriculares: 'Servicos extra-curriculares',
+        servico_extra_curricular: 'Servicos extra-curriculares',
+        sistema: 'Sistema',
     };
 
-    return map[entity] || value || 'System';
-}
-
-function getEventLabel(log) {
-    const action = String(log?.acao || '').toUpperCase();
-    const entity = normalizeEntityKey(log?.entidade || '');
-
-    if (entity === 'inscricoes_publicas' && action === 'INSERT') {
-        return 'Public enrollment created';
-    }
-
-    if (entity === 'inscricoes_publicas' && action === 'UPDATE') {
-        return 'Public enrollment status updated';
-    }
-
-    if (entity === 'inscricoes_publicas' && action === 'DELETE') {
-        return 'Old public enrollments removed';
-    }
-
-    if (entity === 'users' && action === 'INSERT') {
-        return 'User created';
-    }
-
-    return `${getActionLabel(action)} on ${getEntityLabel(log?.entidade || 'System')}`;
+    return map[entity] || value || 'Sistema';
 }
 
 function formatDateTime(value) {
@@ -140,7 +104,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
     const [logs, setLogs] = useState([]);
     const [pagination, setPagination] = useState({
         page: 1,
-        limit: 50,
+        limit: LOGS_PAGE_SIZE,
         total: 0,
         totalPages: 1,
     });
@@ -167,12 +131,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
             setError('');
 
             try {
-                const params = buildQueryParams(
-                    pagination.page,
-                    pagination.limit,
-                    filters
-                );
-
+                const params = buildQueryParams(pagination.page, filters);
                 const response = await apiGet(
                     `${API_URL}/api/gestor/logs?${params.toString()}`
                 );
@@ -187,6 +146,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
                     setPagination((prev) => ({
                         ...prev,
                         ...(data?.pagination || {}),
+                        limit: LOGS_PAGE_SIZE,
                     }));
                 }
             } catch (fetchError) {
@@ -205,7 +165,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
         return () => {
             isMounted = false;
         };
-    }, [filters, pagination.page, pagination.limit]);
+    }, [filters, pagination.page]);
 
     useEffect(() => {
         if (!onOptionsChange) {
@@ -237,44 +197,45 @@ export default function LogsTable({ filters, onOptionsChange }) {
         onOptionsChange({ actions, entities, users });
     }, [logs, onOptionsChange]);
 
-    const visibleLogs = useMemo(() => logs, [logs]);
+    const visibleLogs = useMemo(() => logs.slice(0, LOGS_PAGE_SIZE), [logs]);
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="text-sm font-semibold text-slate-800">
-                        Registos de atividade
+                        Auditoria
                     </h2>
                     <p className="text-xs text-slate-500">
-                        {pagination.total} registos encontrados
+                        {pagination.total} registos · maximo 15 por pagina
                     </p>
                 </div>
 
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
-                    Página {pagination.page} de {pagination.totalPages}
+                <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                    Pagina {pagination.page} de {pagination.totalPages}
                 </span>
             </div>
 
             <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
                         <tr>
-                            <th className="px-5 py-3 text-left">ID</th>
-                            <th className="px-5 py-3 text-left">Timestamp</th>
-                            <th className="px-5 py-3 text-left">Evento</th>
-                            <th className="px-5 py-3 text-left">Ação</th>
-                            <th className="px-5 py-3 text-left">Entidade</th>
-                            <th className="px-5 py-3 text-left">Utilizador</th>
-                            <th className="px-5 py-3 text-left">Detalhes</th>
+                            <th className="px-4 py-2.5 text-left">Data</th>
+                            <th className="px-4 py-2.5 text-left">Acao</th>
+                            <th className="px-4 py-2.5 text-left">Entidade</th>
+                            <th className="px-4 py-2.5 text-left">
+                                Utilizador
+                            </th>
+                            <th className="px-4 py-2.5 text-left">Detalhes</th>
+                            <th className="px-4 py-2.5 text-right">ID</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
                             <tr>
                                 <td
-                                    colSpan={7}
-                                    className="px-5 py-10 text-center text-slate-500"
+                                    colSpan={6}
+                                    className="px-4 py-10 text-center text-slate-500"
                                 >
                                     A carregar logs...
                                 </td>
@@ -282,8 +243,8 @@ export default function LogsTable({ filters, onOptionsChange }) {
                         ) : error ? (
                             <tr>
                                 <td
-                                    colSpan={7}
-                                    className="px-5 py-10 text-center text-red-600"
+                                    colSpan={6}
+                                    className="px-4 py-10 text-center text-red-600"
                                 >
                                     {error}
                                 </td>
@@ -291,60 +252,50 @@ export default function LogsTable({ filters, onOptionsChange }) {
                         ) : visibleLogs.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={7}
-                                    className="px-5 py-10 text-center text-slate-500"
+                                    colSpan={6}
+                                    className="px-4 py-10 text-center text-slate-500"
                                 >
                                     Sem registos de auditoria.
                                 </td>
                             </tr>
                         ) : (
-                            visibleLogs.map((log) => {
-                                const timestamp = formatDateTime(
-                                    log.created_at
-                                );
-                                return (
-                                    <tr
-                                        key={log.id_log}
-                                        className="border-t border-slate-200/80 transition hover:bg-slate-50"
-                                    >
-                                        <td className="px-5 py-4 whitespace-nowrap text-slate-700">
-                                            {log.id_log ?? '-'}
-                                        </td>
-                                        <td className="px-5 py-4 whitespace-nowrap text-slate-700">
-                                            {timestamp}
-                                        </td>
-                                        <td className="px-5 py-4 font-medium text-slate-800">
-                                            {getEventLabel(log)}
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <ActionBadge
-                                                action={String(
-                                                    log.acao || ''
-                                                ).toUpperCase()}
-                                            />
-                                        </td>
-                                        <td className="px-5 py-4 text-slate-700">
-                                            {getEntityLabel(
-                                                log.entidade || 'Sistema'
-                                            )}
-                                        </td>
-                                        <td className="px-5 py-4 text-slate-700">
-                                            {log.utilizador || 'Sistema'}
-                                        </td>
-                                        <td className="px-5 py-4 text-slate-500">
-                                            <LogDetailsCell
-                                                details={log.detalhes}
-                                            />
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                            visibleLogs.map((log) => (
+                                <tr
+                                    key={log.id_log}
+                                    className="border-b border-slate-100 transition last:border-0 hover:bg-slate-50"
+                                >
+                                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-slate-600">
+                                        {formatDateTime(log.created_at)}
+                                    </td>
+                                    <td className="px-4 py-2.5">
+                                        <ActionBadge
+                                            action={String(
+                                                log.acao || ''
+                                            ).toUpperCase()}
+                                        />
+                                    </td>
+                                    <td className="px-4 py-2.5 text-slate-700">
+                                        {getEntityLabel(
+                                            log.entidade || 'Sistema'
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-2.5 text-slate-700">
+                                        {log.utilizador || 'Sistema'}
+                                    </td>
+                                    <td className="px-4 py-2.5 text-slate-500">
+                                        <LogDetailsCell details={log.detalhes} />
+                                    </td>
+                                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs text-slate-400">
+                                        {log.id_log ?? '-'}
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-slate-500">
                     Mostrando {visibleLogs.length} de {pagination.total}{' '}
                     registos
@@ -359,7 +310,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
                                 page: Math.max(1, prev.page - 1),
                             }))
                         }
-                        className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-600 transition hover:bg-white disabled:opacity-50"
+                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-white disabled:opacity-50"
                     >
                         Anterior
                     </button>
@@ -374,7 +325,7 @@ export default function LogsTable({ filters, onOptionsChange }) {
                                 page: Math.min(prev.totalPages, prev.page + 1),
                             }))
                         }
-                        className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-600 transition hover:bg-white disabled:opacity-50"
+                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-white disabled:opacity-50"
                     >
                         Seguinte
                     </button>

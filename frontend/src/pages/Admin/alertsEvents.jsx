@@ -29,7 +29,7 @@ export default function AlertsEventosPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filtroLido, setFiltroLido] = useState(null); // null = todos, true = lidos, false = nao lidos
-    const [paginacao, setPaginacao] = useState({ offset: 0, limite: 20 });
+    const [paginacao, setPaginacao] = useState({ offset: 0, limite: 15 });
     const [total, setTotal] = useState(0);
     const [expanded, setExpanded] = useState(new Set());
 

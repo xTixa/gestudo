@@ -124,36 +124,30 @@ const menuByRole = {
             path: '/gestor/configuracoes',
             icon: Settings,
         },
+        { section: 'GESTÃO INTERNA' },
         {
-            key: 'gestao-interna',
-            label: 'Gestão Interna',
-            icon: Settings,
-            children: [
-                {
-                    key: 'modalidade',
-                    label: 'Modalidade',
-                    path: '/gestor/modalidade',
-                    icon: NotebookIcon,
-                },
-                {
-                    key: 'salas',
-                    label: 'Salas',
-                    path: '/gestor/salas',
-                    icon: DoorClosedIcon,
-                },
-                {
-                    key: 'disciplinas',
-                    label: 'Disciplinas',
-                    path: '/gestor/disciplinas',
-                    icon: NotebookIcon,
-                },
-                {
-                    key: 'pacotes',
-                    label: 'Pacotes',
-                    path: '/gestor/pacotes',
-                    icon: BoxIcon,
-                },
-            ],
+            key: 'modalidade',
+            label: 'Modalidade',
+            path: '/gestor/modalidade',
+            icon: NotebookIcon,
+        },
+        {
+            key: 'salas',
+            label: 'Salas',
+            path: '/gestor/salas',
+            icon: DoorClosedIcon,
+        },
+        {
+            key: 'disciplinas',
+            label: 'Disciplinas',
+            path: '/gestor/disciplinas',
+            icon: NotebookIcon,
+        },
+        {
+            key: 'pacotes',
+            label: 'Pacotes',
+            path: '/gestor/pacotes',
+            icon: BoxIcon,
         },
     ],
     aluno: [
@@ -239,6 +233,18 @@ export default function Sidebar({
     const menu = useMemo(() => menuByRole[role] || [], [role]);
     const showLabels = isOpen;
     const [openGroups, setOpenGroups] = useState({});
+    const isAdmin = role === 'gestor';
+    const sidebarWidthClass = isAdmin
+        ? isOpen
+            ? 'w-60 lg:w-60'
+            : 'w-60 lg:w-16'
+        : isOpen
+          ? 'w-64 lg:w-64'
+          : 'w-64 lg:w-20';
+    const innerPaddingClass = isAdmin ? 'px-2.5 py-3' : 'px-3 py-5';
+    const navSpacingClass = isAdmin ? 'space-y-1 mt-3' : 'space-y-2 mt-5';
+    const itemPaddingClass = isAdmin ? 'px-2.5 py-2' : 'px-3 py-2.5';
+    const childPaddingClass = isAdmin ? 'px-2.5 py-1.5' : 'px-3 py-2';
 
     function handleSelect(item) {
         const isDesktop =
@@ -292,10 +298,12 @@ export default function Sidebar({
 					transform transition-transform duration-300 lg:duration-0
 					${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
 					lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
-					${isOpen ? 'w-64 lg:w-64' : 'w-64 lg:w-20'}
+					${sidebarWidthClass}
 				`}
             >
-                <div className="h-full w-full px-3 py-5 overflow-y-auto">
+                <div
+                    className={`h-full w-full overflow-y-auto ${innerPaddingClass}`}
+                >
                     <div
                         className={`${showLabels ? 'flex justify-end' : 'flex justify-center'}`}
                     >
@@ -317,7 +325,7 @@ export default function Sidebar({
                         </button>
                     </div>
 
-                    <nav className="space-y-2 mt-5">
+                    <nav className={navSpacingClass}>
                         {menu.map((item, index) => {
                             if (item.section) {
                                 return (
@@ -325,7 +333,9 @@ export default function Sidebar({
                                         key={index}
                                         className={`text-xs font-semibold text-brand-grey tracking-wide overflow-hidden transition-all duration-150 ${
                                             showLabels
-                                                ? 'mt-8 mb-3 max-h-6 opacity-100'
+                                                ? isAdmin
+                                                    ? 'mt-5 mb-1.5 max-h-6 opacity-100'
+                                                    : 'mt-8 mb-3 max-h-6 opacity-100'
                                                 : 'my-0 max-h-0 opacity-0'
                                         }`}
                                     >
@@ -355,7 +365,12 @@ export default function Sidebar({
 
                             if (!showLabels && isGroup) {
                                 return (
-                                    <div key={item.key} className="space-y-2">
+                                    <div
+                                        key={item.key}
+                                        className={
+                                            isAdmin ? 'space-y-1' : 'space-y-2'
+                                        }
+                                    >
                                         {item.children.map((child) => {
                                             const ChildIcon =
                                                 child.icon || Settings;
@@ -373,7 +388,7 @@ export default function Sidebar({
                                                     }
                                                     className={`
 													w-full flex items-center justify-center
-													rounded-lg px-3 py-2.5 text-sm transition
+													rounded-lg ${itemPaddingClass} text-sm transition
 													${
                                                         isChildCurrent
                                                             ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
@@ -397,7 +412,7 @@ export default function Sidebar({
                                         onClick={() => handleSelect(item)}
                                         className={`
 										w-full flex items-center ${showLabels ? 'justify-between' : 'justify-center'}
-										rounded-lg px-3 py-2.5 text-sm transition
+										rounded-lg ${itemPaddingClass} text-sm transition
 										${
                                             isActive || isChildActive
                                                 ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
@@ -444,7 +459,13 @@ export default function Sidebar({
                                     </button>
 
                                     {showLabels && isGroup && isGroupOpen ? (
-                                        <div className="mt-2 ml-9 space-y-1.5">
+                                        <div
+                                            className={
+                                                isAdmin
+                                                    ? 'mt-1.5 ml-8 space-y-1'
+                                                    : 'mt-2 ml-9 space-y-1.5'
+                                            }
+                                        >
                                             {item.children.map((child) => {
                                                 const isChildCurrent =
                                                     isPathActive(
@@ -458,7 +479,7 @@ export default function Sidebar({
                                                         onClick={() =>
                                                             handleSelect(child)
                                                         }
-                                                        className={`w-full rounded-md px-3 py-2 text-left text-sm transition ${
+                                                        className={`w-full rounded-md ${childPaddingClass} text-left text-sm transition ${
                                                             isChildCurrent
                                                                 ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
                                                                 : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'

@@ -49,7 +49,7 @@ function getNotificationsPathByRole(role) {
     return getDashboardPathByRole(role);
 }
 
-export default function Navbar({ user, onLogout, onNavigate }) {
+export default function Navbar({ user, onLogout, onNavigate, compact = false }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -128,7 +128,7 @@ export default function Navbar({ user, onLogout, onNavigate }) {
 
         async function fetchNotifications() {
             try {
-                const result = await listarEventos({ limite: 20, offset: 0 });
+                const result = await listarEventos({ limite: 15, offset: 0 });
                 if (!result?.success) {
                     return;
                 }
@@ -401,8 +401,16 @@ export default function Navbar({ user, onLogout, onNavigate }) {
     }
 
     return (
-        <header className="min-h-20 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-0 sm:flex sm:items-center">
-            <div className="flex w-full flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3 lg:gap-6">
+        <header
+            className={`border-b border-slate-200 bg-white px-4 py-3 sm:flex sm:items-center ${
+                compact ? 'min-h-16 sm:px-4 sm:py-0' : 'min-h-20 sm:px-6 sm:py-0'
+            }`}
+        >
+            <div
+                className={`flex w-full flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3 ${
+                    compact ? 'lg:gap-4' : 'lg:gap-6'
+                }`}
+            >
                 <button
                     type="button"
                     onClick={handleLogoClick}
@@ -450,7 +458,9 @@ export default function Navbar({ user, onLogout, onNavigate }) {
                                 }
                                 onKeyDown={handleSearchKeyDown}
                                 placeholder="Pesquisar alunos, professores, serviços..."
-                                className="h-11 w-full rounded-xl border border-slate-200 bg-brand-cream pl-10 pr-4 text-sm text-brand-navy outline-none transition focus:border-brand-emerald focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                className={`w-full rounded-xl border border-slate-200 bg-brand-cream pl-10 pr-4 text-sm text-brand-navy outline-none transition focus:border-brand-emerald focus:bg-white focus:ring-2 focus:ring-emerald-100 ${
+                                    compact ? 'h-10' : 'h-11'
+                                }`}
                             />
 
                             {isSearchDropdownOpen && search.trim() ? (
