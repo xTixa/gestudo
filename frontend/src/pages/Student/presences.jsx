@@ -52,7 +52,7 @@ const STATUS_META = {
     presente: {
         icon: Check,
         badge: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-        dot: 'bg-emerald-500',
+        dot: 'bg-[#14ad81]',
     },
     falta: {
         icon: XCircle,
@@ -123,7 +123,7 @@ function getInitialVisibleMonth(rows) {
 
 function SummaryCard({ icon, value, label }) {
     return (
-        <article className="rounded-xl bg-[#f3f8fb] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+        <article className="rounded-xl bg-[#f2f1ef] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             <div className="flex justify-center text-slate-500">
                 {createElement(icon, { size: 13 })}
             </div>

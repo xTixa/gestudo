@@ -322,7 +322,7 @@ function SessionCard({ session, onRequest }) {
                 type="button"
                 onClick={() => onRequest(session)}
                 disabled={!session.canRequest}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#abd6e6] px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-95"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2.5 text-sm font-medium text-white transition hover:brightness-95"
             >
                 <Send size={14} />
                 {session.canRequest ? 'Pedir Reagendamento' : 'Indisponível'}
@@ -517,7 +517,7 @@ function RequestModal({ open, session, onClose, onSubmit }) {
                     </button>
                     <button
                         type="submit"
-                        className="w-full rounded-xl bg-[#abd6e6] py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+                        className="w-full rounded-xl bg-[#14ad81] py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
                     >
                         <span className="inline-flex items-center gap-2">
                             <Send size={14} />

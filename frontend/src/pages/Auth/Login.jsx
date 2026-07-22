@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/img/logo.png';
+import logo from '../../assets/img/Asset-31.svg';
 
 const API_URL = import.meta.env.VITE_API_URL; /*|| 'http://localhost:5000'*/
 const LOGIN_EMAIL_KEY = 'mc_login_email';
@@ -116,30 +116,19 @@ export default function Login({ onLogin }) {
     }
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-lime-50 p-4 font-sans">
-            <div
-                className="pointer-events-none absolute inset-0 opacity-60"
-                style={{
-                    backgroundImage:
-                        'radial-gradient(circle at 20% 20%, rgba(132, 204, 22, 0.18) 0%, transparent 30%), radial-gradient(circle at 80% 10%, rgba(15, 23, 42, 0.14) 0%, transparent 30%), radial-gradient(circle at 50% 80%, rgba(148, 163, 184, 0.16) 0%, transparent 35%)',
-                }}
-            />
-            <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] [background-size:42px_42px]" />
-            <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-lime-200/40 blur-3xl" />
-            <div className="pointer-events-none absolute -right-24 bottom-8 h-72 w-72 rounded-full bg-slate-300/30 blur-3xl" />
-
+        <div className="relative min-h-screen overflow-hidden bg-brand-cream p-4 font-sans text-brand-grey">
             <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center">
-                <div className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl backdrop-blur-sm md:grid-cols-2">
-                    <div className="hidden bg-slate-800 p-10 text-white md:flex md:items-center md:justify-center">
+                <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
+                    <div className="hidden bg-brand-navy p-10 text-white md:flex md:items-center md:justify-center">
                         <div className="max-w-sm">
-                            <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-lime-200">
+                            <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
                                 Bloco de Notas
                             </span>
                             <h2 className="mt-5 text-3xl font-bold leading-tight">
                                 Bem-vindo ao portal Bloco de Notas
                             </h2>
-                            <div className="mt-8 rounded-2xl border border-white/20 bg-white/10 p-4">
-                                <p className="text-xs uppercase tracking-widest text-lime-200">
+                            <div className="mt-8 rounded-xl border border-white/20 bg-white/10 p-4">
+                                <p className="text-xs uppercase tracking-widest text-emerald-100">
                                     Acesso rápido
                                 </p>
                                 <p className="mt-1 text-sm text-slate-100">
@@ -157,10 +146,10 @@ export default function Login({ onLogin }) {
                                 alt="Bloco de Notas"
                                 className="mx-auto mb-4 h-16 object-contain md:mx-0"
                             />
-                            <h1 className="text-2xl font-bold text-slate-800">
+                            <h1 className="text-2xl font-bold text-brand-navy">
                                 Iniciar sessão
                             </h1>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-sm text-brand-grey">
                                 Insere os teus dados para entrar na plataforma
                             </p>
                         </div>
@@ -169,7 +158,7 @@ export default function Login({ onLogin }) {
                             <div>
                                 <label
                                     htmlFor="login-email"
-                                    className="mb-1.5 block text-sm font-semibold text-slate-700"
+                                    className="mb-1.5 block text-sm font-semibold text-brand-navy"
                                 >
                                     Email
                                 </label>
@@ -178,7 +167,7 @@ export default function Login({ onLogin }) {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-lime-500 focus:ring-4 focus:ring-lime-200"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
                                     placeholder="exemplo@email.com"
                                     required
                                 />
@@ -188,13 +177,13 @@ export default function Login({ onLogin }) {
                                 <div className="mb-1.5 flex items-center justify-between gap-3">
                                     <label
                                         htmlFor="login-password"
-                                        className="block text-sm font-semibold text-slate-700"
+                                        className="block text-sm font-semibold text-brand-navy"
                                     >
                                         Palavra-passe
                                     </label>
                                     <a
                                         href="/recuperar-password"
-                                        className="text-xs font-semibold text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline"
+                                        className="text-xs font-semibold text-brand-grey underline-offset-4 transition hover:text-brand-navy hover:underline"
                                     >
                                         Recuperar password
                                     </a>
@@ -207,13 +196,13 @@ export default function Login({ onLogin }) {
                                     onChange={(e) =>
                                         setPassword(e.target.value)
                                     }
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-lime-500 focus:ring-4 focus:ring-lime-200"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
                                     placeholder="••••••••"
                                     required
                                 />
                             </div>
 
-                            <label className="flex items-center gap-2 text-sm text-slate-600">
+                            <label className="flex items-center gap-2 text-sm text-brand-grey">
                                 <input
                                     type="checkbox"
                                     checked={rememberCredentials}
@@ -222,7 +211,7 @@ export default function Login({ onLogin }) {
                                             event.target.checked
                                         )
                                     }
-                                    className="h-4 w-4 rounded border-slate-300 text-lime-600 focus:ring-lime-500"
+                                    className="h-4 w-4 rounded border-slate-300 text-brand-emerald focus:ring-brand-emerald"
                                 />
                                 Lembrar email neste dispositivo
                             </label>
@@ -230,7 +219,7 @@ export default function Login({ onLogin }) {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex w-full items-center justify-center rounded-xl bg-slate-800 py-3.5 font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex w-full items-center justify-center rounded-xl bg-brand-navy py-3.5 font-bold text-white shadow-lg shadow-brand-blue-dark/20 transition hover:bg-brand-blue-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {loading ? (
                                     <span className="flex items-center gap-2">
@@ -278,17 +267,17 @@ export default function Login({ onLogin }) {
                         )}
 
                         {user && (
-                            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-brand-cream p-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-lime-500 font-bold text-white">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-emerald font-bold text-white">
                                         {user.nome?.[0] ||
                                             user.email?.[0].toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-bold text-slate-800">
+                                        <p className="text-sm font-bold text-brand-navy">
                                             {user.nome || user.email}
                                         </p>
-                                        <p className="text-xs uppercase tracking-wider text-slate-500">
+                                        <p className="text-xs uppercase tracking-wider text-brand-grey">
                                             {user.role || 'Utilizador'}
                                         </p>
                                     </div>

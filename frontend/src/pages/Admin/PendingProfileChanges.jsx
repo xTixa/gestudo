@@ -245,7 +245,7 @@ export default function PendingProfileChangesPage() {
                                                 processingId ===
                                                 item.id_alteracao
                                             }
-                                            className="inline-flex items-center gap-2 rounded-lg bg-york-400 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-york-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="inline-flex items-center gap-2 rounded-lg bg-[#14ad81] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#0f8d69] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             <Check size={15} />
                                             Aprovar

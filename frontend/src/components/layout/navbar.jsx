@@ -10,7 +10,7 @@ import {
     ExternalLink,
     Loader,
 } from 'lucide-react';
-import logo from '../../assets/img/logo.png';
+import logo from '../../assets/img/Asset-31.svg';
 import { apiFetch } from '../../utils/api';
 import { listarEventos, marcarAlertalido } from '../../utils/api';
 import defaultAvatar from '../../assets/img/default-avatar.svg';
@@ -49,11 +49,7 @@ function getNotificationsPathByRole(role) {
     return getDashboardPathByRole(role);
 }
 
-export default function Navbar({
-    user,
-    onLogout,
-    onNavigate,
-}) {
+export default function Navbar({ user, onLogout, onNavigate }) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -410,7 +406,7 @@ export default function Navbar({
                 <button
                     type="button"
                     onClick={handleLogoClick}
-                    className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                    className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
                     aria-label="Ir para dashboard"
                 >
                     <img
@@ -428,7 +424,7 @@ export default function Navbar({
                         <div className="relative w-full" ref={searchRef}>
                             <Search
                                 size={17}
-                                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-grey"
                             />
                             <input
                                 ref={searchInputRef}
@@ -454,7 +450,7 @@ export default function Navbar({
                                 }
                                 onKeyDown={handleSearchKeyDown}
                                 placeholder="Pesquisar alunos, professores, serviços..."
-                                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-200"
+                                className="h-11 w-full rounded-xl border border-slate-200 bg-brand-cream pl-10 pr-4 text-sm text-brand-navy outline-none transition focus:border-brand-emerald focus:bg-white focus:ring-2 focus:ring-emerald-100"
                             />
 
                             {isSearchDropdownOpen && search.trim() ? (
@@ -479,38 +475,62 @@ export default function Navbar({
                                                 "{search}"
                                             </p>
                                         </div>
-                                    ) : (() => {
-                                        let globalIndex = -1;
-                                        return searchResults
-                                            .filter((cat) => cat.items.length > 0)
-                                            .map((categoria) => (
-                                                <div key={categoria.categoria}>
-                                                    <div className="border-t border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 bg-slate-50">
-                                                        {categoria.categoria}
+                                    ) : (
+                                        (() => {
+                                            let globalIndex = -1;
+                                            return searchResults
+                                                .filter(
+                                                    (cat) =>
+                                                        cat.items.length > 0
+                                                )
+                                                .map((categoria) => (
+                                                    <div
+                                                        key={
+                                                            categoria.categoria
+                                                        }
+                                                    >
+                                                        <div className="border-t border-slate-100 bg-brand-cream px-4 py-2 text-xs font-semibold text-brand-grey">
+                                                            {
+                                                                categoria.categoria
+                                                            }
+                                                        </div>
+                                                        {categoria.items.map(
+                                                            (item) => {
+                                                                globalIndex += 1;
+                                                                const idx =
+                                                                    globalIndex;
+                                                                const isActive =
+                                                                    idx ===
+                                                                    activeResultIndex;
+                                                                return (
+                                                                    <button
+                                                                        id={`search-result-${idx}`}
+                                                                        key={`${item.tipo}-${item.id}`}
+                                                                        type="button"
+                                                                        role="option"
+                                                                        aria-selected={
+                                                                            isActive
+                                                                        }
+                                                                        onClick={() =>
+                                                                            handleSearchResultClick(
+                                                                                item
+                                                                            )
+                                                                        }
+                                                                        className={`w-full px-4 py-2.5 text-left text-sm text-brand-grey transition ${isActive ? 'bg-emerald-50 text-brand-emerald' : 'hover:bg-brand-cream hover:text-brand-navy'}`}
+                                                                    >
+                                                                        <p className="font-medium">
+                                                                            {
+                                                                                item.nome
+                                                                            }
+                                                                        </p>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                        )}
                                                     </div>
-                                                    {categoria.items.map((item) => {
-                                                        globalIndex += 1;
-                                                        const idx = globalIndex;
-                                                        const isActive = idx === activeResultIndex;
-                                                        return (
-                                                            <button
-                                                                id={`search-result-${idx}`}
-                                                                key={`${item.tipo}-${item.id}`}
-                                                                type="button"
-                                                                role="option"
-                                                                aria-selected={isActive}
-                                                                onClick={() => handleSearchResultClick(item)}
-                                                                className={`w-full px-4 py-2.5 text-left text-sm text-slate-700 transition ${isActive ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100'}`}
-                                                            >
-                                                                <p className="font-medium">
-                                                                    {item.nome}
-                                                                </p>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ));
-                                    })()}
+                                                ));
+                                        })()
+                                    )}
                                 </div>
                             ) : null}
                         </div>
@@ -522,10 +542,10 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={handleNotificationToggle}
-                            className="relative rounded-xl p-2.5 text-slate-600 transition hover:bg-slate-100"
+                            className="relative rounded-xl p-2.5 text-brand-grey transition hover:bg-brand-cream hover:text-brand-navy"
                             aria-label="Notificações"
                         >
-                            <Bell size={19} className="text-slate-600" />
+                            <Bell size={19} className="text-current" />
                             {unreadCount > 0 ? (
                                 <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -543,7 +563,7 @@ export default function Navbar({
                                         <button
                                             type="button"
                                             onClick={handleMarkAllAsRead}
-                                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+                                            className="inline-flex items-center gap-1 text-xs font-medium text-brand-emerald hover:text-emerald-700"
                                         >
                                             <Check size={14} />
                                             Marcar todas como lidas
@@ -565,7 +585,7 @@ export default function Navbar({
                                                         notification.id
                                                     )
                                                 }
-                                                className="w-full rounded-lg px-3 py-2 text-left hover:bg-slate-100"
+                                                className="w-full rounded-lg px-3 py-2 text-left hover:bg-brand-cream"
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <p className="text-sm font-medium text-slate-700">
@@ -597,7 +617,7 @@ export default function Navbar({
                                                 notificationsPath
                                             )
                                         }
-                                        className="w-full rounded-lg px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                                        className="w-full rounded-lg px-3 py-2 text-sm font-medium text-brand-emerald hover:bg-emerald-50"
                                     >
                                         <span className="inline-flex items-center gap-2">
                                             Ver todas as notificações
@@ -616,7 +636,7 @@ export default function Navbar({
                                 setIsDropdownOpen((prev) => !prev);
                                 setIsNotificationsOpen(false);
                             }}
-                            className="flex items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-slate-100"
+                            className="flex items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-brand-cream"
                         >
                             <div className="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                                 <img

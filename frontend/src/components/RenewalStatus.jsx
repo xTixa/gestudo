@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, RefreshCw, Calendar } from 'lucide-react';
 import { apiGet, apiPost } from '../utils/api.js';
 
@@ -75,8 +75,8 @@ function RenewalCard({ status, anoAtual, dataUltima, onRenewal }) {
                             }`}
                         >
                             {isActive
-                                ? `✓ Renovada para ${anoAtual}`
-                                : `✗ Requer renovação`}
+                                ? `? Renovada para ${anoAtual}`
+                                : `? Requer renovação`}
                         </p>
                     </div>
                 </div>
@@ -128,7 +128,7 @@ function RenewalCard({ status, anoAtual, dataUltima, onRenewal }) {
                                 type="button"
                                 onClick={handleRenewal}
                                 disabled={isRenewing}
-                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#7fbe84] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6db072] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0f8d69] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <RefreshCw
                                     size={16}

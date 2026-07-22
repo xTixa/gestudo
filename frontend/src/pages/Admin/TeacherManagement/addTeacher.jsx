@@ -215,7 +215,7 @@ export default function AddProfPage() {
                         )}
                     </div>
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-york-400 px-4 py-2 text-sm font-medium text-white transition hover:bg-york-200">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0f8d69]">
                         <Upload size={16} />
                         Carregar Foto
                         <input
@@ -240,7 +240,7 @@ export default function AddProfPage() {
                     </div>
                     <div className="mt-2 h-2 w-full rounded-full bg-slate-200">
                         <div
-                            className="h-2 rounded-full bg-emerald-400 transition-all"
+                            className="h-2 rounded-full bg-[#14ad81] transition-all"
                             style={{ width: `${completionPercent}%` }}
                         />
                     </div>
@@ -540,7 +540,7 @@ export default function AddProfPage() {
                     <button
                         type="submit"
                         disabled={hasValidationErrors || submitting}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-york-400 px-12 py-2.5 text-sm font-medium text-white hover:bg-york-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14ad81] px-12 py-2.5 text-sm font-medium text-white hover:bg-[#0f8d69] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <Save size={16} />
                         {submitting ? 'A guardar...' : 'Guardar'}

@@ -24,6 +24,64 @@ function pickEditable(template) {
     }, {});
 }
 
+const previewVariables = {
+    nome: 'Maria Silva',
+    email: 'maria.silva@email.pt',
+    password_temporaria: 'SenhaTemporaria123',
+    app_url: 'https://alunos.blocodenotas.pt',
+    titulo: 'Aviso importante',
+    descricao: 'Esta e uma mensagem de exemplo.',
+    link: 'https://alunos.blocodenotas.pt',
+    titulo_sessao: 'Matematica',
+    data_anterior: '20/07/2026',
+    hora_anterior: '15:00',
+    sala_anterior: 'Sala 2',
+    data_nova: '22/07/2026',
+    hora_nova: '16:30',
+    sala_nova: 'Sala 4',
+    motivo: 'Ajuste de disponibilidade.',
+    decisao: 'aprovado',
+    motivo_decisao: 'Horario confirmado pela secretaria.',
+};
+
+function normalizeTemplateLineBreaks(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/\\n/g, '\n');
+}
+
+function renderPreviewText(text) {
+    return normalizeTemplateLineBreaks(text).replace(
+        /\{([a-zA-Z0-9_]+)\}/g,
+        (_, key) =>
+            previewVariables[key] == null
+                ? `{${key}}`
+                : String(previewVariables[key])
+    );
+}
+
+function renderMultilineText(text) {
+    return normalizeTemplateLineBreaks(text)
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean)
+        .map((paragraph, paragraphIndex) => {
+            const lines = paragraph.split('\n');
+
+            return (
+                <p key={paragraphIndex}>
+                    {lines.map((line, lineIndex) => (
+                        <span key={lineIndex}>
+                            {line}
+                            {lineIndex < lines.length - 1 ? <br /> : null}
+                        </span>
+                    ))}
+                </p>
+            );
+        });
+}
+
 export default function EmailTemplatesSettings() {
     const [templates, setTemplates] = useState([]);
     const [selectedKey, setSelectedKey] = useState('');
@@ -109,6 +167,29 @@ export default function EmailTemplatesSettings() {
         );
         setForm(pickEditable(nextTemplate));
     }
+
+    const preview = selectedTemplate
+        ? {
+              subject: renderPreviewText(
+                  form.subject || selectedTemplate.preview?.subject
+              ),
+              title: renderPreviewText(
+                  form.title || selectedTemplate.preview?.title
+              ),
+              introText: renderPreviewText(
+                  form.introText || selectedTemplate.preview?.introText
+              ),
+              bodyText: renderPreviewText(
+                  form.bodyText || selectedTemplate.preview?.bodyText
+              ),
+              footerText: renderPreviewText(
+                  form.footerText || selectedTemplate.preview?.footerText
+              ),
+              buttonLabel: renderPreviewText(
+                  form.buttonLabel || selectedTemplate.preview?.buttonLabel
+              ),
+          }
+        : null;
 
     async function saveTemplate() {
         if (!selectedTemplate) return;
@@ -200,7 +281,7 @@ export default function EmailTemplatesSettings() {
                             }
                             className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                                 isActive
-                                    ? 'border-york-400 bg-york-50 text-slate-900'
+                                    ? 'border-[#14ad81] bg-emerald-50 text-slate-900'
                                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                             }`}
                         >
@@ -314,35 +395,25 @@ export default function EmailTemplatesSettings() {
                                 Preview
                             </h3>
                             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                                <div className="bg-york-400 px-5 py-4 text-white">
+                                <div className="bg-[#14ad81] px-5 py-4 text-white">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-white/80">
-                                        {selectedTemplate.preview?.subject}
+                                        {preview?.subject}
                                     </p>
                                     <h4 className="mt-2 text-xl font-bold">
-                                        {selectedTemplate.preview?.title}
+                                        {preview?.title}
                                     </h4>
                                 </div>
                                 <div className="space-y-3 bg-white px-5 py-4 text-sm leading-6 text-slate-700">
-                                    <p>{selectedTemplate.preview?.introText}</p>
-                                    {String(
-                                        selectedTemplate.preview?.bodyText || ''
-                                    )
-                                        .split('\n\n')
-                                        .filter(Boolean)
-                                        .map((paragraph, index) => (
-                                            <p key={index}>{paragraph}</p>
-                                        ))}
-                                    {selectedTemplate.preview?.buttonLabel ? (
+                                    {renderMultilineText(preview?.introText)}
+                                    {renderMultilineText(preview?.bodyText)}
+                                    {preview?.buttonLabel ? (
                                         <span className="inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-                                            {
-                                                selectedTemplate.preview
-                                                    .buttonLabel
-                                            }
+                                            {preview.buttonLabel}
                                         </span>
                                     ) : null}
                                 </div>
                                 <div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
-                                    {selectedTemplate.preview?.footerText}
+                                    {preview?.footerText}
                                 </div>
                             </div>
                         </div>

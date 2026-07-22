@@ -64,7 +64,7 @@ const ACTIVITY_COLORS = {
         bg: 'bg-blue-100',
         border: 'border-blue-500',
         text: 'text-blue-900',
-        badge: 'bg-[#7fbe84]',
+        badge: 'bg-[#14ad81]',
     },
 };
 
@@ -631,14 +631,14 @@ function WeekView({
                                 <div
                                     key={dateKey}
                                     className={`border-r border-slate-200 relative ${
-                                        isToday ? 'bg-[#eef8ef]' : 'bg-white'
+                                        isToday ? 'bg-[#eaf9f5]' : 'bg-white'
                                     }`}
                                 >
                                     {/* Day header */}
                                     <div
                                         className={`h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
                                             isToday
-                                                ? 'bg-[#84be88] text-white font-semibold'
+                                                ? 'bg-[#14ad81] text-white font-semibold'
                                                 : 'hover:bg-slate-50'
                                         }`}
                                         onClick={() => setSelectedDate(date)}
@@ -858,7 +858,7 @@ function MonthView({
                                     goToMonth(year, month - 1);
                                 }
                             }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#7fbe84]"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#14ad81]"
                             aria-label="Escolher mês do histórico"
                         />
 
@@ -918,9 +918,9 @@ function MonthView({
                                 onClick={() => setSelectedDate(date)}
                                 className={`relative rounded-xl h-[74px] p-2 text-sm border transition ${
                                     isSelected
-                                        ? 'border-[#79b57d] bg-[#84be88] text-white font-semibold'
+                                        ? 'border-[#14ad81] bg-[#14ad81] text-white font-semibold'
                                         : isToday
-                                          ? 'border-[#a4cfa8] bg-[#eef8ef] text-slate-700'
+                                          ? 'border-[#a7e5d6] bg-[#eaf9f5] text-slate-700'
                                           : 'border-slate-200 hover:bg-slate-50'
                                 } ${!isCurrentMonth ? 'text-slate-400 bg-slate-50/40' : 'text-slate-700'}`}
                             >
@@ -990,7 +990,7 @@ function MonthView({
                                             {atividade.titulo}
                                         </p>
                                         <span
-                                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${categoria === 'extra' ? 'bg-violet-500' : 'bg-[#7fbe84]'}`}
+                                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${categoria === 'extra' ? 'bg-violet-500' : 'bg-[#14ad81]'}`}
                                         >
                                             {badgeLabel}
                                         </span>

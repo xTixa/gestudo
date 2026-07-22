@@ -397,7 +397,7 @@ export default function InfosInscricaoPage() {
             <main>
                 <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
                     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-200">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
                             {t('hero_eyebrow', 'Inscrições')}
                         </p>
                         <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">

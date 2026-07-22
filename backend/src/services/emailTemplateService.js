@@ -437,8 +437,15 @@ export async function resetEmailTemplate(templateKey, updatedBy) {
     return rowToTemplate(rows[0]);
 }
 
+export function normalizeTemplateLineBreaks(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/\\n/g, '\n');
+}
+
 export function renderTemplateText(text, variables = {}) {
-    return String(text || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) =>
+    return normalizeTemplateLineBreaks(text).replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) =>
         variables[key] == null ? '' : String(variables[key])
     );
 }

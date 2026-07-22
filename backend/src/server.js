@@ -17,6 +17,7 @@ if (!runtimeConfigCheck.ok) {
 }
 
 const PORT = process.env.PORT || 5000;
+let activeServer = null;
 
 // ========================================
 /*
@@ -45,7 +46,7 @@ const PORT = process.env.PORT || 5000;
 async function bootstrapServer() {
     await runStartupMigrations();
 
-    app.listen(PORT, () => {
+    activeServer = app.listen(PORT, () => {
         startLogRetentionScheduler();
 
         console.log(`
@@ -57,6 +58,8 @@ Middlewares ativos
 ************************************
     `);
     });
+
+    return activeServer;
 }
 
 // ========================================

@@ -256,7 +256,7 @@ export default function PerfilAlunoPage() {
             <button
                 type="button"
                 onClick={() => navigate('/aluno/perfil/editar')}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-york-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-york-200"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14ad81] px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-[#0f8d69]"
             >
                 <Pencil size={16} />
                 Editar perfil

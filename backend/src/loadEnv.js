@@ -14,4 +14,8 @@ import dotenv from 'dotenv';
 // process.env (ex: app.js, db.js), para que os imports (hoisted) desses
 // módulos só sejam avaliados depois deste ficheiro correr.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+const envPath = path.resolve(__dirname, '../.env');
+const localEnvPath = path.resolve(__dirname, '../.env.local');
+
+dotenv.config({ path: envPath });
+dotenv.config({ path: localEnvPath, override: true });

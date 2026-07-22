@@ -13,7 +13,7 @@ describe('StatCard', () => {
                 title="Alunos ativos"
                 value="42"
                 icon={TestIcon}
-                bgColor="bg-lime-500"
+                bgColor="bg-[#14ad81]"
             />
         );
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../../assets/img/logo.png';
+import logo from '../../assets/img/Asset-31.svg';
 import { apiPost } from '../../utils/api';
 
 export default function RecoverPassword() {
@@ -40,21 +40,19 @@ export default function RecoverPassword() {
     }
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-lime-50 p-4 font-sans">
-            <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] [background-size:42px_42px]" />
-
+        <div className="relative min-h-screen overflow-hidden bg-brand-cream p-4 font-sans text-brand-grey">
             <div className="relative mx-auto flex min-h-screen w-full max-w-md items-center justify-center">
-                <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
+                <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
                     <div className="mb-7 text-center">
                         <img
                             src={logo}
                             alt="Bloco de Notas"
                             className="mx-auto mb-3 h-14 object-contain"
                         />
-                        <h1 className="text-2xl font-bold text-slate-800">
+                        <h1 className="text-2xl font-bold text-brand-navy">
                             Recuperar palavra-passe
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-brand-grey">
                             Indica o teu email para receber instruções de
                             recuperação
                         </p>
@@ -62,14 +60,14 @@ export default function RecoverPassword() {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                            <label className="mb-1.5 block text-sm font-semibold text-brand-navy">
                                 Email
                             </label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-lime-500 focus:ring-4 focus:ring-lime-200"
+                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-brand-blue-dark outline-none transition focus:border-brand-emerald focus:ring-4 focus:ring-emerald-100"
                                 placeholder="exemplo@email.com"
                                 required
                             />
@@ -78,14 +76,14 @@ export default function RecoverPassword() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-xl bg-slate-800 py-3.5 font-bold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="w-full rounded-xl bg-brand-navy py-3.5 font-bold text-white transition hover:bg-brand-blue-dark disabled:cursor-not-allowed disabled:opacity-70"
                         >
                             {loading ? 'A enviar...' : 'Enviar instruções'}
                         </button>
 
                         <a
                             href="/"
-                            className="block text-center text-sm font-semibold text-slate-600 underline-offset-4 transition hover:text-slate-900 hover:underline"
+                            className="block text-center text-sm font-semibold text-brand-grey underline-offset-4 transition hover:text-brand-navy hover:underline"
                         >
                             Voltar ao login
                         </a>

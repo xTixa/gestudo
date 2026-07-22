@@ -45,12 +45,12 @@ export default function MonthlyChart({
                     <Bar
                         dataKey="curriculares"
                         name="Curriculares ativos"
-                        fill="#B4E4B4"
+                        fill="#14ad81"
                     />
                     <Bar
                         dataKey="extra"
                         name="Extra-curriculares ativos"
-                        fill="#F9C5B8"
+                        fill="#1e3a5f"
                     />
                 </BarChart>
             </ResponsiveContainer>

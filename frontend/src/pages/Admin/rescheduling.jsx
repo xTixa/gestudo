@@ -265,7 +265,7 @@ function StatCard({ label, value, tone = 'slate', icon: Icon }) {
     };
 
     return (
-        <article className="rounded-xl bg-[#f3f8fb] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+        <article className="rounded-xl bg-[#f2f1ef] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             {Icon ? (
                 <div className={`flex justify-center ${tones[tone]}`}>
                     <Icon size={13} />
@@ -1620,7 +1620,7 @@ export default function ReagendamentosPage() {
                                 }
                                 className={`w-full rounded-xl py-2.5 text-sm font-semibold text-white transition ${
                                     decisaoModal.estado === 'aprovado'
-                                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                                        ? 'bg-[#14ad81] hover:bg-[#0f8d69]'
                                         : 'bg-rose-600 hover:bg-rose-700'
                                 } disabled:cursor-not-allowed disabled:opacity-60`}
                             >

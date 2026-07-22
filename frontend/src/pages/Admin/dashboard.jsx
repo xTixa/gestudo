@@ -31,7 +31,7 @@ function AlertMetricCard({ title, value, icon: Icon, alertColor, onClick }) {
         blue: { border: 'border-l-blue-400', icon: 'text-blue-500', value: 'text-blue-700' },
         amber: { border: 'border-l-amber-400', icon: 'text-amber-500', value: 'text-amber-700' },
         red: { border: 'border-l-rose-400', icon: 'text-rose-500', value: 'text-rose-700' },
-        violet: { border: 'border-l-violet-400', icon: 'text-violet-500', value: 'text-violet-700' },
+        violet: { border: 'border-l-emerald-400', icon: 'text-emerald-500', value: 'text-emerald-700' },
         slate: { border: 'border-l-slate-300', icon: 'text-slate-400', value: 'text-slate-600' },
     };
     const c = isAlert ? (colors[alertColor] || colors.slate) : colors.slate;

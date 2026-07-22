@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
     BookOpen,
     Briefcase,
@@ -195,7 +195,7 @@ export default function PerfilProfessorPage() {
             <button
                 type="button"
                 onClick={() => navigate('/professor/perfil/editar')}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-lime-300"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14ad81] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0f8d69]"
             >
                 <Edit3 size={16} />
                 Editar perfil
