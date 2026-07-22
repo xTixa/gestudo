@@ -320,6 +320,9 @@ function buildAtividadesPorDia(
         const atividade = {
             id: row.id_servico,
             titulo: buildTitle(row),
+            tipo: String(row?.tipo || '').trim(),
+            disciplina: String(row?.disciplina || '').trim(),
+            modalidade: String(row?.modalidade || '').trim(),
             local: String(row?.sala || 'Sem sala').trim() || 'Sem sala',
             hora: normalizeTime(row?.hora_inicio) || '--:--',
             horaFim: normalizeTime(row?.hora_fim) || '',
@@ -523,8 +526,9 @@ export async function listarAgenda(req, res) {
 
         const inscricoesServicoColumn = await resolveInscricoesServicoColumn();
 
-        const alunosSelect = inscricoesServicoColumn
-            ? `
+        const buildAlunosSelect = (servicoAlias) =>
+            inscricoesServicoColumn
+                ? `
                 COALESCE(
                     (
                         SELECT json_agg(DISTINCT COALESCE(NULLIF(TRIM(pes_aluno.nome), ''), NULLIF(TRIM(u_aluno.email), ''), 'Aluno'))
@@ -532,13 +536,13 @@ export async function listarAgenda(req, res) {
                         INNER JOIN alunos a2 ON a2.id_aluno = i2.id_aluno
                         LEFT JOIN pessoas pes_aluno ON pes_aluno.id_pessoa = a2.id_pessoa
                         LEFT JOIN users u_aluno ON u_aluno.id_user = a2.id_user
-                        WHERE i2.${inscricoesServicoColumn} = s.id_servico
+                        WHERE i2.${inscricoesServicoColumn} = ${servicoAlias}.id_servico
                             AND LOWER(COALESCE(i2.estado, 'ativa')) = 'ativa'
                     ),
                     '[]'::json
                 ) AS alunos
             `
-            : `'[]'::json AS alunos`;
+                : `'[]'::json AS alunos`;
 
         const hasDataReposicao = await hasPresencasDataReposicaoColumn();
         const replacementOverlapCondition =
@@ -571,7 +575,7 @@ export async function listarAgenda(req, res) {
           sa.nome AS sala,
           COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
           'curricular' AS categoria,
-          ${alunosSelect}
+          ${buildAlunosSelect('s')}
         FROM servicos_curriculares s
         LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
         LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
@@ -618,7 +622,7 @@ export async function listarAgenda(req, res) {
           sa.nome AS sala,
           COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
           'extra-curricular' AS categoria,
-          '[]'::json AS alunos
+          ${buildAlunosSelect('se')}
         FROM servicos_extracurriculares se
         LEFT JOIN tipo_servico_extracurricular tse ON tse.id_tipo_servico_extra = se.id_tipo_servico_extra
         LEFT JOIN modalidades m ON m.id_modalidade = se.id_modalidade

@@ -9,6 +9,7 @@ import {
     MapPin,
     RefreshCw,
     UserRound,
+    Users,
     X,
     Grid3x3,
     Calendar,
@@ -52,21 +53,60 @@ const HOUR_LABELS = Array.from({ length: 16 }, (_, i) => {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// cores para atividades curriculares (azul) e extra-curriculares (roxo)
-const ACTIVITY_COLORS = {
-    extra: {
-        bg: 'bg-violet-100',
-        border: 'border-violet-500',
-        text: 'text-violet-900',
-        badge: 'bg-violet-500',
-    },
-    curricular: {
-        bg: 'bg-blue-100',
-        border: 'border-blue-500',
-        text: 'text-blue-900',
-        badge: 'bg-[#14ad81]',
-    },
-};
+const PROFESSOR_COLORS = [
+    { bg: '#eaf9f5', border: '#14ad81', text: '#0f7056', badge: '#14ad81' },
+    { bg: '#edf4f7', border: '#1e3a5f', text: '#1c293d', badge: '#1e3a5f' },
+    { bg: '#f2f1ef', border: '#63738c', text: '#1c293d', badge: '#63738c' },
+    { bg: '#fff7ed', border: '#f97316', text: '#9a3412', badge: '#f97316' },
+    { bg: '#f5f3ff', border: '#8b5cf6', text: '#5b21b6', badge: '#8b5cf6' },
+    { bg: '#fefce8', border: '#eab308', text: '#854d0e', badge: '#eab308' },
+];
+
+function getProfessorName(atividade) {
+    return String(atividade?.professor || atividade?.responsavel || '').trim();
+}
+
+function hashString(value) {
+    return Array.from(String(value || '')).reduce(
+        (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
+        0
+    );
+}
+
+function getProfessorColor(atividade) {
+    const professor = getProfessorName(atividade);
+    if (!professor) {
+        return {
+            bg: '#f2f1ef',
+            border: '#63738c',
+            text: '#1c293d',
+            badge: '#63738c',
+        };
+    }
+    return PROFESSOR_COLORS[
+        hashString(professor.toLowerCase()) % PROFESSOR_COLORS.length
+    ];
+}
+
+function getAlunosList(atividade) {
+    return Array.isArray(atividade?.alunos)
+        ? atividade.alunos
+              .map((aluno) => String(aluno || '').trim())
+              .filter(Boolean)
+        : [];
+}
+
+function getAgendaCardTitle(atividade) {
+    return (
+        String(
+            atividade?.disciplina ||
+                atividade?.modalidade ||
+                atividade?.tipo ||
+                atividade?.titulo ||
+                'Servico'
+        ).trim() || 'Servico'
+    );
+}
 
 // função para formatar a data no formato YYYY-MM-DD (para chaves e API)
 function formatDateKey(date) {
@@ -609,7 +649,7 @@ function WeekView({
                     <div className="grid grid-cols-8 min-w-full">
                         {/* Time column */}
                         <div className="border-r border-slate-200 bg-slate-50">
-                            <div className="h-12 border-b border-slate-200" />
+                            <div className="sticky top-0 z-30 h-12 border-b border-slate-200 bg-slate-50" />
                             {HOUR_LABELS.map((hour) => (
                                 <div
                                     key={hour}
@@ -636,10 +676,10 @@ function WeekView({
                                 >
                                     {/* Day header */}
                                     <div
-                                        className={`h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
+                                        className={`sticky top-0 z-30 h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
                                             isToday
                                                 ? 'bg-[#14ad81] text-white font-semibold'
-                                                : 'hover:bg-slate-50'
+                                                : 'bg-white hover:bg-slate-50'
                                         }`}
                                         onClick={() => setSelectedDate(date)}
                                     >
@@ -734,12 +774,8 @@ function WeekView({
                                                     100) /
                                                 16;
 
-                                            const categoria =
-                                                getAtividadeCategoria(
-                                                    atividade
-                                                );
-                                            const colors =
-                                                ACTIVITY_COLORS[categoria];
+                                            const professorColor =
+                                                getProfessorColor(atividade);
 
                                             const widthPercent =
                                                 100 / totalColisoes;
@@ -766,16 +802,31 @@ function WeekView({
                                                     }
                                                 >
                                                     <div
-                                                        className={`h-full rounded px-2 py-1 text-xs overflow-hidden flex flex-col ${colors.bg} border-l-4 ${colors.border} ${colors.text} transition hover:shadow-lg hover:z-20`}
+                                                        className="h-full rounded border-l-4 px-2 py-1 text-xs overflow-hidden flex flex-col transition hover:shadow-lg hover:z-20"
+                                                        style={{
+                                                            backgroundColor:
+                                                                professorColor.bg,
+                                                            borderLeftColor:
+                                                                professorColor.border,
+                                                            color: professorColor.text,
+                                                        }}
                                                     >
                                                         <p className="font-semibold truncate">
-                                                            {atividade.titulo}
+                                                            {getAgendaCardTitle(
+                                                                atividade
+                                                            )}
                                                         </p>
                                                         <p className="text-xs opacity-75 truncate">
                                                             {atividade.hora}
                                                             {atividade.horaFim
                                                                 ? ` - ${atividade.horaFim}`
                                                                 : ''}
+                                                        </p>
+                                                        <p className="text-xs opacity-80 truncate">
+                                                            {getProfessorName(
+                                                                atividade
+                                                            ) ||
+                                                                'Professor por definir'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -974,23 +1025,35 @@ function MonthView({
                     ) : atividades.length ? (
                         atividades.map((atividade, index) => {
                             const categoria = getAtividadeCategoria(atividade);
+                            const professorColor =
+                                getProfessorColor(atividade);
                             const badgeLabel =
                                 categoria === 'extra' ? 'E' : 'C';
 
                             return (
                                 <article
                                     key={`${atividade.hora}-${index}`}
-                                    className="rounded-xl border border-slate-200 bg-white p-3 cursor-pointer transition hover:shadow-md hover:border-slate-300"
+                                    className="rounded-xl border border-slate-200 p-3 cursor-pointer transition hover:shadow-md hover:border-slate-300"
+                                    style={{
+                                        backgroundColor: professorColor.bg,
+                                        borderLeftWidth: 4,
+                                        borderLeftColor:
+                                            professorColor.border,
+                                    }}
                                     onClick={() =>
                                         setSelectedAtividade(atividade)
                                     }
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <p className="font-semibold text-slate-800">
-                                            {atividade.titulo}
+                                            {getAgendaCardTitle(atividade)}
                                         </p>
                                         <span
-                                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${categoria === 'extra' ? 'bg-violet-500' : 'bg-[#14ad81]'}`}
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white"
+                                            style={{
+                                                backgroundColor:
+                                                    professorColor.badge,
+                                            }}
                                         >
                                             {badgeLabel}
                                         </span>
@@ -1033,7 +1096,8 @@ function MonthView({
 // Modal de Detalhes da Atividade
 function AtividadeModal({ atividade, onClose }) {
     const categoria = getAtividadeCategoria(atividade);
-    const colors = ACTIVITY_COLORS[categoria];
+    const professorColor = getProfessorColor(atividade);
+    const alunos = getAlunosList(atividade);
     const badgeLabel =
         categoria === 'extra' ? 'Extra-Curricular' : 'Curricular';
 
@@ -1050,17 +1114,23 @@ function AtividadeModal({ atividade, onClose }) {
                 <article className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                     {/* Header com cor */}
                     <div
-                        className={`px-6 py-4 ${colors.bg} border-b-2 ${colors.border}`}
+                        className="border-b-2 px-6 py-4"
+                        style={{
+                            backgroundColor: professorColor.bg,
+                            borderColor: professorColor.border,
+                            color: professorColor.text,
+                        }}
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div>
-                                <h2
-                                    className={`text-2xl font-bold ${colors.text}`}
-                                >
+                                <h2 className="text-2xl font-bold">
                                     {atividade.titulo}
                                 </h2>
                                 <span
-                                    className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${colors.badge}`}
+                                    className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white"
+                                    style={{
+                                        backgroundColor: professorColor.badge,
+                                    }}
                                 >
                                     {badgeLabel}
                                 </span>
@@ -1109,6 +1179,31 @@ function AtividadeModal({ atividade, onClose }) {
                                         {atividade.professor ||
                                             atividade.responsavel}
                                     </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Alunos */}
+                        {alunos.length > 0 && (
+                            <div className="flex items-start gap-3">
+                                <Users
+                                    size={18}
+                                    className="mt-0.5 text-slate-500"
+                                />
+                                <div>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                                        Alunos
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {alunos.map((aluno) => (
+                                            <span
+                                                key={aluno}
+                                                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
+                                            >
+                                                {aluno}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
