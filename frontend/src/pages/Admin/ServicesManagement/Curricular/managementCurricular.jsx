@@ -1314,8 +1314,7 @@ export default function GestaoCurricularPage() {
                                                                 className="h-4 w-4 rounded border-slate-300 text-blue-600"
                                                             />
                                                             <span>
-                                                                {aluno.nome} -{' '}
-                                                                {aluno.ano}
+                                                                {aluno.nome}
                                                             </span>
                                                         </label>
                                                     )

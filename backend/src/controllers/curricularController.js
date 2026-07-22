@@ -153,9 +153,12 @@ export async function listarOpcoesServicoCurricular(req, res) {
                 `SELECT id_sala AS id, nome FROM salas ORDER BY nome`
             ),
             db.query(`
-				SELECT a.id_aluno AS id, COALESCE(u.email, CONCAT('Aluno #', a.id_aluno::text)) AS nome, COALESCE(a.ano::text, '') AS ano
+				SELECT
+					a.id_aluno AS id,
+					COALESCE(NULLIF(TRIM(pes.nome), ''), CONCAT('Aluno #', a.id_aluno::text)) AS nome,
+					COALESCE(a.ano::text, '') AS ano
 				FROM alunos a
-				LEFT JOIN users u ON u.id_user = a.id_user
+				LEFT JOIN pessoas pes ON pes.id_pessoa = a.id_pessoa
 				ORDER BY nome
 			`),
             db.query(

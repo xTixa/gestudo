@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     Search,
     Download,
+    FileSearch,
     Upload,
     Plus,
     Eye,
@@ -1332,9 +1333,19 @@ export default function GestaoAlunos() {
                                 ? alunosFiltrados.map((aluno) => (
                                       <tr
                                           key={aluno.id_aluno}
-                                          className="border-b hover:bg-gray-50 transition"
+                                          className={`border-b transition ${
+                                              aluno.status === false
+                                                  ? 'bg-slate-100 text-slate-500 shadow-inner opacity-75 hover:bg-slate-100'
+                                                  : 'hover:bg-gray-50'
+                                          }`}
                                       >
-                                          <td className="py-3 font-medium text-gray-800">
+                                          <td
+                                              className={`py-3 font-medium ${
+                                                  aluno.status === false
+                                                      ? 'text-slate-500'
+                                                      : 'text-gray-800'
+                                              }`}
+                                          >
                                               {aluno.nome}
                                           </td>
                                           <td>{aluno.nif}</td>
@@ -1359,7 +1370,7 @@ export default function GestaoAlunos() {
                                                       setAlunoSelecionado(aluno)
                                                   }
                                               >
-                                                  <Eye size={16} />
+                                                  <FileSearch size={16} />
                                               </button>
                                               <button
                                                   className="text-gray-500 hover:text-indigo-600"
@@ -1954,7 +1965,11 @@ export default function GestaoAlunos() {
                             abrirConfirmacaoLinha('status', aluno);
                         }}
                     >
-                        <EyeOff size={14} />
+                        {openDropdown.aluno.status ? (
+                            <EyeOff size={14} />
+                        ) : (
+                            <Eye size={14} />
+                        )}
                         {openDropdown.aluno.status ? 'Desativar' : 'Ativar'}
                     </button>
                     <button

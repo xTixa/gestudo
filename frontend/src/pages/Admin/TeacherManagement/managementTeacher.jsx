@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Search,
     Download,
+    FileSearch,
     Upload,
     Plus,
     Eye,
@@ -1481,9 +1482,19 @@ export default function GestaoProfessores() {
                             {professoresFiltrados.map((prof) => (
                                 <tr
                                     key={prof.id_professor}
-                                    className="border-b hover:bg-gray-50 transition"
+                                    className={`border-b transition ${
+                                        prof.status === false
+                                            ? 'bg-slate-100 text-slate-500 shadow-inner opacity-75 hover:bg-slate-100'
+                                            : 'hover:bg-gray-50'
+                                    }`}
                                 >
-                                    <td className="py-3 font-medium text-gray-800">
+                                    <td
+                                        className={`py-3 font-medium ${
+                                            prof.status === false
+                                                ? 'text-slate-500'
+                                                : 'text-gray-800'
+                                        }`}
+                                    >
                                         {prof.nome}
                                     </td>
                                     <td>{prof.nif}</td>
@@ -1504,7 +1515,7 @@ export default function GestaoProfessores() {
                                                 setProfessorSelecionado(prof)
                                             }
                                         >
-                                            <Eye size={16} />
+                                            <FileSearch size={16} />
                                         </button>
                                         <button
                                             className="text-gray-500 hover:text-indigo-600"
@@ -1946,7 +1957,11 @@ export default function GestaoProfessores() {
                             abrirConfirmacaoLinha('status', prof);
                         }}
                     >
-                        <EyeOff size={14} />
+                        {openDropdown.prof.status ? (
+                            <EyeOff size={14} />
+                        ) : (
+                            <Eye size={14} />
+                        )}
                         {openDropdown.prof.status ? 'Desativar' : 'Ativar'}
                     </button>
                     <button

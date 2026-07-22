@@ -170,16 +170,22 @@ const menuByRole = {
             icon: BookOpen,
         },
         {
+            key: 'subscricao-servicos',
+            label: 'Subscrição Serviços',
+            path: '/aluno/subscricao-servicos',
+            icon: BookOpenCheckIcon,
+        },
+        {
+            key: 'reinscricao',
+            label: 'Reinscrição',
+            path: '/aluno/reinscricao',
+            icon: ClipboardEdit,
+        },
+        {
             key: 'presencas',
             label: 'Presenças',
             path: '/aluno/presencas',
-            icon: Bell,
-        },
-        {
-            key: 'notificacoes',
-            label: 'Notificações',
-            path: '/aluno/notificacoes',
-            icon: Bell,
+            icon: ClipboardCheck,
         },
     ],
     professor: [
@@ -211,7 +217,7 @@ const menuByRole = {
             key: 'presencas',
             label: 'Presenças',
             path: '/professor/presencas',
-            icon: Bell,
+            icon: ClipboardCheck,
         },
         {
             key: 'notificacoes',

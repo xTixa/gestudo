@@ -242,6 +242,14 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<ServicosAlunoPage />}
                     />
                     <Route
+                        path="/aluno/subscricao-servicos"
+                        element={<ServicosAlunoPage />}
+                    />
+                    <Route
+                        path="/aluno/reinscricao"
+                        element={<InfosInscricaoPage />}
+                    />
+                    <Route
                         path="/aluno/presencas"
                         element={<PresencasAlunoPage />}
                     />
