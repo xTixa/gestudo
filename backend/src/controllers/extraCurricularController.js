@@ -40,6 +40,7 @@ import {
     getAnoLetivo,
     getDataFimAnoLetivo,
     mapServicoRow,
+    getPrimarySchedule,
     normalizeText,
     resolveIsPeriodic,
     resolveTipoServicoId,
@@ -128,6 +129,7 @@ export async function listarServicosExtraCurriculares(req, res) {
 				END AS periodicidade,
                 ${tipoNomeSelect} AS tipo_servico,
 				COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
                 ${areaLevelSelect},
                 ${areaNameSelect},
 				COALESCE(s.capacidade_max, 0)::int AS n_alunos
@@ -138,6 +140,9 @@ export async function listarServicosExtraCurriculares(req, res) {
                     : `LEFT JOIN tipo_servico ts ON ts.id_tiposervico = s.${tipoInfo.column}`
             }
 			LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
             ${areaJoin}
 			WHERE COALESCE(s.ativo, true) = true
 			ORDER BY s.created_at DESC, s.id_servico DESC
@@ -178,6 +183,7 @@ export async function criarServicoExtraCurricular(req, res) {
             horaInicio,
             duracao,
             diasSemana,
+            sessoes,
         } = req.body || {};
 
         if (
@@ -187,8 +193,7 @@ export async function criarServicoExtraCurricular(req, res) {
             !professorId ||
             !salaId ||
             !dataInicio ||
-            !horaInicio ||
-            !duracao
+            (!Array.isArray(sessoes) && (!horaInicio || !duracao))
         ) {
             return res.status(400).json({
                 message:
@@ -196,7 +201,13 @@ export async function criarServicoExtraCurricular(req, res) {
             });
         }
 
-        const horaFim = addMinutesToTime(horaInicio, Number(duracao));
+        const schedule = getPrimarySchedule({
+            sessoes,
+            diasSemana,
+            horaInicio,
+            duracao,
+        });
+        const horaFim = schedule.horaFim;
         if (!horaFim) {
             return res
                 .status(400)
@@ -210,7 +221,7 @@ export async function criarServicoExtraCurricular(req, res) {
         const isPeriodic = resolveIsPeriodic(
             serviceType,
             periodicidade,
-            diasSemana
+            schedule.sessoes.length ? schedule.sessoes : diasSemana
         );
         const tipoDb =
             normalizedTipo === 'periodico' || normalizedTipo === 'unico'
@@ -231,9 +242,7 @@ export async function criarServicoExtraCurricular(req, res) {
 
         // ==================== VALIDAÇÕES DE CONFLITOS ====================
 
-        const diasSemanaJson = Array.isArray(diasSemana)
-            ? JSON.stringify(diasSemana)
-            : null;
+        const diasSemanaJson = schedule.diasSemanaJson;
 
         // Validar área de formação do professor nos serviços extra-curriculares
         if (areaId) {
@@ -258,7 +267,7 @@ export async function criarServicoExtraCurricular(req, res) {
             Number(professorId),
             dataInicio,
             calculatedDataFim,
-            horaInicio,
+            schedule.horaInicio,
             horaFim,
             diasSemanaJson,
             null
@@ -342,7 +351,7 @@ export async function criarServicoExtraCurricular(req, res) {
             anoLetivo,
             dataInicio,
             calculatedDataFim,
-            horaInicio,
+            schedule.horaInicio,
             horaFim,
             1,
             diasSemanaJson,
@@ -413,6 +422,7 @@ export async function criarServicoExtraCurricular(req, res) {
                 END AS periodicidade,
                 ${tipoNomeSelect} AS tipo_servico,
                 COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
                 ${detailsAreaLevelSelect},
                 ${detailsAreaNameSelect},
                 COALESCE(s.capacidade_max, 0)::int AS n_alunos
@@ -423,6 +433,9 @@ export async function criarServicoExtraCurricular(req, res) {
                     : `LEFT JOIN tipo_servico ts ON ts.id_tiposervico = s.${tipoInfo.column}`
             }
             LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
             ${detailsAreaJoin}
             WHERE s.id_servico = $1
             LIMIT 1
@@ -512,9 +525,10 @@ export async function listarOpcoesServicoExtraCurricular(req, res) {
                   )
                 : Promise.resolve({ rows: [] }),
             db.query(`
-				SELECT p.id_professor AS id, COALESCE(u.email, CONCAT('Professor #', p.id_professor::text)) AS nome
+				SELECT p.id_professor AS id, COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), CONCAT('Professor #', p.id_professor::text)) AS nome
 				FROM professores p
 				LEFT JOIN users u ON u.id_user = p.id_user
+                LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
 				WHERE COALESCE(u.role, '') = 'professor'
 				  AND COALESCE(u.status, true) = true
 				ORDER BY nome
@@ -575,4 +589,3 @@ export async function listarOpcoesServicoExtraCurricular(req, res) {
             .json({ message: 'Erro ao carregar opções para novo serviço.' });
     }
 }
-

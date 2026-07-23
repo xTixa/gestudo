@@ -339,7 +339,6 @@ router.post(
         email: { type: 'email', required: true },
         nome_completo: { type: 'string', required: true, min: 3 },
         nif: { type: 'string', required: true },
-        telemovel: { type: 'string', required: true },
     }),
     criarProfessor
 );

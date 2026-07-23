@@ -57,7 +57,10 @@
       "Bash(node --check src/loadEnv.js)",
       "Bash(node --check src/config/db.js)",
       "Bash(timeout 5 node backend/src/loader.cjs)",
-      "Bash(timeout 8 node backend/src/loader.cjs)"
+      "Bash(timeout 8 node backend/src/loader.cjs)",
+      "Bash(node --check src/controllers/agendaController.js)",
+      "Bash(timeout 20 node src/server.js)",
+      "Bash(node --input-type=module -e ' *)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

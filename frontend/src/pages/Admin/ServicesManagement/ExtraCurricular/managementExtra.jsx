@@ -45,13 +45,21 @@ function getInitialFormData() {
         horaInicio: '',
         duracao: '60',
         diasSemana: [],
+        sessoes: [{ dia: 'segunda', horaInicio: '', duracao: '60' }],
         dataFim: '',
     };
 }
 
 // função para extrair os valores únicos de um array de objetos com base em uma chave específica, adicionando a opção "Todos" no início da lista para permitir a seleção de todos os valores em um filtro
 function uniqueValues(rows, key) {
-    return ['Todos', ...new Set(rows.map((row) => row[key]))];
+    return [
+        'Todos',
+        ...new Set(
+            rows
+                .map((row) => row[key])
+                .filter((value) => String(value || '').trim() !== '')
+        ),
+    ];
 }
 
 export default function GestaoExtraPage() {
@@ -81,6 +89,7 @@ export default function GestaoExtraPage() {
         modalidade: 'Todos',
         nivelEnsino: 'Todos',
         area: 'Todos',
+        professor: 'Todos',
     });
     const [sort, setSort] = useState({ field: null, dir: 'asc' });
 
@@ -185,6 +194,7 @@ export default function GestaoExtraPage() {
             modalidade: uniqueValues(allRows, 'modalidade'),
             nivelEnsino: uniqueValues(allRows, 'nivelEnsino'),
             area: uniqueValues(allRows, 'area'),
+            professor: uniqueValues(allRows, 'professor'),
         }),
         [allRows]
     );
@@ -198,6 +208,7 @@ export default function GestaoExtraPage() {
                 [
                     row.tipoServico,
                     row.modalidade,
+                    row.professor,
                     row.nivelEnsino,
                     row.area,
                     row.periodicidade,
@@ -218,13 +229,17 @@ export default function GestaoExtraPage() {
                 row.nivelEnsino === filters.nivelEnsino;
             const matchesArea =
                 filters.area === 'Todos' || row.area === filters.area;
+            const matchesProfessor =
+                filters.professor === 'Todos' ||
+                row.professor === filters.professor;
 
             return (
                 matchesSearch &&
                 matchesTipo &&
                 matchesModalidade &&
                 matchesNivel &&
-                matchesArea
+                matchesArea &&
+                matchesProfessor
             );
         });
 
@@ -270,9 +285,23 @@ export default function GestaoExtraPage() {
             dataInicio: row.dataInicio || '',
             horaInicio: row.horaInicio || '',
             duracao: row.duracao || '60',
+            sessoes:
+                Array.isArray(row.sessoes) && row.sessoes.length
+                    ? row.sessoes
+                    : [
+                          {
+                              dia:
+                                  Array.isArray(row.diasSemana) &&
+                                  row.diasSemana[0]
+                                      ? row.diasSemana[0]
+                                      : 'segunda',
+                              horaInicio: row.horaInicio || '',
+                              duracao: row.duracao || '60',
+                          },
+                      ],
             diasSemana:
-                row.periodicidade === 'Periódico'
-                    ? ['segunda', 'quarta']
+                Array.isArray(row.diasSemana) && row.diasSemana.length
+                    ? row.diasSemana
                     : ['segunda'],
             dataFim: row.dataFim || '',
         });
@@ -345,6 +374,37 @@ export default function GestaoExtraPage() {
         });
     }
 
+    function updateSessao(index, key, value) {
+        setFormData((prev) => ({
+            ...prev,
+            sessoes: prev.sessoes.map((sessao, sessaoIndex) =>
+                sessaoIndex === index ? { ...sessao, [key]: value } : sessao
+            ),
+        }));
+    }
+
+    function addSessao() {
+        setFormData((prev) => ({
+            ...prev,
+            sessoes: [
+                ...prev.sessoes,
+                { dia: 'segunda', horaInicio: '', duracao: '60' },
+            ],
+        }));
+    }
+
+    function removeSessao(index) {
+        setFormData((prev) => ({
+            ...prev,
+            sessoes:
+                prev.sessoes.length > 1
+                    ? prev.sessoes.filter(
+                          (_, sessaoIndex) => sessaoIndex !== index
+                      )
+                    : prev.sessoes,
+        }));
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
 
@@ -355,9 +415,10 @@ export default function GestaoExtraPage() {
             !formData.professorId ||
             !formData.salaId ||
             !formData.dataInicio ||
-            !formData.horaInicio ||
-            !formData.duracao ||
-            !formData.diasSemana.length
+            !formData.sessoes.length ||
+            !formData.sessoes.every(
+                (sessao) => sessao.dia && sessao.horaInicio && sessao.duracao
+            )
         ) {
             setFormError(
                 'Preencha todos os campos obrigatórios para criar o serviço extra-curricular.'
@@ -380,9 +441,10 @@ export default function GestaoExtraPage() {
                 professorId: formData.professorId,
                 salaId: formData.salaId,
                 dataInicio: formData.dataInicio,
-                horaInicio: formData.horaInicio,
-                duracao: formData.duracao,
-                diasSemana: formData.diasSemana,
+                horaInicio: formData.sessoes[0]?.horaInicio,
+                duracao: formData.sessoes[0]?.duracao,
+                diasSemana: formData.sessoes.map((sessao) => sessao.dia),
+                sessoes: formData.sessoes,
             };
             if (formData.dataFim) {
                 requestData.dataFim = formData.dataFim;
@@ -442,7 +504,7 @@ export default function GestaoExtraPage() {
                     <h2 className="text-sm font-medium">Filtros</h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
                     <label className="md:col-span-2">
                         <span className="mb-1 block text-xs text-slate-500">
                             Pesquisar
@@ -533,6 +595,25 @@ export default function GestaoExtraPage() {
                             className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-spindle"
                         >
                             {filterOptions.area.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label>
+                        <span className="mb-1 block text-xs text-slate-500">
+                            Professor
+                        </span>
+                        <select
+                            value={filters.professor}
+                            onChange={(event) =>
+                                updateFilter('professor', event.target.value)
+                            }
+                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-spindle"
+                        >
+                            {filterOptions.professor.map((option) => (
                                 <option key={option} value={option}>
                                     {option}
                                 </option>
@@ -753,66 +834,65 @@ export default function GestaoExtraPage() {
                                     />
                                 </label>
 
-                                <label>
+                                <div className="md:col-span-2">
                                     <span className={fieldLabelClass}>
-                                        Hora de Início *
+                                        Sessões *
                                     </span>
-                                    <input
-                                        type="time"
-                                        value={formData.horaInicio}
-                                        onChange={(event) =>
-                                            updateFormField(
-                                                'horaInicio',
-                                                event.target.value
-                                            )
-                                        }
-                                        className={inputClass}
-                                    />
-                                </label>
-
-                                <div>
-                                    <span className={fieldLabelClass}>
-                                        Dias da Semana *
-                                    </span>
-                                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                        {weekDayOptions.map((day) => (
-                                            <label
-                                                key={day.key}
-                                                className="flex items-center gap-2 rounded-lg border border-transparent bg-white px-2 py-1.5 text-sm text-slate-700 hover:border-slate-200"
+                                    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                        {formData.sessoes.map((sessao, index) => (
+                                            <div
+                                                key={index}
+                                                className="grid gap-2 rounded-lg bg-white p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
                                             >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.diasSemana.includes(
-                                                        day.key
-                                                    )}
-                                                    onChange={() =>
-                                                        toggleWeekDay(day.key)
+                                                <select
+                                                    value={sessao.dia}
+                                                    onChange={(event) =>
+                                                        updateSessao(index, 'dia', event.target.value)
                                                     }
-                                                    className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                                                    className={inputClass}
+                                                >
+                                                    {weekDayOptions.map((day) => (
+                                                        <option key={day.key} value={day.key}>
+                                                            {day.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    type="time"
+                                                    value={sessao.horaInicio}
+                                                    onChange={(event) =>
+                                                        updateSessao(index, 'horaInicio', event.target.value)
+                                                    }
+                                                    className={inputClass}
                                                 />
-                                                <span>{day.label}</span>
-                                            </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={sessao.duracao}
+                                                    onChange={(event) =>
+                                                        updateSessao(index, 'duracao', event.target.value)
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSessao(index)}
+                                                    disabled={formData.sessoes.length === 1}
+                                                    className="rounded-xl border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    Remover
+                                                </button>
+                                            </div>
                                         ))}
+                                        <button
+                                            type="button"
+                                            onClick={addSessao}
+                                            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                                        >
+                                            Adicionar sessão
+                                        </button>
                                     </div>
                                 </div>
-
-                                <label>
-                                    <span className={fieldLabelClass}>
-                                        Duração (minutos) *
-                                    </span>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={formData.duracao}
-                                        onChange={(event) =>
-                                            updateFormField(
-                                                'duracao',
-                                                event.target.value
-                                            )
-                                        }
-                                        className={inputClass}
-                                    />
-                                </label>
 
                                 <label>
                                     <span className={fieldLabelClass}>
@@ -922,13 +1002,11 @@ export default function GestaoExtraPage() {
                     <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
                         <tr>
                             {[
-                                { label: 'Periodicidade', field: 'periodicidade' },
-                                { label: 'Tipo de Serviço', field: 'tipoServico' },
+                                { label: 'Professor', field: 'professor' },
+                                { label: 'Disciplina', field: 'area' },
+                                { label: 'Tipo Serviço', field: 'tipoServico' },
                                 { label: 'Modalidade', field: 'modalidade' },
-                                { label: 'Nível de Proficiência', field: 'nivelEnsino' },
-                                { label: 'Área', field: 'area' },
-                                { label: 'Nº Alunos', field: 'nAlunos' },
-                                { label: 'Data de Fim', field: 'dataFim' },
+                                { label: 'Nº de alunos', field: 'nAlunos' },
                             ].map(({ label, field }) => (
                                 <th
                                     key={label}
@@ -952,7 +1030,7 @@ export default function GestaoExtraPage() {
                         {loading ? (
                             <tr>
                                 <td
-                                    colSpan={8}
+                                    colSpan={6}
                                     className="px-4 py-6 text-center text-sm text-slate-500"
                                 >
                                     A carregar serviços da base de dados...
@@ -961,7 +1039,7 @@ export default function GestaoExtraPage() {
                         ) : error ? (
                             <tr>
                                 <td
-                                    colSpan={8}
+                                    colSpan={6}
                                     className="px-4 py-6 text-center text-sm text-red-600"
                                 >
                                     {error}
@@ -969,11 +1047,6 @@ export default function GestaoExtraPage() {
                             </tr>
                         ) : rows.length ? (
                             rows.map((row) => {
-                                const periodicidadeClass =
-                                    row.periodicidade === 'Periódico'
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-violet-100 text-violet-700';
-
                                 return (
                                     <tr
                                         key={row.id}
@@ -985,11 +1058,10 @@ export default function GestaoExtraPage() {
                                         }`}
                                     >
                                         <td className="px-4 py-3">
-                                            <span
-                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${periodicidadeClass}`}
-                                            >
-                                                {row.periodicidade}
-                                            </span>
+                                            {row.professor || '-'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {row.area}
                                         </td>
                                         <td className="px-4 py-3">
                                             {row.tipoServico}
@@ -998,25 +1070,8 @@ export default function GestaoExtraPage() {
                                             {row.modalidade}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {row.nivelEnsino}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {row.area}
-                                        </td>
-                                        <td className="px-4 py-3">
                                             <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
                                                 {row.nAlunos}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className="text-xs text-slate-600">
-                                                {row.dataFim
-                                                    ? new Date(
-                                                          row.dataFim
-                                                      ).toLocaleDateString(
-                                                          'pt-PT'
-                                                      )
-                                                    : '-'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
@@ -1068,7 +1123,7 @@ export default function GestaoExtraPage() {
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={8}
+                                    colSpan={6}
                                     className="px-4 py-6 text-center text-sm text-slate-500"
                                 >
                                     Sem resultados para os filtros aplicados.

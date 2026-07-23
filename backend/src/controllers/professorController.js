@@ -41,6 +41,49 @@ function gerarPasswordTemporaria() {
     return `Temp@${dia}${mes}${ano}`;
 }
 
+function gerarCartaoCidadaoPlaceholder(prefix = 'PR') {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+}
+
+// Paleta de cores da agenda (mantida em sincronia com o frontend)
+const PROFESSOR_COLOR_PALETTE = [
+    '#14ad81',
+    '#1e3a5f',
+    '#63738c',
+    '#f97316',
+    '#8b5cf6',
+    '#eab308',
+];
+
+/**
+ * Escolhe a próxima cor a atribuir a um novo professor: a que estiver
+ * atualmente menos utilizada, para distribuir as cores o mais uniformemente
+ * possível e evitar que professores diferentes fiquem com a mesma cor
+ * enquanto houver cores livres na paleta.
+ */
+async function escolherProximaCorProfessor(client) {
+    const { rows } = await client.query(
+        `SELECT cor, COUNT(*)::int AS total FROM professores WHERE cor IS NOT NULL GROUP BY cor`
+    );
+
+    const contagemPorCor = new Map(rows.map((row) => [row.cor, row.total]));
+
+    let corEscolhida = PROFESSOR_COLOR_PALETTE[0];
+    let menorContagem = Infinity;
+
+    for (const cor of PROFESSOR_COLOR_PALETTE) {
+        const total = contagemPorCor.get(cor) || 0;
+        if (total < menorContagem) {
+            menorContagem = total;
+            corEscolhida = cor;
+        }
+    }
+
+    return corEscolhida;
+}
+
 async function suspenderServicosDoProfessor(client, idProfessor) {
     const curricularesResult = await client.query(
         `
@@ -201,7 +244,15 @@ function formatDateOnlyForSql(value) {
 
 function parseDiasSemana(value) {
     if (Array.isArray(value)) {
-        return value.map((item) => normalizeWeekdayKey(item)).filter(Boolean);
+        return value
+            .map((item) =>
+                normalizeWeekdayKey(
+                    item && typeof item === 'object'
+                        ? item.dia || item.day || ''
+                        : item
+                )
+            )
+            .filter(Boolean);
     }
 
     if (typeof value !== 'string' || !value.trim()) {
@@ -211,7 +262,15 @@ function parseDiasSemana(value) {
     try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed)
-            ? parsed.map((item) => normalizeWeekdayKey(item)).filter(Boolean)
+            ? parsed
+                  .map((item) =>
+                      normalizeWeekdayKey(
+                          item && typeof item === 'object'
+                              ? item.dia || item.day || ''
+                              : item
+                      )
+                  )
+                  .filter(Boolean)
             : [];
     } catch {
         return value
@@ -1569,6 +1628,7 @@ export async function listarProfessores(req, res) {
 				pr.habilitacao,
 				pr.area_ensino,
 				pr.nivel,
+				pr.cor,
 				u.created_at AS data_entrada,
 				u.status
 			FROM professores pr
@@ -1966,11 +2026,10 @@ export async function criarProfessor(req, res) {
     if (
         !professorEmail ||
         !professorNome ||
-        !String(nif || '').trim() ||
-        !String(telemovel || '').trim()
+        !String(nif || '').trim()
     ) {
         return res.status(400).json({
-            message: 'Email, nome, NIF e telemóvel são obrigatórios.',
+            message: 'Email, nome e NIF sao obrigatorios.',
         });
     }
 
@@ -2018,28 +2077,32 @@ export async function criarProfessor(req, res) {
             [
                 professorNome,
                 String(nif || '').trim(),
-                String(telemovel || '').trim(),
-                data_nascimento || null,
-                String(cartao_cidadao || '').trim() || null,
-                String(morada || '').trim() || null,
-                String(localidade || '').trim() || null,
-                String(codigo_postal || '').trim() || null,
+                String(telemovel || '').trim() || '',
+                data_nascimento || '2000-01-01',
+                String(cartao_cidadao || '').trim() ||
+                    gerarCartaoCidadaoPlaceholder(),
+                String(morada || '').trim() || '',
+                String(localidade || '').trim() || '',
+                String(codigo_postal || '').trim() || '',
                 String(telefone || '').trim() || null,
             ]
         );
 
+        const corProfessor = await escolherProximaCorProfessor(client);
+
         const professorResult = await client.query(
             `
-				INSERT INTO professores (id_user, id_pessoa, habilitacao, area_ensino, nivel)
-				VALUES ($1, $2, $3, $4, $5)
-				RETURNING id_professor, habilitacao, area_ensino, nivel
+				INSERT INTO professores (id_user, id_pessoa, habilitacao, area_ensino, nivel, cor)
+				VALUES ($1, $2, $3, $4, $5, $6)
+				RETURNING id_professor, habilitacao, area_ensino, nivel, cor
 			`,
             [
                 userResult.rows[0].id_user,
                 pessoaResult.rows[0].id_pessoa,
-                String(habilitacoes || '').trim() || null,
-                String(area || '').trim() || null,
-                String(grau || '').trim() || null,
+                String(habilitacoes || '').trim() || '',
+                String(area || '').trim() || '',
+                String(grau || '').trim() || '',
+                corProfessor,
             ]
         );
 
@@ -2084,6 +2147,7 @@ export async function criarProfessor(req, res) {
                 habilitacao: professorResult.rows[0].habilitacao,
                 area_ensino: professorResult.rows[0].area_ensino,
                 nivel: professorResult.rows[0].nivel,
+                cor: professorResult.rows[0].cor,
             },
             credenciais: {
                 email: userResult.rows[0].email,
@@ -2220,11 +2284,13 @@ export async function importarProfessores(req, res) {
                     ]
                 );
 
+                const corProfessor = await escolherProximaCorProfessor(client);
+
                 const professorResult = await client.query(
                     `
-						INSERT INTO professores (id_user, id_pessoa, habilitacao, area_ensino, nivel)
-						VALUES ($1, $2, $3, $4, $5)
-						RETURNING id_professor, habilitacao, area_ensino, nivel
+						INSERT INTO professores (id_user, id_pessoa, habilitacao, area_ensino, nivel, cor)
+						VALUES ($1, $2, $3, $4, $5, $6)
+						RETURNING id_professor, habilitacao, area_ensino, nivel, cor
 					`,
                     [
                         userResult.rows[0].id_user,
@@ -2232,6 +2298,7 @@ export async function importarProfessores(req, res) {
                         habilitacao || null,
                         areaEnsino || null,
                         nivel,
+                        corProfessor,
                     ]
                 );
 
@@ -2247,6 +2314,7 @@ export async function importarProfessores(req, res) {
                     habilitacao: professorResult.rows[0].habilitacao,
                     area_ensino: professorResult.rows[0].area_ensino,
                     nivel: professorResult.rows[0].nivel,
+                    cor: professorResult.rows[0].cor,
                     data_entrada: userResult.rows[0].created_at,
                     status: userResult.rows[0].status,
                 });

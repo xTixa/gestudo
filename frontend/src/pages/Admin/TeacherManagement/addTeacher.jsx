@@ -35,15 +35,7 @@ export default function AddProfPage() {
         const requiredFields = [
             'email',
             'nome_completo',
-            'cartao_cidadao',
             'nif',
-            'morada',
-            'localidade',
-            'codigo_postal',
-            'habilitacoes',
-            'grau',
-            'area',
-            'telemovel',
         ];
 
         const completed = requiredFields.filter(
@@ -304,7 +296,7 @@ export default function AddProfPage() {
                             </label>
 
                             <label className="block text-sm text-slate-700">
-                                Cartão de Cidadão *
+                                Cartão de Cidadão
                                 <input
                                     type="text"
                                     name="cartao_cidadao"
@@ -312,7 +304,6 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="00000000 0 ZZ0"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
@@ -349,7 +340,7 @@ export default function AddProfPage() {
 
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <label className="block text-sm text-slate-700 lg:col-span-2">
-                                Morada *
+                                Morada
                                 <input
                                     type="text"
                                     name="morada"
@@ -357,13 +348,12 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Rua, número, andar"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
 
                             <label className="block text-sm text-slate-700">
-                                Localidade *
+                                Localidade
                                 <input
                                     type="text"
                                     name="localidade"
@@ -371,13 +361,12 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Ex.: Viseu"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
 
                             <label className="block text-sm text-slate-700">
-                                Código Postal *
+                                Código Postal
                                 <input
                                     type="text"
                                     name="codigo_postal"
@@ -385,7 +374,6 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="0000-000"
-                                    required
                                     className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
                                         showError('codigo_postal')
                                             ? 'border-red-300 focus:ring-red-200'
@@ -408,7 +396,7 @@ export default function AddProfPage() {
 
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <label className="block text-sm text-slate-700">
-                                Habilitações *
+                                Habilitações
                                 <input
                                     type="text"
                                     name="habilitacoes"
@@ -416,13 +404,12 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Ex.: Licenciatura em Matemática"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
 
                             <label className="block text-sm text-slate-700">
-                                Grau *
+                                Grau
                                 <input
                                     type="text"
                                     name="grau"
@@ -430,13 +417,12 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Licenciado/Mestre/Doutor"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
 
                             <label className="block text-sm text-slate-700 lg:col-span-2">
-                                Área *
+                                Área
                                 <input
                                     type="text"
                                     name="area"
@@ -444,7 +430,6 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="Ex.: Matemática, Física, Inglês"
-                                    required
                                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                                 />
                             </label>
@@ -482,7 +467,7 @@ export default function AddProfPage() {
 
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             <label className="block text-sm text-slate-700">
-                                Telemóvel *
+                                Telemóvel
                                 <input
                                     type="text"
                                     name="telemovel"
@@ -490,7 +475,6 @@ export default function AddProfPage() {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="900 000 000"
-                                    required
                                     className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
                                         showError('telemovel')
                                             ? 'border-red-300 focus:ring-red-200'

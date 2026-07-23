@@ -86,7 +86,11 @@ function parseDiasSemana(value) {
     if (Array.isArray(value)) {
         return value
             .map((item) =>
-                String(item || '')
+                String(
+                    item && typeof item === 'object'
+                        ? item.dia || item.day || ''
+                        : item || ''
+                )
                     .trim()
                     .toLowerCase()
             )
@@ -103,7 +107,11 @@ function parseDiasSemana(value) {
             return Array.isArray(parsed)
                 ? parsed
                       .map((item) =>
-                          String(item || '')
+                          String(
+                              item && typeof item === 'object'
+                                  ? item.dia || item.day || ''
+                                  : item || ''
+                          )
                               .trim()
                               .toLowerCase()
                       )
@@ -122,6 +130,59 @@ function parseDiasSemana(value) {
     }
 
     return [];
+}
+
+function parseScheduleEntries(value, fallbackStart, fallbackEnd) {
+    const raw = Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+          ? (() => {
+                try {
+                    const parsed = JSON.parse(value);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            })()
+          : [];
+
+    const entries = raw
+        .map((item) => {
+            if (item && typeof item === 'object') {
+                const horaInicio = normalizeTime(
+                    item.horaInicio || item.hora_inicio || fallbackStart
+                );
+                const horaFim = normalizeTime(
+                    item.horaFim || item.hora_fim || fallbackEnd
+                );
+                return {
+                    dia: String(item.dia || item.day || '')
+                        .trim()
+                        .toLowerCase(),
+                    horaInicio,
+                    horaFim,
+                };
+            }
+
+            return {
+                dia: String(item || '')
+                    .trim()
+                    .toLowerCase(),
+                horaInicio: normalizeTime(fallbackStart),
+                horaFim: normalizeTime(fallbackEnd),
+            };
+        })
+        .filter((item) => item.dia);
+
+    return entries.length
+        ? entries
+        : [
+              {
+                  dia: '',
+                  horaInicio: normalizeTime(fallbackStart),
+                  horaFim: normalizeTime(fallbackEnd),
+              },
+          ];
 }
 
 // Mapeia índice de dia da semana (0-6) para chave correspondente (domingo-sabado)
@@ -324,26 +385,30 @@ function buildAtividadesPorDia(
             disciplina: String(row?.disciplina || '').trim(),
             modalidade: String(row?.modalidade || '').trim(),
             local: String(row?.sala || 'Sem sala').trim() || 'Sem sala',
-            hora: normalizeTime(row?.hora_inicio) || '--:--',
-            horaFim: normalizeTime(row?.hora_fim) || '',
             professor: String(row?.professor || '').trim(),
+            professorCor: row?.professor_cor || null,
             alunos: normalizeAlunosList(row?.alunos),
             categoria: String(row?.categoria || 'curricular').trim(),
         };
 
-        const diasPermitidos = parseDiasSemana(row?.dias_semana);
+        const scheduleEntries = parseScheduleEntries(
+            row?.dias_semana,
+            row?.hora_inicio,
+            row?.hora_fim
+        );
         const isSingleOccurrence = startDate.getTime() === endDate.getTime();
         const cursor = new Date(intervalStart);
 
         while (cursor <= intervalEnd) {
             const key = formatDateKey(cursor);
             const dayKey = mapDayIndexToKey(cursor.getDay());
-            const isAllowedDay =
-                isSingleOccurrence ||
-                diasPermitidos.length === 0 ||
-                diasPermitidos.includes(dayKey);
+            const allowedEntries = isSingleOccurrence
+                ? scheduleEntries
+                : scheduleEntries.filter(
+                      (entry) => !entry.dia || entry.dia === dayKey
+                  );
 
-            if (isAllowedDay) {
+            if (allowedEntries.length) {
                 if (!map[key]) {
                     map[key] = [];
                 }
@@ -352,10 +417,14 @@ function buildAtividadesPorDia(
                     `${row.id_servico}:${key}`
                 );
 
-                map[key].push({
-                    ...atividade,
-                    estado: presenca?.estado || '',
-                    dataReposicao: presenca?.data_reposicao || null,
+                allowedEntries.forEach((entry) => {
+                    map[key].push({
+                        ...atividade,
+                        hora: entry.horaInicio || '--:--',
+                        horaFim: entry.horaFim || '',
+                        estado: presenca?.estado || '',
+                        dataReposicao: presenca?.data_reposicao || null,
+                    });
                 });
             }
             cursor.setDate(cursor.getDate() + 1);
@@ -379,6 +448,8 @@ function buildAtividadesPorDia(
 
             map[key].push({
                 ...atividade,
+                hora: normalizeTime(row?.hora_inicio) || '--:--',
+                horaFim: normalizeTime(row?.hora_fim) || '',
                 estado: 'reposta',
                 dataOriginal: reposicao.data_aula || null,
                 dataReposicao: reposicao.data_reposicao,
@@ -574,6 +645,7 @@ export async function listarAgenda(req, res) {
           m.nome AS modalidade,
           sa.nome AS sala,
           COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
+          p.cor AS professor_cor,
           'curricular' AS categoria,
           ${buildAlunosSelect('s')}
         FROM servicos_curriculares s
@@ -621,6 +693,7 @@ export async function listarAgenda(req, res) {
           m.nome AS modalidade,
           sa.nome AS sala,
           COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
+          p.cor AS professor_cor,
           'extra-curricular' AS categoria,
           ${buildAlunosSelect('se')}
         FROM servicos_extracurriculares se

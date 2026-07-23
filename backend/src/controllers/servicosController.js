@@ -78,6 +78,67 @@ export async function verificarConflitoSalaDatabase(
     excludeServiceId = null,
     queryClient = db
 ) {
+    const parsedDiasSemana =
+        typeof diasSemana === 'string'
+            ? (() => {
+                  try {
+                      const parsed = JSON.parse(diasSemana);
+                      return Array.isArray(parsed) ? parsed : [];
+                  } catch {
+                      return [];
+                  }
+              })()
+            : Array.isArray(diasSemana)
+              ? diasSemana
+              : [];
+
+    if (parsedDiasSemana.some((item) => item && typeof item === 'object')) {
+        const duracao = getDurationMinutes(
+            normalizeTimeLabel(horaInicio),
+            normalizeTimeLabel(horaFim)
+        );
+        const sessoes = normalizeServiceSessions({
+            sessoes: parsedDiasSemana,
+            horaInicio,
+            duracao,
+        });
+        const conflicts = [];
+
+        for (const sessao of sessoes) {
+            const { rows } = await queryClient.query(
+                `
+                    SELECT *
+                    FROM public.fn_verificar_conflito_horario(
+                        $1::bigint,
+                        NULL,
+                        $2::date,
+                        $3::time,
+                        $4::time,
+                        $5::text,
+                        $6::date,
+                        $7::bigint
+                    )
+                    WHERE tipo_conflito = 'sala'
+                `,
+                [
+                    salaId,
+                    dataInicio,
+                    sessao.horaInicio,
+                    sessao.horaFim,
+                    JSON.stringify([sessao.dia]),
+                    dataFim || dataInicio,
+                    excludeServiceId,
+                ]
+            );
+            conflicts.push(...rows);
+        }
+
+        return {
+            hasConflict: conflicts.length > 0,
+            conflicts,
+        };
+    }
+
     const { rows } = await queryClient.query(
         `
             SELECT *
@@ -471,6 +532,100 @@ export function normalizeTimeLabel(value) {
     return raw ? raw.slice(0, 5) : '';
 }
 
+export function normalizeServiceSessions({
+    sessoes,
+    diasSemana,
+    horaInicio,
+    duracao,
+}) {
+    const source = Array.isArray(sessoes)
+        ? sessoes
+        : Array.isArray(diasSemana) &&
+            diasSemana.some((item) => item && typeof item === 'object')
+          ? diasSemana
+          : [];
+
+    const normalized = source
+        .map((item) => {
+            const dia = String(item?.dia || item?.day || '')
+                .trim()
+                .toLowerCase();
+            const inicio = normalizeTimeLabel(
+                item?.horaInicio || item?.hora_inicio
+            );
+            const minutos = Number(item?.duracao || item?.duration || duracao);
+            const fim = addMinutesToTime(inicio, minutos);
+
+            if (
+                !dia ||
+                !inicio ||
+                !fim ||
+                !Number.isFinite(minutos) ||
+                minutos <= 0
+            ) {
+                return null;
+            }
+
+            return {
+                dia,
+                horaInicio: inicio,
+                horaFim: fim,
+                duracao: String(minutos),
+            };
+        })
+        .filter(Boolean);
+
+    if (normalized.length) {
+        return normalized;
+    }
+
+    const dias = Array.isArray(diasSemana)
+        ? diasSemana
+              .map((item) =>
+                  String(item || '')
+                      .trim()
+                      .toLowerCase()
+              )
+              .filter(Boolean)
+        : [];
+
+    const inicio = normalizeTimeLabel(horaInicio);
+    const minutos = Number(duracao);
+    const fim = addMinutesToTime(inicio, minutos);
+
+    if (!inicio || !fim || !Number.isFinite(minutos) || minutos <= 0) {
+        return [];
+    }
+
+    return dias.map((dia) => ({
+        dia,
+        horaInicio: inicio,
+        horaFim: fim,
+        duracao: String(minutos),
+    }));
+}
+
+export function getPrimarySchedule(payload) {
+    const sessoes = normalizeServiceSessions(payload);
+    const first = sessoes[0] || null;
+    const horaInicio = first?.horaInicio || normalizeTimeLabel(payload.horaInicio);
+    const duracao = Number(first?.duracao || payload.duracao);
+
+    return {
+        sessoes,
+        horaInicio,
+        horaFim: addMinutesToTime(horaInicio, duracao),
+        duracao: String(duracao || ''),
+        diasSemanaJson: JSON.stringify(
+            sessoes.length
+                ? sessoes
+                : Array.isArray(payload.diasSemana)
+                  ? payload.diasSemana
+                  : []
+        ),
+    };
+}
+
 export function hasScheduleChanged(oldRow, nextRow) {
     const oldDate = normalizeDateKey(oldRow?.data_inicio);
     const nextDate = normalizeDateKey(nextRow?.data_inicio);
@@ -713,27 +868,41 @@ export function mapServicoRow(row) {
         : '';
     const horaFim = row.hora_fim ? String(row.hora_fim).slice(0, 5) : '';
     let diasSemana = [];
+    let sessoes = [];
 
     if (Array.isArray(row.dias_semana)) {
-        diasSemana = row.dias_semana
-            .map((item) =>
-                String(item || '')
-                    .trim()
-                    .toLowerCase()
-            )
-            .filter(Boolean);
+        if (row.dias_semana.some((item) => item && typeof item === 'object')) {
+            sessoes = normalizeServiceSessions({ sessoes: row.dias_semana });
+            diasSemana = sessoes.map((item) => item.dia);
+        } else {
+            diasSemana = row.dias_semana
+                .map((item) =>
+                    String(item || '')
+                        .trim()
+                        .toLowerCase()
+                )
+                .filter(Boolean);
+        }
     } else if (typeof row.dias_semana === 'string' && row.dias_semana) {
         try {
             const parsed = JSON.parse(row.dias_semana);
-            diasSemana = Array.isArray(parsed)
-                ? parsed
-                      .map((item) =>
-                          String(item || '')
-                              .trim()
-                              .toLowerCase()
-                      )
-                      .filter(Boolean)
-                : [];
+            if (
+                Array.isArray(parsed) &&
+                parsed.some((item) => item && typeof item === 'object')
+            ) {
+                sessoes = normalizeServiceSessions({ sessoes: parsed });
+                diasSemana = sessoes.map((item) => item.dia);
+            } else {
+                diasSemana = Array.isArray(parsed)
+                    ? parsed
+                          .map((item) =>
+                              String(item || '')
+                                  .trim()
+                                  .toLowerCase()
+                          )
+                          .filter(Boolean)
+                    : [];
+            }
         } catch {
             diasSemana = row.dias_semana
                 .split(',')
@@ -751,6 +920,7 @@ export function mapServicoRow(row) {
         periodicidade: periodicidadeLabel,
         tipoServico: tipoLabel,
         modalidade: row.modalidade,
+        professor: row.professor,
         nivelEnsino: formatNivelEnsino(row.nivel_ensino),
         area: row.area,
         areaId: row.area_id == null ? '' : String(row.area_id),
@@ -765,6 +935,7 @@ export function mapServicoRow(row) {
         horaInicio,
         duracao: String(getDurationMinutes(horaInicio, horaFim)),
         diasSemana,
+        sessoes,
         alunosIds: Array.isArray(row.alunos_ids)
             ? row.alunos_ids
                   .map(Number)
@@ -1233,6 +1404,7 @@ export async function atualizarServicoBase(
             horaInicio,
             duracao,
             diasSemana,
+            sessoes,
         } = req.body || {};
 
         const isExtra = tableName === 'servicos_extracurriculares';
@@ -1245,15 +1417,20 @@ export async function atualizarServicoBase(
             !professorId ||
             !salaId ||
             !dataInicio ||
-            !horaInicio ||
-            !duracao
+            (!Array.isArray(sessoes) && (!horaInicio || !duracao))
         ) {
             return res.status(400).json({
                 message: `Preencha todos os campos obrigatórios para atualizar o serviço ${contextoLabel}.`,
             });
         }
 
-        const horaFim = addMinutesToTime(horaInicio, Number(duracao));
+        const schedule = getPrimarySchedule({
+            sessoes,
+            diasSemana,
+            horaInicio,
+            duracao,
+        });
+        const horaFim = schedule.horaFim;
         if (!horaFim) {
             return res
                 .status(400)
@@ -1267,7 +1444,7 @@ export async function atualizarServicoBase(
         const isPeriodic = resolveIsPeriodic(
             serviceType,
             periodicidade,
-            diasSemana
+            schedule.sessoes.length ? schedule.sessoes : diasSemana
         );
         const tipoDb =
             normalizedTipo === 'periodico' || normalizedTipo === 'unico'
@@ -1276,9 +1453,7 @@ export async function atualizarServicoBase(
                   ? 'periodico'
                   : 'unico';
 
-        const diasSemanaJson = Array.isArray(diasSemana)
-            ? JSON.stringify(diasSemana)
-            : null;
+        const diasSemanaJson = schedule.diasSemanaJson;
 
         // tipoServico resolution will be done after detecting which column the
         // servicos_extracurriculares table uses and which tipo table it references (if extra).
@@ -1298,14 +1473,12 @@ export async function atualizarServicoBase(
             Number(professorId),
             dataInicio,
             calculatedDataFim,
-            horaInicio,
+            schedule.horaInicio,
             horaFim,
             diasSemanaJson,
             idServico // Excluir este serviço da validação
         );
         if (professorCheck.hasConflict) {
-            await client.query('ROLLBACK').catch(() => {});
-            client.release();
             return res.status(409).json({
                 code: 'PROFESSOR_CONFLICT',
                 message: `Professor possui conflito de horário com ${professorCheck.conflicts.length} aula(s) existente(s).`,
@@ -1358,6 +1531,7 @@ export async function atualizarServicoBase(
                 !Number.isInteger(tipoServicoResolvedId) ||
                 tipoServicoResolvedId <= 0
             ) {
+                await client.query('ROLLBACK');
                 return res.status(400).json({
                     message:
                         'Tipo de serviço inválido. Selecione um tipo de serviço válido.',
@@ -1376,6 +1550,7 @@ export async function atualizarServicoBase(
                 !Number.isInteger(tipoServicoResolvedId) ||
                 tipoServicoResolvedId <= 0
             ) {
+                await client.query('ROLLBACK');
                 return res.status(400).json({
                     message:
                         'Tipo de serviço inválido. Selecione um tipo de serviço válido.',
@@ -1408,7 +1583,7 @@ export async function atualizarServicoBase(
                   anoLetivo,
                   dataInicio,
                   calculatedDataFim,
-                  horaInicio,
+                  schedule.horaInicio,
                   horaFim,
               ]
             : [
@@ -1421,7 +1596,7 @@ export async function atualizarServicoBase(
                   anoLetivo,
                   dataInicio,
                   calculatedDataFim,
-                  horaInicio,
+                  schedule.horaInicio,
                   horaFim,
               ];
 
@@ -1539,12 +1714,16 @@ export async function atualizarServicoBase(
                 END AS periodicidade,
                 COALESCE(NULLIF(ts.nome, ''), NULLIF(s.tipo, ''), 'Serviço') AS tipo_servico,
                 COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
                 ${extraAreaLevelSelect},
                 ${extraAreaNameSelect},
                 COALESCE(s.capacidade_max, 0)::int AS n_alunos
             FROM ${tableName} s
             LEFT JOIN tipo_servico ts ON ts.id_tiposervico = s.id_tiposervico
             LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
             ${extraAreaJoin}
 			WHERE s.id_servico = $1
 			LIMIT 1
@@ -1569,6 +1748,7 @@ export async function atualizarServicoBase(
 				END AS periodicidade,
 				COALESCE(NULLIF(ts.nome, ''), NULLIF(s.tipo, ''), 'Serviço') AS tipo_servico,
 				COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
 				d.id_nivel AS nivel_ensino,
 				COALESCE(d.nome, 'Sem disciplina') AS area,
 				COALESCE(s.capacidade_max, 0)::int AS n_alunos
@@ -1576,6 +1756,9 @@ export async function atualizarServicoBase(
 			LEFT JOIN tipo_servico ts ON ts.id_tiposervico = s.id_tiposervico
 			LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
 			LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
 			WHERE s.id_servico = $1
 			LIMIT 1
 		`;

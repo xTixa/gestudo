@@ -58,7 +58,11 @@ function parseDiasSemana(value) {
     if (Array.isArray(value)) {
         return value
             .map((item) =>
-                String(item || '')
+                String(
+                    item && typeof item === 'object'
+                        ? item.dia || item.day || ''
+                        : item || ''
+                )
                     .trim()
                     .toLowerCase()
             )
@@ -85,6 +89,57 @@ function parseDiasSemana(value) {
     }
 
     return [];
+}
+
+function parseScheduleEntries(value, fallbackStart, fallbackEnd) {
+    const raw = Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+          ? (() => {
+                try {
+                    const parsed = JSON.parse(value);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            })()
+          : [];
+
+    const entries = raw
+        .map((item) => {
+            if (item && typeof item === 'object') {
+                return {
+                    dia: String(item.dia || item.day || '')
+                        .trim()
+                        .toLowerCase(),
+                    horaInicio: normalizeTimeOnly(
+                        item.horaInicio || item.hora_inicio || fallbackStart
+                    ),
+                    horaFim: normalizeTimeOnly(
+                        item.horaFim || item.hora_fim || fallbackEnd
+                    ),
+                };
+            }
+
+            return {
+                dia: String(item || '')
+                    .trim()
+                    .toLowerCase(),
+                horaInicio: normalizeTimeOnly(fallbackStart),
+                horaFim: normalizeTimeOnly(fallbackEnd),
+            };
+        })
+        .filter((item) => item.dia);
+
+    return entries.length
+        ? entries
+        : [
+              {
+                  dia: '',
+                  horaInicio: normalizeTimeOnly(fallbackStart),
+                  horaFim: normalizeTimeOnly(fallbackEnd),
+              },
+          ];
 }
 
 function mapDayIndexToKey(dayIndex) {
@@ -385,40 +440,49 @@ function expandServiceSessions(rows, fromDate, toDate, markedSessions) {
             return;
         }
 
-        const diasPermitidos = parseDiasSemana(row.dias_semana);
+        const scheduleEntries = parseScheduleEntries(
+            row.dias_semana,
+            row.hora_inicio,
+            row.hora_fim
+        );
         const isSingleOccurrence = startDate.getTime() === endDate.getTime();
         const cursor = new Date(intervalStart);
 
         while (cursor <= intervalEnd) {
             const dateKey = formatDateKey(cursor);
             const dayKey = mapDayIndexToKey(cursor.getDay());
-            const isAllowedDay =
-                isSingleOccurrence ||
-                diasPermitidos.length === 0 ||
-                diasPermitidos.includes(dayKey);
+            const allowedEntries = isSingleOccurrence
+                ? scheduleEntries
+                : scheduleEntries.filter(
+                      (entry) => !entry.dia || entry.dia === dayKey
+                  );
 
-            if (isAllowedDay) {
+            if (allowedEntries.length) {
                 const serviceId = Number(row.id_servico);
 
-                sessions.push({
-                    id_servico: serviceId,
-                    id: serviceId,
-                    sessionKey: `${serviceId}:${dateKey}`,
-                    titulo: String(row.disciplina || 'Serviço').trim(),
-                    disciplina: row.disciplina,
-                    sala: String(row.sala || 'Sem sala').trim() || 'Sem sala',
-                    data_inicio: dateKey,
-                    dataInicio: dateKey,
-                    data_fim: dateKey,
-                    dataFim: dateKey,
-                    dataAula: dateKey,
-                    hora_inicio: normalizeTimeOnly(row.hora_inicio),
-                    horaInicio: normalizeTimeOnly(row.hora_inicio),
-                    hora_fim: normalizeTimeOnly(row.hora_fim),
-                    horaFim: normalizeTimeOnly(row.hora_fim),
-                    total_alunos: Number(row.total_alunos || 0),
-                    totalAlunos: Number(row.total_alunos || 0),
-                    marcada: markedSessions.has(`${serviceId}:${dateKey}`),
+                allowedEntries.forEach((entry) => {
+                    sessions.push({
+                        id_servico: serviceId,
+                        id: serviceId,
+                        sessionKey: `${serviceId}:${dateKey}`,
+                        titulo: String(row.disciplina || 'Serviço').trim(),
+                        disciplina: row.disciplina,
+                        sala:
+                            String(row.sala || 'Sem sala').trim() ||
+                            'Sem sala',
+                        data_inicio: dateKey,
+                        dataInicio: dateKey,
+                        data_fim: dateKey,
+                        dataFim: dateKey,
+                        dataAula: dateKey,
+                        hora_inicio: entry.horaInicio,
+                        horaInicio: entry.horaInicio,
+                        hora_fim: entry.horaFim,
+                        horaFim: entry.horaFim,
+                        total_alunos: Number(row.total_alunos || 0),
+                        totalAlunos: Number(row.total_alunos || 0),
+                        marcada: markedSessions.has(`${serviceId}:${dateKey}`),
+                    });
                 });
             }
 

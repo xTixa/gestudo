@@ -1,5 +1,79 @@
 import { db } from '../config/db.js';
 
+function normalizeTime(value) {
+    return String(value || '')
+        .trim()
+        .slice(0, 5);
+}
+
+function parseScheduleEntries(diasSemana, horaInicio, horaFim) {
+    const raw = Array.isArray(diasSemana)
+        ? diasSemana
+        : typeof diasSemana === 'string'
+          ? (() => {
+                try {
+                    const parsed = JSON.parse(diasSemana);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            })()
+          : [];
+
+    const entries = raw
+        .map((item) => {
+            if (item && typeof item === 'object') {
+                return {
+                    dia: String(item.dia || item.day || '')
+                        .trim()
+                        .toLowerCase(),
+                    horaInicio: normalizeTime(
+                        item.horaInicio || item.hora_inicio || horaInicio
+                    ),
+                    horaFim: normalizeTime(
+                        item.horaFim || item.hora_fim || horaFim
+                    ),
+                };
+            }
+
+            return {
+                dia: String(item || '')
+                    .trim()
+                    .toLowerCase(),
+                horaInicio: normalizeTime(horaInicio),
+                horaFim: normalizeTime(horaFim),
+            };
+        })
+        .filter((item) => item.dia || (item.horaInicio && item.horaFim));
+
+    return entries.length
+        ? entries
+        : [
+              {
+                  dia: '',
+                  horaInicio: normalizeTime(horaInicio),
+                  horaFim: normalizeTime(horaFim),
+              },
+          ];
+}
+
+function scheduleEntriesOverlap(leftEntries, rightEntries) {
+    return leftEntries.some((left) =>
+        rightEntries.some((right) => {
+            const sameDay =
+                !left.dia || !right.dia || String(left.dia) === String(right.dia);
+            if (!sameDay) {
+                return false;
+            }
+
+            return (
+                timeToMinutes(left.horaInicio) < timeToMinutes(right.horaFim) &&
+                timeToMinutes(left.horaFim) > timeToMinutes(right.horaInicio)
+            );
+        })
+    );
+}
+
 /**
  * SERVICE: Agenda Validation Service
  * Valida conflitos de agendamento e restrições de professores
@@ -28,18 +102,11 @@ export async function verificarSobrepoisaoProfessor(
     queryClient = db
 ) {
     try {
-        // Parse dias_semana se for string
-        let diasArray = [];
-        if (diasSemana) {
-            try {
-                diasArray =
-                    typeof diasSemana === 'string'
-                        ? JSON.parse(diasSemana)
-                        : diasSemana;
-            } catch (e) {
-                diasArray = [];
-            }
-        }
+        const targetEntries = parseScheduleEntries(
+            diasSemana,
+            horaInicio,
+            horaFim
+        );
 
         // Query para encontrar conflitos
         const query = `
@@ -75,37 +142,13 @@ export async function verificarSobrepoisaoProfessor(
         const conflicts = [];
 
         for (const existingService of rows) {
-            const existingDiasArray = existingService.dias_semana
-                ? JSON.parse(existingService.dias_semana)
-                : [];
-
-            // Se um serviço tem dias_semana definidos e o outro também, comparar dias
-            const hasCommonDays =
-                diasArray.length > 0 && existingDiasArray.length > 0
-                    ? diasArray.some((day) => existingDiasArray.includes(day))
-                    : !diasArray.length && !existingDiasArray.length;
-
-            // Se não há dias comuns, não há conflito
-            if (
-                diasArray.length > 0 &&
-                existingDiasArray.length > 0 &&
-                !hasCommonDays
-            ) {
-                continue;
-            }
-
-            // Verificar sobreposição de horas
-            const horaInicioMins = timeToMinutes(horaInicio);
-            const horaFimMins = timeToMinutes(horaFim);
-            const existingInicioMins = timeToMinutes(
-                existingService.hora_inicio
+            const existingEntries = parseScheduleEntries(
+                existingService.dias_semana,
+                existingService.hora_inicio,
+                existingService.hora_fim
             );
-            const existingFimMins = timeToMinutes(existingService.hora_fim);
 
-            if (
-                horaInicioMins < existingFimMins &&
-                horaFimMins > existingInicioMins
-            ) {
+            if (scheduleEntriesOverlap(targetEntries, existingEntries)) {
                 conflicts.push({
                     id: existingService.id_servico,
                     disciplina: existingService.disciplina,
@@ -155,18 +198,11 @@ export async function verificarSobrepoisaoAlunos(
             return { conflictsByAluno: {}, hasConflict: false };
         }
 
-        // Parse dias_semana se for string
-        let diasArray = [];
-        if (diasSemana) {
-            try {
-                diasArray =
-                    typeof diasSemana === 'string'
-                        ? JSON.parse(diasSemana)
-                        : diasSemana;
-            } catch (e) {
-                diasArray = [];
-            }
-        }
+        const targetEntries = parseScheduleEntries(
+            diasSemana,
+            horaInicio,
+            horaFim
+        );
 
         // Query para encontrar serviços dos alunos em conflito potencial
         const inscricoesServicoColumn =
@@ -212,32 +248,13 @@ export async function verificarSobrepoisaoAlunos(
         const conflictsByAluno = {};
 
         for (const row of rows) {
-            const existingDiasArray = row.dias_semana
-                ? JSON.parse(row.dias_semana)
-                : [];
+            const existingEntries = parseScheduleEntries(
+                row.dias_semana,
+                row.hora_inicio,
+                row.hora_fim
+            );
 
-            const hasCommonDays =
-                diasArray.length > 0 && existingDiasArray.length > 0
-                    ? diasArray.some((day) => existingDiasArray.includes(day))
-                    : !diasArray.length && !existingDiasArray.length;
-
-            if (
-                diasArray.length > 0 &&
-                existingDiasArray.length > 0 &&
-                !hasCommonDays
-            ) {
-                continue;
-            }
-
-            const horaInicioMins = timeToMinutes(horaInicio);
-            const horaFimMins = timeToMinutes(horaFim);
-            const existingInicioMins = timeToMinutes(row.hora_inicio);
-            const existingFimMins = timeToMinutes(row.hora_fim);
-
-            if (
-                horaInicioMins < existingFimMins &&
-                horaFimMins > existingInicioMins
-            ) {
+            if (scheduleEntriesOverlap(targetEntries, existingEntries)) {
                 if (!conflictsByAluno[row.id_aluno]) {
                     conflictsByAluno[row.id_aluno] = {
                         alunoId: row.id_aluno,

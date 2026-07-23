@@ -41,6 +41,7 @@ import {
     getDataFimAnoLetivo,
     mapServicoRow,
     normalizeText,
+    getPrimarySchedule,
     resolveIsPeriodic,
     resolveTipoServicoId,
     resolvePacote,
@@ -96,6 +97,7 @@ export async function listarServicosCurriculares(req, res) {
 				END AS periodicidade,
 				COALESCE(NULLIF(ts.nome, ''), NULLIF(s.tipo, ''), 'Serviço') AS tipo_servico,
 				COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
 				d.id_nivel AS nivel_ensino,
 				COALESCE(d.nome, 'Sem disciplina') AS area,
 				COALESCE(s.capacidade_max, 0)::int AS n_alunos,
@@ -104,6 +106,9 @@ export async function listarServicosCurriculares(req, res) {
 			LEFT JOIN tipo_servico ts ON ts.id_tiposervico = s.id_tiposervico
 			LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
 			LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
 			WHERE COALESCE(s.ativo, true) = true
 			  AND NOT EXISTS (
 				SELECT 1
@@ -143,9 +148,10 @@ export async function listarOpcoesServicoCurricular(req, res) {
                 `SELECT id_disciplina AS id, nome, id_nivel FROM disciplinas ORDER BY nome`
             ),
             db.query(`
-				SELECT p.id_professor AS id, COALESCE(u.email, CONCAT('Professor #', p.id_professor::text)) AS nome
+				SELECT p.id_professor AS id, COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), CONCAT('Professor #', p.id_professor::text)) AS nome
 				FROM professores p
 				LEFT JOIN users u ON u.id_user = p.id_user
+                LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
 				WHERE COALESCE(u.role, '') = 'professor'
 				ORDER BY nome
 			`),
@@ -261,6 +267,7 @@ export async function criarServicoCurricular(req, res) {
             duracao,
             alunosIds,
             diasSemana,
+            sessoes,
         } = req.body || {};
 
         if (
@@ -268,8 +275,7 @@ export async function criarServicoCurricular(req, res) {
             !modalidadeId ||
             !(disciplinaId || areaId) ||
             !dataInicio ||
-            !horaInicio ||
-            !duracao
+            (!Array.isArray(sessoes) && (!horaInicio || !duracao))
         ) {
             return res.status(400).json({
                 message:
@@ -281,7 +287,13 @@ export async function criarServicoCurricular(req, res) {
         await ensureServiceVersionColumns(client, 'servicos_curriculares');
 
         const capacidadeMax = Array.isArray(alunosIds) ? alunosIds.length : 0;
-        const horaFim = addMinutesToTime(horaInicio, Number(duracao));
+        const schedule = getPrimarySchedule({
+            sessoes,
+            diasSemana,
+            horaInicio,
+            duracao,
+        });
+        const horaFim = schedule.horaFim;
 
         if (!horaFim) {
             return res
@@ -297,7 +309,7 @@ export async function criarServicoCurricular(req, res) {
         const isPeriodic = resolveIsPeriodic(
             serviceType,
             periodicidade,
-            diasSemana
+            schedule.sessoes.length ? schedule.sessoes : diasSemana
         );
         const tipoDb =
             normalizedTipo === 'periodico' || normalizedTipo === 'unico'
@@ -306,9 +318,7 @@ export async function criarServicoCurricular(req, res) {
                   ? 'periodico'
                   : 'unico';
 
-        const diasSemanaJson = Array.isArray(diasSemana)
-            ? JSON.stringify(diasSemana)
-            : null;
+        const diasSemanaJson = schedule.diasSemanaJson;
 
         // ==================== VALIDAÇÕES DE CONFLITOS ====================
 
@@ -322,7 +332,7 @@ export async function criarServicoCurricular(req, res) {
                 Number(salaId),
                 dataInicio,
                 dataFimValidacao,
-                horaInicio,
+                schedule.horaInicio,
                 horaFim,
                 diasSemanaJson,
                 null
@@ -343,7 +353,7 @@ export async function criarServicoCurricular(req, res) {
                 Number(professorId),
                 dataInicio,
                 dataFimValidacao,
-                horaInicio,
+                schedule.horaInicio,
                 horaFim,
                 diasSemanaJson,
                 null
@@ -364,7 +374,7 @@ export async function criarServicoCurricular(req, res) {
                 alunosIds.map(Number),
                 dataInicio,
                 dataFimValidacao,
-                horaInicio,
+                schedule.horaInicio,
                 horaFim,
                 diasSemanaJson,
                 null
@@ -438,7 +448,7 @@ export async function criarServicoCurricular(req, res) {
             anoLetivo,
             dataInicio,
             dataFim,
-            horaInicio,
+            schedule.horaInicio,
             horaFim,
             Math.max(1, capacidadeMax),
             diasSemanaJson,
@@ -527,12 +537,16 @@ export async function criarServicoCurricular(req, res) {
 				END AS periodicidade,
 				COALESCE(NULLIF(s.tipo, ''), 'Serviço') AS tipo_servico,
 				COALESCE(m.nome, 'Sem modalidade') AS modalidade,
+                COALESCE(NULLIF(pes.nome, ''), NULLIF(u.email, ''), 'Sem professor') AS professor,
 				d.id_nivel AS nivel_ensino,
 				COALESCE(d.nome, 'Sem disciplina') AS area,
 				COALESCE(s.capacidade_max, 0)::int AS n_alunos
 			FROM servicos_curriculares s
 			LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
 			LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
+            LEFT JOIN professores p ON p.id_professor = s.id_professor
+            LEFT JOIN users u ON u.id_user = p.id_user
+            LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
 			WHERE s.id_servico = $1
 			LIMIT 1
 		`;
@@ -575,8 +589,23 @@ export async function atualizarServicoCurricular(req, res) {
             return res.status(400).json({ message: 'ID de serviço inválido.' });
         }
 
-        const { salaId, horaInicio, duracao, diasSemana, alunosIds } =
-            req.body || {};
+        const {
+            tipoServico,
+            idTipoServico,
+            id_tiposervico,
+            tipoServicoId,
+            serviceType,
+            periodicidade,
+            modalidadeId,
+            disciplinaId,
+            professorId,
+            salaId,
+            horaInicio,
+            duracao,
+            diasSemana,
+            sessoes,
+            alunosIds,
+        } = req.body || {};
 
         await ensureDiasSemanaColumn(client, 'servicos_curriculares');
         await ensureServiceVersionColumns(client, 'servicos_curriculares');
@@ -620,6 +649,39 @@ export async function atualizarServicoCurricular(req, res) {
             });
         }
 
+        const nextProfessorId =
+            professorId !== undefined
+                ? professorId
+                    ? Number(professorId)
+                    : null
+                : oldServico.id_professor != null
+                  ? Number(oldServico.id_professor)
+                  : null;
+        const nextDisciplinaId =
+            disciplinaId !== undefined
+                ? Number(disciplinaId)
+                : Number(oldServico.id_disciplina);
+        const nextModalidadeId =
+            modalidadeId !== undefined
+                ? Number(modalidadeId)
+                : Number(oldServico.id_modalidade);
+        const nextTipoDb = resolveIsPeriodic(
+            serviceType,
+            periodicidade,
+            Array.isArray(sessoes) && sessoes.length ? sessoes : diasSemana
+        )
+            ? 'periodico'
+            : 'unico';
+        const nextTipoServicoId =
+            tipoServico || idTipoServico || id_tiposervico || tipoServicoId
+                ? await resolveTipoServicoId(
+                      client,
+                      idTipoServico ?? id_tiposervico ?? tipoServicoId,
+                      tipoServico,
+                      nextTipoDb,
+                      'curricular'
+                  )
+                : Number(oldServico.id_tiposervico);
         const nextSalaId =
             salaId !== undefined
                 ? salaId
@@ -628,16 +690,19 @@ export async function atualizarServicoCurricular(req, res) {
                 : oldServico.id_sala != null
                   ? Number(oldServico.id_sala)
                   : null;
-        const nextHoraInicio =
-            normalizeTimeLabel(horaInicio) ||
-            normalizeTimeLabel(oldServico.hora_inicio);
-        const nextDuracao =
-            Number(duracao) ||
-            getDurationMinutes(
-                normalizeTimeLabel(oldServico.hora_inicio),
-                normalizeTimeLabel(oldServico.hora_fim)
-            );
-        const nextHoraFim = addMinutesToTime(nextHoraInicio, nextDuracao);
+        const schedule = getPrimarySchedule({
+            sessoes,
+            diasSemana,
+            horaInicio: horaInicio || oldServico.hora_inicio,
+            duracao:
+                duracao ||
+                getDurationMinutes(
+                    normalizeTimeLabel(oldServico.hora_inicio),
+                    normalizeTimeLabel(oldServico.hora_fim)
+                ),
+        });
+        const nextHoraInicio = schedule.horaInicio;
+        const nextHoraFim = schedule.horaFim;
 
         if (
             (nextSalaId != null &&
@@ -651,9 +716,11 @@ export async function atualizarServicoCurricular(req, res) {
             });
         }
 
-        const nextDiasSemana = Array.isArray(diasSemana)
-            ? diasSemana
-            : parseDiasSemanaValue(oldServico.dias_semana);
+        const nextDiasSemana = schedule.sessoes.length
+            ? schedule.sessoes
+            : Array.isArray(diasSemana)
+              ? diasSemana
+              : parseDiasSemanaValue(oldServico.dias_semana);
         const nextDiasSemanaJson = JSON.stringify(nextDiasSemana);
         const selectedAlunos = Array.isArray(alunosIds)
             ? Array.from(
@@ -687,9 +754,9 @@ export async function atualizarServicoCurricular(req, res) {
             }
         }
 
-        if (oldServico.id_professor) {
+        if (nextProfessorId) {
             const professorCheck = await verificarSobrepoisaoProfessor(
-                Number(oldServico.id_professor),
+                Number(nextProfessorId),
                 effectiveDate,
                 oldEnd,
                 nextHoraInicio,
@@ -738,16 +805,26 @@ export async function atualizarServicoCurricular(req, res) {
 					UPDATE servicos_curriculares
 					SET
 						id_sala = $1,
-						hora_inicio = $2,
-						hora_fim = $3,
-						dias_semana = $4,
-						capacidade_max = $5,
+                        id_professor = $2,
+                        id_disciplina = $3,
+                        id_modalidade = $4,
+                        id_tiposervico = $5,
+                        tipo = $6,
+						hora_inicio = $7,
+						hora_fim = $8,
+						dias_semana = $9,
+						capacidade_max = $10,
 						id_servico_origem = COALESCE(id_servico_origem, id_servico),
 						versao_criada_em = COALESCE(versao_criada_em, CURRENT_TIMESTAMP)
-					WHERE id_servico = $6
+					WHERE id_servico = $11
 				`,
                 [
                     nextSalaId,
+                    nextProfessorId,
+                    nextDisciplinaId,
+                    nextModalidadeId,
+                    nextTipoServicoId,
+                    nextTipoDb,
                     nextHoraInicio,
                     nextHoraFim,
                     nextDiasSemanaJson,
@@ -759,8 +836,8 @@ export async function atualizarServicoCurricular(req, res) {
                 client,
                 idServico,
                 selectedAlunos,
-                oldServico.id_disciplina,
-                oldServico.id_modalidade
+                nextDisciplinaId,
+                nextModalidadeId
             );
         } else {
             const previousEffectiveDate = addDaysToDateKey(effectiveDate, -1);
@@ -804,12 +881,12 @@ export async function atualizarServicoCurricular(req, res) {
 					RETURNING id_servico
 				`,
                 [
-                    oldServico.id_professor,
-                    oldServico.id_disciplina,
-                    oldServico.id_modalidade,
-                    oldServico.id_tiposervico,
+                    nextProfessorId,
+                    nextDisciplinaId,
+                    nextModalidadeId,
+                    nextTipoServicoId,
                     nextSalaId,
-                    oldServico.tipo,
+                    nextTipoDb,
                     getAnoLetivo(effectiveDate),
                     effectiveDate,
                     oldEnd,
@@ -826,8 +903,8 @@ export async function atualizarServicoCurricular(req, res) {
                 client,
                 nextServicoId,
                 selectedAlunos,
-                oldServico.id_disciplina,
-                oldServico.id_modalidade
+                nextDisciplinaId,
+                nextModalidadeId
             );
         }
 

@@ -69,6 +69,15 @@ function hashString(value) {
     );
 }
 
+// Deriva o conjunto bg/border/text/badge a partir da cor persistida do
+// professor (vinda da API), mantendo o mesmo estilo visual das cores fixas.
+function buildColorSetFromHex(hex) {
+    const match = PROFESSOR_COLORS.find(
+        (set) => set.border.toLowerCase() === String(hex || '').toLowerCase()
+    );
+    return match || null;
+}
+
 function getProfessorColor(atividade) {
     const professor = getProfessorName(atividade);
     if (!professor) {
@@ -79,6 +88,12 @@ function getProfessorColor(atividade) {
             badge: '#63738c',
         };
     }
+
+    const corPersistida = buildColorSetFromHex(atividade?.professorCor);
+    if (corPersistida) {
+        return corPersistida;
+    }
+
     return PROFESSOR_COLORS[
         hashString(professor.toLowerCase()) % PROFESSOR_COLORS.length
     ];
