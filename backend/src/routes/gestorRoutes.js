@@ -532,7 +532,7 @@ router.post(
     '/pacotes',
     validateBody({
         nome: { type: 'string', required: true, min: 1 },
-        preco: { type: 'number', required: true },
+        preco: { type: 'number', required: false },
         horas: { type: 'number', required: false },
         idModalidade: { type: 'number', required: false },
         idDisciplina: { type: 'number', required: false },

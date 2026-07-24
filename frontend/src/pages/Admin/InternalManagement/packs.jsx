@@ -173,7 +173,7 @@ export default function PacotesPage() {
         }
 
         const preco = formData.preco.trim();
-        if (!preco || Number.isNaN(Number(preco))) {
+        if (preco && Number.isNaN(Number(preco))) {
             setFormError('O preço deve ser um número válido.');
             return;
         }
@@ -330,7 +330,7 @@ export default function PacotesPage() {
 
                             <label className="block space-y-1.5">
                                 <span className="text-sm font-medium text-slate-700">
-                                    Preço (€) *
+                                    Preço (€)
                                 </span>
                                 <input
                                     type="number"

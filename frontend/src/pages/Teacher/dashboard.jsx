@@ -1,22 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-    CalendarDays,
+    AlertTriangle,
     CheckCircle2,
+    ClipboardCheck,
     Clock3,
     GraduationCap,
 } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
-
-const WEEK_DAYS = [
-    { key: 'segunda', label: 'Seg' },
-    { key: 'terca', label: 'Ter' },
-    { key: 'quarta', label: 'Qua' },
-    { key: 'quinta', label: 'Qui' },
-    { key: 'sexta', label: 'Sex' },
-    { key: 'sabado', label: 'Sáb' },
-    { key: 'domingo', label: 'Dom' },
-];
 
 function formatDateKey(date) {
     const year = date.getFullYear();
@@ -115,21 +107,6 @@ function getDayKey(date) {
     return normalizeWeekdayKey(date.getDay());
 }
 
-function startOfWeekMonday(date) {
-    const copy = new Date(date);
-    const day = copy.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    copy.setDate(copy.getDate() + diff);
-    copy.setHours(0, 0, 0, 0);
-    return copy;
-}
-
-function addDays(date, amount) {
-    const copy = new Date(date);
-    copy.setDate(copy.getDate() + amount);
-    return copy;
-}
-
 function formatTimeLabel(value) {
     const raw = String(value || '').trim();
     return raw ? raw.slice(0, 5) : '--:--';
@@ -190,96 +167,81 @@ function isServiceActiveOnDate(service, date) {
     return diasPermitidos.includes(getDayKey(target));
 }
 
-function getCurrentWeekRange() {
-    const today = new Date();
-    const from = startOfWeekMonday(today);
-    const to = addDays(from, 6);
-
-    return {
-        from: formatDateKey(from),
-        to: formatDateKey(to),
-        fromDate: from,
-        toDate: to,
-    };
-}
-
-function WeeklyBarChart({ counts }) {
-    const maxValue = Math.max(0, ...counts.map((item) => item.value));
-    const scale = Math.max(1, maxValue);
-    const tickValues = Array.from(
-        new Set(
-            [0, 0.25, 0.5, 0.75, 1].map((fraction) =>
-                Math.round(scale * fraction)
-            )
-        )
-    );
+function PendingAttendanceCard({ pendingSessions, onOpenPresences }) {
+    const hasPending = pendingSessions.length > 0;
 
     return (
-        <div className="relative h-[315px] rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-6 flex items-center gap-2 text-slate-700">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-500">
-                    <CalendarDays size={16} />
-                </span>
-                <h2 className="text-sm font-medium">Sessões Semanais</h2>
+        <div
+            className={`rounded-[20px] border p-5 shadow-sm ${
+                hasPending
+                    ? 'border-amber-200 bg-amber-50'
+                    : 'border-slate-200 bg-white'
+            }`}
+        >
+            <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-slate-700">
+                    <span
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
+                            hasPending
+                                ? 'bg-amber-100 text-amber-600'
+                                : 'bg-emerald-100 text-emerald-500'
+                        }`}
+                    >
+                        {hasPending ? (
+                            <AlertTriangle size={16} />
+                        ) : (
+                            <ClipboardCheck size={16} />
+                        )}
+                    </span>
+                    <h2 className="text-sm font-medium">
+                        Presenças por Marcar
+                    </h2>
+                </div>
+                {hasPending && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
+                        {pendingSessions.length}
+                    </span>
+                )}
             </div>
 
-            <div className="flex h-[240px] gap-4">
-                <div className="flex w-8 flex-col justify-between pb-7 text-[11px] text-slate-400">
-                    {tickValues
-                        .slice()
-                        .reverse()
-                        .map((tick) => (
-                            <span key={tick} className="text-right">
-                                {tick}
+            {hasPending ? (
+                <div className="space-y-2">
+                    {pendingSessions.slice(0, 5).map((session) => (
+                        <button
+                            key={session.sessionKey}
+                            type="button"
+                            onClick={onOpenPresences}
+                            className="flex w-full items-center gap-3 rounded-xl bg-white px-4 py-3 text-left shadow-sm transition hover:shadow-md"
+                        >
+                            <span className="min-w-[76px] rounded-lg bg-amber-100 px-2 py-2 text-center text-xs font-semibold text-amber-700">
+                                {session.dateLabel}
                             </span>
-                        ))}
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-slate-700">
+                                    {session.titulo}
+                                </p>
+                                <p className="truncate text-xs text-slate-500">
+                                    {session.sala || 'Sem sala'}
+                                </p>
+                            </div>
+                        </button>
+                    ))}
+                    {pendingSessions.length > 5 && (
+                        <button
+                            type="button"
+                            onClick={onOpenPresences}
+                            className="w-full rounded-xl border border-dashed border-amber-300 px-4 py-2.5 text-center text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                        >
+                            Ver mais {pendingSessions.length - 5} pendente
+                            {pendingSessions.length - 5 > 1 ? 's' : ''}
+                        </button>
+                    )}
                 </div>
-
-                <div className="relative flex-1 overflow-hidden rounded-xl">
-                    <div className="absolute inset-0 grid grid-rows-4 gap-0">
-                        {[...Array(4)].map((_, index) => (
-                            <div
-                                key={index}
-                                className="border-b border-dashed border-slate-200"
-                            />
-                        ))}
-                    </div>
-
-                    <div className="relative z-10 flex h-full items-end justify-between gap-3 px-3 pb-6">
-                        {counts.map((item) => {
-                            const height = item.value
-                                ? Math.max(
-                                      6,
-                                      Math.min(100, (item.value / scale) * 100)
-                                  )
-                                : 0;
-
-                            return (
-                                <div
-                                    key={item.key}
-                                    className="flex h-full flex-1 flex-col items-center justify-end"
-                                >
-                                    <div
-                                        className="w-full max-w-[38px] rounded-t-md bg-[#c3b2ea]"
-                                        style={{ height: `${height}%` }}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-1 flex justify-between px-3 text-[12px] text-slate-500">
-                        {counts.map((item) => (
-                            <span
-                                key={`${item.key}-label`}
-                                className="w-full text-center"
-                            >
-                                {item.label}
-                            </span>
-                        ))}
-                    </div>
+            ) : (
+                <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-8 text-center text-sm text-emerald-700">
+                    Tudo em dia — sem presenças por marcar.
                 </div>
-            </div>
+            )}
         </div>
     );
 }
@@ -362,8 +324,16 @@ function DisciplineCard({ service }) {
     );
 }
 
+function formatPendingDateLabel(dateKey) {
+    const date = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return '--';
+    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+}
+
 export default function DashboardProfessorPage() {
+    const navigate = useNavigate();
     const [services, setServices] = useState([]);
+    const [attendanceSessions, setAttendanceSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -375,18 +345,32 @@ export default function DashboardProfessorPage() {
             setError('');
 
             try {
-                const response = await apiGet('/api/professor/servicos');
-                const data = await response.json();
+                const [servicesResponse, attendanceResponse] =
+                    await Promise.all([
+                        apiGet('/api/professor/servicos'),
+                        apiGet('/api/professor/presencas/servicos'),
+                    ]);
+                const servicesData = await servicesResponse.json();
+                const attendanceData = await attendanceResponse.json();
 
-                if (!response.ok) {
+                if (!servicesResponse.ok) {
                     throw new Error(
-                        data.message || 'Erro ao carregar dashboard.'
+                        servicesData.message ||
+                            'Erro ao carregar dashboard.'
                     );
                 }
 
                 if (isMounted) {
                     setServices(
-                        Array.isArray(data?.servicos) ? data.servicos : []
+                        Array.isArray(servicesData?.servicos)
+                            ? servicesData.servicos
+                            : []
+                    );
+                    setAttendanceSessions(
+                        attendanceResponse.ok &&
+                            Array.isArray(attendanceData?.servicos)
+                            ? attendanceData.servicos
+                            : []
                     );
                 }
             } catch (requestError) {
@@ -409,27 +393,13 @@ export default function DashboardProfessorPage() {
         };
     }, []);
 
-    const { weeklyCounts, todaySessions, disciplineCards } = useMemo(() => {
-        const week = getCurrentWeekRange();
+    const { todaySessions, disciplineCards, pendingSessions } = useMemo(() => {
         const todayKey = formatDateKey(new Date());
         const todayDate = parseDateOrNull(todayKey);
-
-        const weeklyCountsMap = WEEK_DAYS.map((day) => ({
-            key: day.key,
-            label: day.label,
-            value: 0,
-        }));
 
         const todaySessionsList = [];
 
         services.forEach((service) => {
-            WEEK_DAYS.forEach((day, index) => {
-                const date = addDays(week.fromDate, index);
-                if (isServiceActiveOnDate(service, date)) {
-                    weeklyCountsMap[index].value += 1;
-                }
-            });
-
             if (todayDate && isServiceActiveOnDate(service, todayDate)) {
                 todaySessionsList.push({
                     key: service.id,
@@ -444,9 +414,24 @@ export default function DashboardProfessorPage() {
 
         todaySessionsList.sort((a, b) => a.hour.localeCompare(b.hour));
 
+        const pendingSessionsList = attendanceSessions
+            .filter((s) => {
+                const dateKey = String(s.dataAula || '').slice(0, 10);
+                return dateKey && dateKey <= todayKey && !s.marcada;
+            })
+            .map((s) => ({
+                sessionKey:
+                    s.sessionKey || `${s.id}:${s.dataAula}`,
+                titulo: s.titulo,
+                sala: s.sala,
+                dateLabel: formatPendingDateLabel(s.dataAula),
+                dataAula: s.dataAula,
+            }))
+            .sort((a, b) => a.dataAula.localeCompare(b.dataAula));
+
         return {
-            weeklyCounts: weeklyCountsMap,
             todaySessions: todaySessionsList,
+            pendingSessions: pendingSessionsList,
             disciplineCards: services.map((service) => ({
                 id: service.id,
                 title: getServiceTitle(service),
@@ -455,7 +440,7 @@ export default function DashboardProfessorPage() {
                 sessoesMes: service.sessoesMes || 0,
             })),
         };
-    }, [services]);
+    }, [services, attendanceSessions]);
 
     return (
         <section className="space-y-5">
@@ -481,7 +466,12 @@ export default function DashboardProfessorPage() {
             {!loading && !error ? (
                 <>
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <WeeklyBarChart counts={weeklyCounts} />
+                        <PendingAttendanceCard
+                            pendingSessions={pendingSessions}
+                            onOpenPresences={() =>
+                                navigate('/professor/presencas')
+                            }
+                        />
                         <TodaySessionsCard sessions={todaySessions} />
                     </div>
 

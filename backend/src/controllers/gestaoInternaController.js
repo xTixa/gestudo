@@ -362,11 +362,12 @@ export async function criarPacoteCatalogo(req, res) {
                 .json({ message: 'Nome do pacote é obrigatório.' });
         }
 
-        const preco = Number(precoRaw);
-        if (precoRaw === '' || precoRaw == null || Number.isNaN(preco)) {
+        const precoInformado = !(precoRaw === '' || precoRaw == null);
+        const preco = precoInformado ? Number(precoRaw) : null;
+        if (precoInformado && Number.isNaN(preco)) {
             return res
                 .status(400)
-                .json({ message: 'Preço do pacote é obrigatório e deve ser um número válido.' });
+                .json({ message: 'O preço deve ser um número válido.' });
         }
 
         const insertColumns = [info.nomeColumn, info.precoColumn];
@@ -472,8 +473,9 @@ export async function atualizarPacoteCatalogo(req, res) {
         }
 
         if (info.precoColumn && precoRaw !== undefined) {
-            const preco = Number(precoRaw);
-            if (precoRaw === '' || precoRaw == null || Number.isNaN(preco)) {
+            const precoInformado = !(precoRaw === '' || precoRaw == null);
+            const preco = precoInformado ? Number(precoRaw) : null;
+            if (precoInformado && Number.isNaN(preco)) {
                 return res.status(400).json({ message: 'Preço inválido.' });
             }
             values.push(preco);

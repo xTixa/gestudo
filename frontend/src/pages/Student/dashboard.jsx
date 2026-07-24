@@ -1,57 +1,75 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-    BookOpen,
-    CheckCircle2,
-    GraduationCap,
-    Users,
     AlertCircle,
+    Bell,
+    CheckCircle2,
+    Clock3,
+    GraduationCap,
+    UserCog,
 } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
 
 function getCurrentMonthRange() {
-    // Usar ISO string para evitar problemas de fuso horário
     const now = new Date();
-    const today = now.toISOString().slice(0, 10); // Ex: 2026-04-30
-
-    // Extrair ano e mês de forma segura
+    const today = now.toISOString().slice(0, 10);
     const [year, month] = today.split('-').map(Number);
-
-    // Primeiro dia do mês
     const from = `${year}-${String(month).padStart(2, '0')}-01`;
 
-    // Até hoje (para incluir aulas de hoje)
-    const to = today;
+    return { from, to: today, today };
+}
 
-    return {
-        from,
-        to,
-        today,
+function StatusCard({ icon, tone, title, description, actionLabel, onAction }) {
+    const Icon = icon;
+    const toneClasses = {
+        amber: 'border-amber-200 bg-amber-50 text-amber-600',
+        blue: 'border-blue-200 bg-blue-50 text-blue-600',
+        rose: 'border-rose-200 bg-rose-50 text-rose-600',
+        emerald: 'border-emerald-200 bg-emerald-50 text-emerald-600',
+        slate: 'border-slate-200 bg-white text-slate-400',
     };
+
+    return (
+        <article
+            className={`rounded-2xl border px-5 py-4 shadow-sm ${
+                tone === 'slate' ? toneClasses.slate : toneClasses[tone]
+            }`}
+        >
+            <div className="flex items-start gap-3">
+                <span
+                    className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white/70`}
+                >
+                    <Icon size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800">
+                        {title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                        {description}
+                    </p>
+                    {actionLabel && (
+                        <button
+                            type="button"
+                            onClick={onAction}
+                            className="mt-2 text-xs font-semibold underline underline-offset-2 hover:no-underline"
+                        >
+                            {actionLabel}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </article>
+    );
 }
 
 export default function DashboardAlunoPage() {
-    const [stats, setStats] = useState([
-        {
-            label: 'Serviços Ativos',
-            value: '0',
-            icon: Users,
-            iconClasses: 'bg-blue-200 text-blue-700',
-        },
-        {
-            label: 'Aulas Este Mês',
-            value: '0',
-            icon: GraduationCap,
-            iconClasses: 'bg-emerald-200 text-emerald-700',
-        },
-        {
-            label: 'Horas de Estudo',
-            value: '0h',
-            icon: BookOpen,
-            iconClasses: 'bg-pink-200 text-pink-700',
-        },
-    ]);
+    const navigate = useNavigate();
     const [todaysSessions, setTodaysSessions] = useState([]);
+    const [perfil, setPerfil] = useState(null);
+    const [alertasNaoLidos, setAlertasNaoLidos] = useState(0);
+    const [presencas, setPresencas] = useState([]);
     const [loadingError, setLoadingError] = useState(null);
 
     useEffect(() => {
@@ -62,100 +80,37 @@ export default function DashboardAlunoPage() {
                 setLoadingError(null);
                 const { from, to, today } = getCurrentMonthRange();
 
-                console.log(
-                    '[Dashboard] Fetching agenda from:',
-                    from,
-                    'to:',
-                    to
-                );
+                const [agendaRes, perfilRes, alertasRes, presencasRes] =
+                    await Promise.all([
+                        apiGet(`/api/public/agenda?from=${from}&to=${to}`),
+                        apiGet('/api/aluno/perfil'),
+                        apiGet('/api/alertas/eventos?lido=false&limite=1'),
+                        apiGet('/api/aluno/presencas'),
+                    ]);
 
-                const response = await apiGet(
-                    `/api/public/agenda?from=${from}&to=${to}`
-                );
-
-                console.log('[Dashboard] Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorData = await response.text();
-                    console.error('[Dashboard] Error response:', errorData);
-
-                    if (response.status === 401) {
+                if (!agendaRes.ok) {
+                    if (agendaRes.status === 401) {
                         setLoadingError(
                             'Sessão expirada. Faça login novamente.'
                         );
                     } else {
                         setLoadingError(
-                            `Erro ao carregar agenda (${response.status})`
+                            `Erro ao carregar agenda (${agendaRes.status})`
                         );
                     }
                     return;
                 }
 
-                const data = await response.json();
-                console.log('[Dashboard] Response data:', data);
+                const agendaData = await agendaRes.json();
+                const atividades = agendaData?.atividadesPorDia || {};
 
-                const atividades = data?.atividadesPorDia || {};
-                console.log(
-                    '[Dashboard] Atividades por dia:',
-                    Object.keys(atividades).length,
-                    'days'
-                );
-                console.log(
-                    '[Dashboard] Chaves disponíveis:',
-                    Object.keys(atividades)
-                );
-                console.log('[Dashboard] Today é:', today);
-                console.log(
-                    '[Dashboard] Sessões para hoje:',
-                    atividades[today]
-                );
-
-                const allSessions = Object.values(atividades).flat();
-                console.log('[Dashboard] Total sessions:', allSessions.length);
-
-                const distinctServices = new Set(
-                    allSessions.map((session) => session.id)
-                ).size;
-
-                const horas = allSessions.reduce((acc, session) => {
-                    const start = String(session.hora || '')
-                        .split(':')
-                        .map(Number);
-                    const end = String(session.horaFim || '')
-                        .split(':')
-                        .map(Number);
-                    if (
-                        start.length < 2 ||
-                        end.length < 2 ||
-                        start.some(Number.isNaN) ||
-                        end.some(Number.isNaN)
-                    ) {
-                        return acc;
-                    }
-
-                    const startMinutes = start[0] * 60 + start[1];
-                    const endMinutes = end[0] * 60 + end[1];
-                    return acc + Math.max(0, endMinutes - startMinutes);
-                }, 0);
-
-                // Procurar sessões de hoje com fallback robusto
                 let todayList = atividades[today] || [];
-
-                // Se não encontrar com a chave exata, tentar procurar por qualquer chave que comece com a data
                 if (todayList.length === 0) {
-                    console.log(
-                        '[Dashboard] Chave exata não encontrada, procurando por fallback...'
+                    const matchingKey = Object.keys(atividades).find((key) =>
+                        key?.startsWith(today)
                     );
-                    const matchingKey = Object.keys(atividades).find(
-                        (key) => key && key.startsWith(today.substring(0, 10))
-                    );
-                    console.log('[Dashboard] Matching key found:', matchingKey);
                     if (matchingKey) {
                         todayList = atividades[matchingKey] || [];
-                        console.log(
-                            '[Dashboard] Usando chave de fallback, sessões encontradas:',
-                            todayList.length
-                        );
                     }
                 }
 
@@ -165,34 +120,33 @@ export default function DashboardAlunoPage() {
                     subtitle: `${session.professor || 'Professor'} • ${session.local || 'Sala'}`,
                 }));
 
-                if (isMounted) {
-                    setStats([
-                        {
-                            label: 'Serviços Ativos',
-                            value: String(distinctServices),
-                            icon: Users,
-                            iconClasses: 'bg-blue-200 text-blue-700',
-                        },
-                        {
-                            label: 'Aulas Este Mês',
-                            value: String(allSessions.length),
-                            icon: GraduationCap,
-                            iconClasses: 'bg-emerald-200 text-emerald-700',
-                        },
-                        {
-                            label: 'Horas de Estudo',
-                            value: `${Math.round(horas / 60)}h`,
-                            icon: BookOpen,
-                            iconClasses: 'bg-pink-200 text-pink-700',
-                        },
-                    ]);
-                    setTodaysSessions(todayList);
+                if (!isMounted) return;
+                setTodaysSessions(todayList);
+
+                if (perfilRes.ok) {
+                    const perfilData = await perfilRes.json();
+                    if (isMounted) setPerfil(perfilData?.aluno || null);
+                }
+
+                if (alertasRes.ok) {
+                    const alertasData = await alertasRes.json();
+                    if (isMounted)
+                        setAlertasNaoLidos(Number(alertasData?.total || 0));
+                }
+
+                if (presencasRes.ok) {
+                    const presencasData = await presencasRes.json();
+                    if (isMounted)
+                        setPresencas(
+                            Array.isArray(presencasData?.presencas)
+                                ? presencasData.presencas
+                                : []
+                        );
                 }
             } catch (error) {
-                console.error('[Dashboard] Error loading agenda:', error);
                 if (isMounted) {
                     setLoadingError(
-                        'Erro ao carregar agenda: ' + error.message
+                        'Erro ao carregar dashboard: ' + error.message
                     );
                 }
             }
@@ -204,6 +158,18 @@ export default function DashboardAlunoPage() {
             isMounted = false;
         };
     }, []);
+
+    const attendanceSummary = useMemo(() => {
+        const now = new Date();
+        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const thisMonth = presencas.filter((p) =>
+            String(p.date || '').startsWith(monthPrefix)
+        );
+        const faltas = thisMonth.filter(
+            (p) => String(p.status || '').toLowerCase() === 'falta'
+        ).length;
+        return { total: thisMonth.length, faltas };
+    }, [presencas]);
 
     return (
         <section className="space-y-5">
@@ -236,38 +202,60 @@ export default function DashboardAlunoPage() {
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[370px_minmax(0,1fr)]">
                 <div className="space-y-3">
-                    {stats.map((item) => {
-                        const Icon = item.icon;
+                    {perfil?.alteracaoPendente && (
+                        <StatusCard
+                            icon={UserCog}
+                            tone="amber"
+                            title="Alteração de perfil pendente"
+                            description="O pedido que fizeste está a aguardar aprovação do gestor."
+                            actionLabel="Ver o meu perfil"
+                            onAction={() => navigate('/aluno/perfil')}
+                        />
+                    )}
 
-                        return (
-                            <article
-                                key={item.label}
-                                className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
-                            >
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-lg text-slate-400">
-                                            {item.label}
-                                        </p>
-                                        <p className="mt-1 text-4xl font-semibold text-slate-700">
-                                            {item.value}
-                                        </p>
-                                    </div>
-                                    <span
-                                        className={`inline-flex h-14 w-14 items-center justify-center rounded-xl ${item.iconClasses}`}
-                                    >
-                                        <Icon size={24} />
-                                    </span>
-                                </div>
-                            </article>
-                        );
-                    })}
+                    <StatusCard
+                        icon={Bell}
+                        tone={alertasNaoLidos > 0 ? 'blue' : 'slate'}
+                        title={
+                            alertasNaoLidos > 0
+                                ? `${alertasNaoLidos} notificaç${alertasNaoLidos > 1 ? 'ões' : 'ão'} por ler`
+                                : 'Sem notificações novas'
+                        }
+                        description={
+                            alertasNaoLidos > 0
+                                ? 'Tens avisos que ainda não abriste.'
+                                : 'Já viste tudo o que há de novo.'
+                        }
+                        actionLabel={
+                            alertasNaoLidos > 0 ? 'Ver notificações' : null
+                        }
+                        onAction={() => navigate('/aluno/notificacoes')}
+                    />
+
+                    <StatusCard
+                        icon={CheckCircle2}
+                        tone={
+                            attendanceSummary.faltas > 0 ? 'rose' : 'emerald'
+                        }
+                        title={
+                            attendanceSummary.faltas > 0
+                                ? `${attendanceSummary.faltas} falta${attendanceSummary.faltas > 1 ? 's' : ''} este mês`
+                                : 'Sem faltas este mês'
+                        }
+                        description={
+                            attendanceSummary.total > 0
+                                ? `${attendanceSummary.total} sessões registadas este mês.`
+                                : 'Ainda sem sessões registadas este mês.'
+                        }
+                        actionLabel="Ver assiduidade"
+                        onAction={() => navigate('/aluno/presencas')}
+                    />
                 </div>
 
                 <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-3">
                         <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-200 text-blue-700">
-                            <Users size={20} />
+                            <Clock3 size={20} />
                         </span>
                         <h2 className="text-2xl font-medium text-slate-700">
                             Sessões Hoje
