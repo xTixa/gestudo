@@ -6,7 +6,7 @@ import {
     RefreshCw,
     Search,
 } from 'lucide-react';
-import AdminPageHeader from '../../components/layout/AdminPageHeader';
+import UsersPageHeader from '../../components/layout/UsersPageHeader';
 import { apiGet } from '../../utils/api';
 
 const MIN_ATTENDANCE_COLUMNS = 8;
@@ -198,7 +198,7 @@ function PresencasTable({ rows, attendanceColumnCount, title }) {
     );
 }
 
-export default function PresencasGestorPage() {
+export default function AssiduidadeProfessorPage() {
     const [month, setMonth] = useState(getCurrentMonth());
     const [search, setSearch] = useState('');
     const [refreshTick, setRefreshTick] = useState(0);
@@ -218,7 +218,7 @@ export default function PresencasGestorPage() {
                 setError('');
 
                 const response = await apiGet(
-                    `/api/gestor/presencas?month=${encodeURIComponent(month)}`
+                    `/api/professor/presencas/assiduidade?month=${encodeURIComponent(month)}`
                 );
                 const data = await response.json();
 
@@ -303,8 +303,8 @@ export default function PresencasGestorPage() {
                 }
             `}</style>
             <div className="print:hidden">
-                <AdminPageHeader
-                    eyebrow="Presenças"
+                <UsersPageHeader
+                    eyebrow="Assiduidade"
                     title="Mapa mensal"
                     subtitle="A tabela abaixo é a vista do PDF. Podes filtrar e depois imprimir/guardar."
                     icon={CalendarDays}

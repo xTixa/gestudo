@@ -12,6 +12,7 @@ import {
     registarUpdate,
 } from '../services/logService.js';
 import {
+    dispatchAlert,
     notificarGestoresCriacaoConta,
     notificarGestoresAlunoEliminado,
 } from '../services/alertasDispatchService.js';
@@ -1387,6 +1388,33 @@ const CAMPOS_PERFIL_ALUNO = [
     'encarregado_email',
 ];
 
+// Notifica todos os gestores quando um aluno submete (ou atualiza) um
+// pedido de alteração de perfil que aguarda aprovação.
+async function notificarGestoresAlteracaoPendentePerfil({ alunoNome }) {
+    try {
+        const { rows: gestorRows } = await db.query(
+            `SELECT id_user FROM users WHERE role = 'gestor' AND status = true`
+        );
+        const gestorIds = gestorRows.map((r) => r.id_user).filter(Boolean);
+        if (!gestorIds.length) return;
+
+        await dispatchAlert({
+            codigo: 'alteracao-perfil-pendente',
+            for_user_ids: gestorIds,
+            titulo: 'Novo pedido de alteração de perfil',
+            descricao: `${alunoNome || 'Um aluno'} submeteu um pedido de alteração ao seu perfil que aguarda aprovação.`,
+            nivel: 'info',
+            payload: { alunoNome },
+            pushLink: '/gestor/alunos',
+        });
+    } catch (err) {
+        console.warn(
+            '[alunoController] Falha ao notificar gestores de alteração de perfil pendente:',
+            err.message
+        );
+    }
+}
+
 /**
  * Submete um pedido de alteração ao perfil do aluno autenticado, que fica
  * pendente de aprovação do gestor (não é gravado de imediato).
@@ -1470,6 +1498,10 @@ export async function atualizarMeuPerfil(req, res) {
                     JSON.stringify(perfilAtual),
                 ]
             );
+
+            notificarGestoresAlteracaoPendentePerfil({
+                alunoNome: perfilAtual?.pessoa?.nome,
+            });
         }
 
         return res.status(202).json({

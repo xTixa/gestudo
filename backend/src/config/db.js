@@ -1,5 +1,13 @@
 import '../loadEnv.js';
-import { Pool } from 'pg';
+import pg from 'pg';
+
+const { Pool, types } = pg;
+
+// Colunas `date` (OID 1082) vêm por defeito como objetos Date à meia-noite
+// UTC, que ao serem reformatados em código com timezone local podem recuar
+// um dia (ex.: servidor em UTC-3 lê "2026-07-24" e mostra "2026-07-23").
+// Devolver a string crua "YYYY-MM-DD" evita qualquer conversão de timezone.
+types.setTypeParser(1082, (value) => value);
 
 // Verifica se as variáveis de ambiente para configuração de banco de dados estão presentes, permitindo o uso de uma URL de conexão única ou configurações discretas, e garantindo que a configuração seja flexível e adaptável a diferentes ambientes de implantação
 const hasDiscreteDbConfig = [

@@ -1096,6 +1096,7 @@ export async function listarTabelaPresencasGestor(req, res) {
                         COALESCE(p.nome, 'Aluno') AS nome,
                         a.ano,
                         pr.data_aula::date AS data_aula,
+                        LOWER(COALESCE(pr.estado, '')) AS estado,
                         SUM(
                             CASE
                                 WHEN LOWER(COALESCE(pr.estado, '')) IN ('presente', 'reposta')
@@ -1114,7 +1115,7 @@ export async function listarTabelaPresencasGestor(req, res) {
                     INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
                     WHERE pr.data_aula >= $1::date
                       AND pr.data_aula <= $2::date
-                    GROUP BY pr.id_aluno, p.nome, a.ano, pr.data_aula
+                    GROUP BY pr.id_aluno, p.nome, a.ano, pr.data_aula, LOWER(COALESCE(pr.estado, ''))
                     ORDER BY pr.data_aula ASC, a.ano ASC NULLS LAST, p.nome ASC, pr.id_aluno ASC
                 `,
                 [startDate, endDate]
@@ -1137,10 +1138,14 @@ export async function listarTabelaPresencasGestor(req, res) {
             });
         });
 
+        const ESTADO_LABELS_GESTOR = { falta: 'F', presente: 'P', reposta: 'R' };
+        const ESTADO_PRIORIDADE_GESTOR = { falta: 3, reposta: 2, presente: 1 };
+
         presencasResult.rows.forEach((row) => {
             const alunoId = Number(row.id_aluno);
             const data = normalizeDateOnly(row.data_aula);
             const horas = Number(row.horas_feitas || 0);
+            const estado = String(row.estado || '');
 
             if (!data) {
                 return;
@@ -1162,7 +1167,19 @@ export async function listarTabelaPresencasGestor(req, res) {
             }
 
             const aluno = alunosMap.get(alunoId);
-            aluno.dias[data] = Number(((aluno.dias[data] || 0) + horas).toFixed(2));
+            const existente = aluno.dias[data];
+            const prioridadeAtual = ESTADO_PRIORIDADE_GESTOR[estado] || 0;
+            const prioridadeExistente = existente
+                ? ESTADO_PRIORIDADE_GESTOR[existente.estado] || 0
+                : -1;
+            const estadoFinal =
+                prioridadeAtual >= prioridadeExistente ? estado : existente.estado;
+
+            aluno.dias[data] = {
+                estado: estadoFinal,
+                label: ESTADO_LABELS_GESTOR[estadoFinal] || '',
+                horas: Number(((existente?.horas || 0) + horas).toFixed(2)),
+            };
             aluno.total_horas_feitas = Number(
                 (aluno.total_horas_feitas + horas).toFixed(2)
             );
@@ -1174,9 +1191,11 @@ export async function listarTabelaPresencasGestor(req, res) {
                 horas_subscritas: Number(aluno.horas_subscritas.toFixed(2)),
                 presencas: Object.entries(aluno.dias)
                     .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-                    .map(([data, horas]) => ({
+                    .map(([data, info]) => ({
                         data,
-                        horas: Number(Number(horas || 0).toFixed(2)),
+                        estado: info.estado,
+                        label: info.label,
+                        horas: info.horas,
                     })),
                 diferenca: Number(
                     (aluno.total_horas_feitas - aluno.horas_subscritas).toFixed(2)
@@ -1413,5 +1432,218 @@ export async function obterHistoricoPresencasServicoProfessor(req, res) {
     } catch (error) {
         console.error('Erro ao obter histórico de presenças:', error.message);
         return res.status(500).json({ message: 'Erro ao obter histórico de presenças.' });
+    }
+}
+
+/**
+ * Tabela de assiduidade do professor: exatamente o mesmo mapa mensal de
+ * horas usado pelo gestor (listarTabelaPresencasGestor), mas restrito aos
+ * serviços (curriculares e extracurriculares) do professor autenticado.
+ *
+ * @route GET /api/professor/presencas/assiduidade?month=YYYY-MM
+ */
+export async function listarTabelaAssiduidadeProfessor(req, res) {
+    try {
+        if (!req.userId) {
+            return res.status(401).json({ message: 'Autenticação necessária.' });
+        }
+
+        const { month, startDate, endDate } = getMonthRange(req.query?.month);
+        const inscricoesServicoColumn =
+            await resolveInscricoesServicoColumn(db);
+        const pacotesHorasColumn = await resolvePacotesHorasColumn(db);
+
+        if (!inscricoesServicoColumn) {
+            return res.status(200).json({
+                month,
+                startDate,
+                endDate,
+                dias: [],
+                alunos: [],
+            });
+        }
+
+        const quotedServicoColumn = quoteIdent(inscricoesServicoColumn);
+        const horasExpr = pacotesHorasColumn
+            ? `
+                COALESCE(
+                    NULLIF(
+                        replace(
+                            regexp_replace(pac.${quoteIdent(pacotesHorasColumn)}::text, '[^0-9,.-]', '', 'g'),
+                            ',',
+                            '.'
+                        ),
+                        ''
+                    )::numeric,
+                    0
+                )
+            `
+            : '0::numeric';
+
+        const [alunosResult, presencasResult] = await Promise.all([
+            db.query(
+                `
+                    SELECT
+                        a.id_aluno,
+                        COALESCE(p.nome, 'Aluno') AS nome,
+                        a.ano,
+                        COALESCE(SUM(${horasExpr}), 0)::numeric AS horas_subscritas
+                    FROM inscricoes i
+                    INNER JOIN alunos a ON a.id_aluno = i.id_aluno
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                    LEFT JOIN pacotes pac ON pac.id_pacote = i.id_pacote
+                    LEFT JOIN servicos_curriculares s ON s.id_servico = i.${quotedServicoColumn}
+                    WHERE LOWER(COALESCE(i.estado, 'ativa')) = 'ativa'
+                      AND i.${quotedServicoColumn} IS NOT NULL
+                      AND (
+                            s.id_servico IS NULL
+                            OR (
+                                s.data_inicio <= $2::date
+                                AND COALESCE(s.data_fim, s.data_inicio) >= $1::date
+                            )
+                      )
+                      AND EXISTS (
+                            SELECT 1 FROM servicos_curriculares sc
+                            INNER JOIN professores pr ON pr.id_professor = sc.id_professor
+                            WHERE sc.id_servico = i.${quotedServicoColumn} AND pr.id_user = $3
+                      )
+                    GROUP BY a.id_aluno, p.nome, a.ano
+                    ORDER BY a.ano ASC NULLS LAST, p.nome ASC, a.id_aluno ASC
+                `,
+                [startDate, endDate, req.userId]
+            ),
+            db.query(
+                `
+                    SELECT
+                        pr.id_aluno,
+                        COALESCE(p.nome, 'Aluno') AS nome,
+                        a.ano,
+                        pr.data_aula::date AS data_aula,
+                        LOWER(COALESCE(pr.estado, '')) AS estado,
+                        SUM(
+                            CASE
+                                WHEN LOWER(COALESCE(pr.estado, '')) IN ('presente', 'reposta')
+                                 AND s.hora_inicio IS NOT NULL
+                                 AND s.hora_fim IS NOT NULL
+                                THEN GREATEST(
+                                    EXTRACT(EPOCH FROM (s.hora_fim::time - s.hora_inicio::time)) / 3600,
+                                    0
+                                )
+                                ELSE 0
+                            END
+                        )::numeric AS horas_feitas
+                    FROM presencas pr
+                    INNER JOIN servicos_curriculares s ON s.id_servico = pr.id_servico
+                    INNER JOIN professores prof ON prof.id_professor = s.id_professor
+                    INNER JOIN alunos a ON a.id_aluno = pr.id_aluno
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                    WHERE pr.data_aula >= $1::date
+                      AND pr.data_aula <= $2::date
+                      AND prof.id_user = $3
+                    GROUP BY pr.id_aluno, p.nome, a.ano, pr.data_aula, LOWER(COALESCE(pr.estado, ''))
+                    ORDER BY pr.data_aula ASC, a.ano ASC NULLS LAST, p.nome ASC, pr.id_aluno ASC
+                `,
+                [startDate, endDate, req.userId]
+            ),
+        ]);
+
+        const diasSet = new Set();
+        const alunosMap = new Map();
+
+        alunosResult.rows.forEach((row) => {
+            alunosMap.set(Number(row.id_aluno), {
+                id_aluno: Number(row.id_aluno),
+                nome: String(row.nome || 'Aluno').trim(),
+                ano: row.ano == null ? '' : String(row.ano).trim(),
+                horas_subscritas: Number(row.horas_subscritas || 0),
+                dias: {},
+                presencas: [],
+                total_horas_feitas: 0,
+                diferenca: 0,
+            });
+        });
+
+        const ESTADO_LABELS = { falta: 'F', presente: 'P', reposta: 'R' };
+        const ESTADO_PRIORIDADE = { falta: 3, reposta: 2, presente: 1 };
+
+        presencasResult.rows.forEach((row) => {
+            const alunoId = Number(row.id_aluno);
+            const data = normalizeDateOnly(row.data_aula);
+            const horas = Number(row.horas_feitas || 0);
+            const estado = String(row.estado || '');
+
+            if (!data) {
+                return;
+            }
+
+            diasSet.add(data);
+
+            if (!alunosMap.has(alunoId)) {
+                alunosMap.set(alunoId, {
+                    id_aluno: alunoId,
+                    nome: String(row.nome || `Aluno #${alunoId}`).trim(),
+                    ano: row.ano == null ? '' : String(row.ano).trim(),
+                    horas_subscritas: 0,
+                    dias: {},
+                    presencas: [],
+                    total_horas_feitas: 0,
+                    diferenca: 0,
+                });
+            }
+
+            const aluno = alunosMap.get(alunoId);
+            const existente = aluno.dias[data];
+            const prioridadeAtual = ESTADO_PRIORIDADE[estado] || 0;
+            const prioridadeExistente = existente
+                ? ESTADO_PRIORIDADE[existente.estado] || 0
+                : -1;
+            const estadoFinal =
+                prioridadeAtual >= prioridadeExistente ? estado : existente.estado;
+
+            aluno.dias[data] = {
+                estado: estadoFinal,
+                label: ESTADO_LABELS[estadoFinal] || '',
+                horas: Number(((existente?.horas || 0) + horas).toFixed(2)),
+            };
+            aluno.total_horas_feitas = Number(
+                (aluno.total_horas_feitas + horas).toFixed(2)
+            );
+        });
+
+        const alunos = Array.from(alunosMap.values())
+            .map((aluno) => ({
+                ...aluno,
+                horas_subscritas: Number(aluno.horas_subscritas.toFixed(2)),
+                presencas: Object.entries(aluno.dias)
+                    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                    .map(([data, info]) => ({
+                        data,
+                        estado: info.estado,
+                        label: info.label,
+                        horas: info.horas,
+                    })),
+                diferenca: Number(
+                    (aluno.total_horas_feitas - aluno.horas_subscritas).toFixed(2)
+                ),
+            }))
+            .sort((a, b) => {
+                const anoA = Number(a.ano);
+                const anoB = Number(b.ano);
+                if (!Number.isNaN(anoA) && !Number.isNaN(anoB) && anoA !== anoB) {
+                    return anoA - anoB;
+                }
+                return a.nome.localeCompare(b.nome, 'pt');
+            });
+
+        return res.status(200).json({
+            month,
+            startDate,
+            endDate,
+            dias: Array.from(diasSet).sort(),
+            alunos,
+        });
+    } catch (error) {
+        console.error('Erro ao listar tabela de assiduidade do professor:', error.message);
+        return res.status(500).json({ message: 'Erro ao listar tabela de assiduidade.' });
     }
 }

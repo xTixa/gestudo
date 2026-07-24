@@ -612,7 +612,7 @@ async function ensureReagendamentoPendenteAlertDefinition() {
     if (existing.rows[0]?.id_alerta_definicao) return existing.rows[0].id_alerta_definicao;
     const inserted = await db.query(
         `INSERT INTO alertas_definicoes (grupo, codigo, titulo, descricao, icone, canal_app_default, canal_email_default, ativo, ordenacao)
-         VALUES ($1, $2, $3, $4, $5, true, false, true, $6) RETURNING id_alerta_definicao`,
+         VALUES ($1, $2, $3, $4, $5, true, true, true, $6) RETURNING id_alerta_definicao`,
         ['operacional', codigo, 'Novo pedido de reagendamento', 'Um professor submeteu um novo pedido de reagendamento de sessão.', 'CalendarClock', 85]
     );
     return inserted.rows[0]?.id_alerta_definicao || null;
@@ -633,7 +633,7 @@ async function notificarGestoresNovoPedidoReagendamento({ professorNome, tituloS
             descricao: `${professorNome} submeteu um pedido de reagendamento para "${tituloServico}". Motivo: ${motivo}`,
             nivel: 'info',
             payload: { pedidoId, id_servico: idServico, titulo_servico: tituloServico },
-            canal: 'app',
+            pushLink: '/gestor/reagendar',
         });
     } catch (err) {
         console.warn('[professorController] Falha ao notificar gestores de reagendamento:', err.message);

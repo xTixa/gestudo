@@ -43,6 +43,7 @@ import AgendaProfessorPage from './pages/Teacher/agenda';
 import ReagendamentosProfessorPage from './pages/Teacher/rescheduling';
 import ServicosProfessorPage from './pages/Teacher/services';
 import PresencasProfessorPage from './pages/Teacher/presences';
+import AssiduidadeProfessorPage from './pages/Teacher/attendance';
 import NotificationsProfessorPage from './pages/Teacher/notifications';
 import DashboardAlunoPage from './pages/Student/dashboard';
 import AgendaAlunoPage from './pages/Student/agenda';
@@ -212,6 +213,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/professor/presencas"
                         element={<PresencasProfessorPage />}
+                    />
+                    <Route
+                        path="/professor/assiduidade"
+                        element={<AssiduidadeProfessorPage />}
                     />
                     <Route
                         path="/professor/notificacoes"

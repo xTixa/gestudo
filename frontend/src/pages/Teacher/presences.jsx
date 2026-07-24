@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
     AlertCircle,
     Calendar,
@@ -14,6 +14,8 @@ import {
     UserPlus,
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     MessageSquare,
     CalendarDays,
     Download,
@@ -57,16 +59,26 @@ function formatDateLabel(value) {
     });
 }
 
-function formatServiceDay(value) {
+function formatDayHeading(value) {
     if (!value) return '--';
     const date = new Date(`${value}T00:00:00`);
     if (Number.isNaN(date.getTime())) return '--';
-    return date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' });
+    const weekday = date.toLocaleDateString('pt-PT', { weekday: 'long' });
+    const rest = date.toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: 'long',
+    });
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${rest}`;
 }
 
 function formatTimeRange(service) {
-    const start = String(service?.horaInicio || '').slice(0, 5);
-    const end = String(service?.horaFim || '').slice(0, 5);
+    const start = String(
+        service?.horaInicio || service?.hora_inicio || ''
+    ).slice(0, 5);
+    const end = String(service?.horaFim || service?.hora_fim || '').slice(
+        0,
+        5
+    );
     if (start && end) return `${start} - ${end}`;
     return start || end || '--:--';
 }
@@ -75,31 +87,50 @@ function buildStudentKey(student) {
     return String(student?._tempId || student?.id_aluno || '');
 }
 
-function isServiceToday(service) {
-    const today = todayIso();
-    const start = String(service?.dataAula || service?.dataInicio || '').slice(
-        0,
-        10
-    );
-    const end = String(service?.dataFim || start).slice(0, 10);
-    if (!start) return false;
-    return today >= start && today <= end;
-}
-
-function isServiceBeforeToday(service) {
-    const today = todayIso();
-    const date = String(service?.dataAula || service?.dataInicio || '').slice(
-        0,
-        10
-    );
-    return Boolean(date && date < today);
-}
-
 function getServiceDisplayDate(service) {
     return (
         String(service?.dataAula || service?.dataInicio || '').slice(0, 10) ||
         todayIso()
     );
+}
+
+const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const MONTH_LABELS = [
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
+];
+
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function buildMonthGrid(monthDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const firstOfMonth = new Date(year, month, 1);
+    const start = new Date(firstOfMonth);
+    start.setDate(start.getDate() - start.getDay());
+
+    const days = [];
+    for (let i = 0; i < 42; i += 1) {
+        const day = new Date(start);
+        day.setDate(start.getDate() + i);
+        days.push(day);
+    }
+    return days;
 }
 
 function normalizeStudent(student) {
@@ -706,6 +737,13 @@ function AttendanceModal({
                                 </button>
                                 <button
                                     type="button"
+                                    onClick={() => onMarkAll('falta')}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition active:scale-95"
+                                >
+                                    <X size={13} /> Marcar Todos Falta
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => setShowAddPanel((v) => !v)}
                                     className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition active:scale-95 ${
                                         showAddPanel
@@ -838,57 +876,189 @@ function AttendanceModal({
 }
 
 // ---------------------------------------------------------------------------
-// Service Card
+// Mini Calendar
 // ---------------------------------------------------------------------------
 
-function ServiceCard({ service, isActive, isMarked, onOpen }) {
+function MiniCalendar({
+    monthDate,
+    selectedDate,
+    dayStatus,
+    onSelectDate,
+    onPrevMonth,
+    onNextMonth,
+    onToday,
+}) {
+    const days = useMemo(() => buildMonthGrid(monthDate), [monthDate]);
+    const today = todayIso();
+    const currentMonth = monthDate.getMonth();
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-slate-900">
+                    {MONTH_LABELS[currentMonth]} {monthDate.getFullYear()}
+                </p>
+                <div className="flex items-center gap-1">
+                    <button
+                        type="button"
+                        onClick={onPrevMonth}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 transition"
+                        title="Mês anterior"
+                    >
+                        <ChevronLeft size={15} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onNextMonth}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 transition"
+                        title="Próximo mês"
+                    >
+                        <ChevronRight size={15} />
+                    </button>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={onToday}
+                className="mb-3 w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+            >
+                Ir para hoje
+            </button>
+
+            <div className="grid grid-cols-7 gap-1 mb-1">
+                {WEEKDAY_LABELS.map((label, i) => (
+                    <div
+                        key={i}
+                        className="text-center text-[10px] font-semibold text-slate-400 py-1"
+                    >
+                        {label}
+                    </div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+                {days.map((day) => {
+                    const dateKey = formatDateKey(day);
+                    const inMonth = day.getMonth() === currentMonth;
+                    const isToday = dateKey === today;
+                    const isSelected = dateKey === selectedDate;
+                    const status = dayStatus[dateKey];
+
+                    return (
+                        <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => onSelectDate(dateKey)}
+                            className={`relative aspect-square rounded-lg text-xs font-medium transition flex items-center justify-center ${
+                                !inMonth
+                                    ? 'text-slate-300 hover:bg-slate-50'
+                                    : isSelected
+                                      ? 'bg-blue-600 text-white font-bold'
+                                      : isToday
+                                        ? 'bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200'
+                                        : 'text-slate-700 hover:bg-slate-100'
+                            }`}
+                        >
+                            {day.getDate()}
+                            {status && (
+                                <span
+                                    className={`absolute bottom-1 h-1 w-1 rounded-full ${
+                                        isSelected
+                                            ? 'bg-white'
+                                            : status === 'pending'
+                                              ? 'bg-amber-500'
+                                              : status === 'done'
+                                                ? 'bg-emerald-500'
+                                                : 'bg-blue-400'
+                                    }`}
+                                />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-3">
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Com presenças por marcar
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Todas marcadas
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                    Aulas agendadas
+                </span>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Service List Row
+// ---------------------------------------------------------------------------
+
+function ServiceListRow({ service, isActive, isMarked, isFuture, onOpen }) {
     return (
         <div
-            className={`rounded-2xl border bg-white p-5 shadow-sm transition cursor-pointer ${
+            className={`flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition cursor-pointer ${
                 isActive
                     ? 'border-blue-400 ring-2 ring-blue-200'
                     : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
             }`}
             onClick={onOpen}
         >
-            <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                    <p className="text-base font-semibold text-slate-900">
-                        {service.titulo}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                        {service.disciplina || 'Serviço'} •{' '}
-                        {service.sala || 'Sala'}
-                    </p>
-                </div>
-                <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${
-                        isMarked
-                            ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'border border-amber-300 bg-amber-50 text-amber-700'
-                    }`}
-                >
-                    {isMarked ? (
-                        <>
-                            <CheckCircle2 size={12} /> Marcada
-                        </>
-                    ) : (
-                        <>
-                            <AlertCircle size={12} /> Pendente
-                        </>
-                    )}
-                </span>
+            <div
+                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
+                    isMarked
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : isFuture
+                          ? 'bg-slate-100 text-slate-500'
+                          : 'bg-amber-100 text-amber-700'
+                }`}
+            >
+                {String(service.horaInicio || service.hora_inicio || '--').slice(
+                    0,
+                    5
+                )}
             </div>
 
-            <div className="flex flex-col gap-1.5 text-xs text-slate-500">
-                <p className="inline-flex items-center gap-1.5">
-                    <Calendar size={13} />{' '}
-                    {formatServiceDay(service.dataInicio)}
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-900">
+                    {service.titulo}
                 </p>
-                <p className="inline-flex items-center gap-1.5">
-                    <Clock3 size={13} /> {formatTimeRange(service)}
+                <p className="mt-0.5 text-xs text-slate-500">
+                    {service.disciplina || 'Serviço'} •{' '}
+                    {service.sala || 'Sala'} • {formatTimeRange(service)}
                 </p>
             </div>
+
+            <span
+                className={`hidden sm:inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
+                    isMarked
+                        ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : isFuture
+                          ? 'border border-slate-300 bg-slate-100 text-slate-600'
+                          : 'border border-amber-300 bg-amber-50 text-amber-700'
+                }`}
+            >
+                {isMarked ? (
+                    <>
+                        <CheckCircle2 size={12} /> Marcada
+                    </>
+                ) : isFuture ? (
+                    <>
+                        <Clock3 size={12} /> Agendada
+                    </>
+                ) : (
+                    <>
+                        <AlertCircle size={12} /> Pendente
+                    </>
+                )}
+            </span>
 
             <button
                 type="button"
@@ -896,10 +1066,12 @@ function ServiceCard({ service, isActive, isMarked, onOpen }) {
                     e.stopPropagation();
                     onOpen();
                 }}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-100 px-3 py-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-200 transition active:scale-95"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-200 transition active:scale-95"
             >
                 <Edit3 size={13} />
-                {isMarked ? 'Ver/Editar Presença' : 'Marcar Presença'}
+                <span className="hidden md:inline">
+                    {isMarked ? 'Ver/Editar' : 'Marcar'}
+                </span>
             </button>
         </div>
     );
@@ -914,8 +1086,10 @@ export default function PresencasProfessorPage() {
     const [selectedServiceId, setSelectedServiceId] = useState('');
     const [selectedSessionKey, setSelectedSessionKey] = useState('');
     const [selectedDate, setSelectedDate] = useState(todayIso());
+    const [selectedCalendarDate, setSelectedCalendarDate] =
+        useState(todayIso());
+    const [calendarMonth, setCalendarMonth] = useState(() => new Date());
     const [serviceDetail, setServiceDetail] = useState(null);
-    const [savedAttendanceMap, setSavedAttendanceMap] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loadingServices, setLoadingServices] = useState(true);
     const [loadingDetail, setLoadingDetail] = useState(false);
@@ -923,38 +1097,29 @@ export default function PresencasProfessorPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
-    const [historicoServiceId, setHistoricoServiceId] = useState('');
-    const [historico, setHistorico] = useState(null);
-    const [loadingHistorico, setLoadingHistorico] = useState(false);
+
+    const loadServices = useCallback(async ({ silent = false } = {}) => {
+        if (!silent) setLoadingServices(true);
+        try {
+            const response = await apiGet('/api/professor/presencas/servicos');
+            const data = await response.json();
+            if (!response.ok)
+                throw new Error(data.message || 'Erro ao carregar serviços.');
+            setServices(Array.isArray(data.servicos) ? data.servicos : []);
+            return true;
+        } catch (err) {
+            setError(err.message || 'Erro ao carregar serviços.');
+            return false;
+        } finally {
+            if (!silent) setLoadingServices(false);
+        }
+    }, []);
 
     useEffect(() => {
-        let isMounted = true;
-        async function loadServices() {
-            setLoadingServices(true);
-            setError('');
-            try {
-                const response = await apiGet(
-                    '/api/professor/presencas/servicos'
-                );
-                const data = await response.json();
-                if (!response.ok)
-                    throw new Error(
-                        data.message || 'Erro ao carregar serviços.'
-                    );
-                if (!isMounted) return;
-                setServices(Array.isArray(data.servicos) ? data.servicos : []);
-            } catch (err) {
-                if (isMounted)
-                    setError(err.message || 'Erro ao carregar serviços.');
-            } finally {
-                if (isMounted) setLoadingServices(false);
-            }
-        }
-        loadServices();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
+        (async () => {
+            await loadServices();
+        })();
+    }, [loadServices]);
 
     useEffect(() => {
         async function loadAllStudents() {
@@ -1021,35 +1186,40 @@ export default function PresencasProfessorPage() {
         };
     }, [selectedServiceId, selectedDate]);
 
-    useEffect(() => {
-        let isMounted = true;
-        async function loadHistorico() {
-            if (!historicoServiceId) { setHistorico(null); return; }
-            setLoadingHistorico(true);
-            try {
-                const response = await apiGet(`/api/professor/presencas/${historicoServiceId}/historico`);
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message);
-                if (isMounted) setHistorico(data);
-            } catch { if (isMounted) setHistorico(null); }
-            finally { if (isMounted) setLoadingHistorico(false); }
-        }
-        loadHistorico();
-        return () => { isMounted = false; };
-    }, [historicoServiceId]);
-
     const attendanceRows = useMemo(
         () => serviceDetail?.alunos || [],
         [serviceDetail]
     );
 
-    const todayServices = useMemo(
-        () => services.filter(isServiceToday),
-        [services]
-    );
-    const pendingServices = useMemo(
-        () => services.filter(isServiceBeforeToday),
-        [services]
+    const dayStatus = useMemo(() => {
+        const today = todayIso();
+        const map = {};
+        services.forEach((s) => {
+            const dateKey = getServiceDisplayDate(s);
+            const current = map[dateKey];
+            if (dateKey > today) {
+                if (!current) map[dateKey] = 'future';
+            } else if (s.marcada) {
+                if (current !== 'pending') map[dateKey] = 'done';
+            } else {
+                map[dateKey] = 'pending';
+            }
+        });
+        return map;
+    }, [services]);
+
+    const selectedDayServices = useMemo(
+        () =>
+            services
+                .filter(
+                    (s) => getServiceDisplayDate(s) === selectedCalendarDate
+                )
+                .sort((a, b) =>
+                    String(a.horaInicio || a.hora_inicio || '').localeCompare(
+                        String(b.horaInicio || b.hora_inicio || '')
+                    )
+                ),
+        [services, selectedCalendarDate]
     );
 
     const stats = useMemo(() => {
@@ -1138,11 +1308,8 @@ export default function PresencasProfessorPage() {
             const data = await response.json();
             if (!response.ok)
                 throw new Error(data.message || 'Erro ao guardar presenças.');
-            setSavedAttendanceMap((cur) => ({
-                ...cur,
-                [`${selectedServiceId}:${selectedDate}`]: true,
-            }));
             setMessage(data.message || 'Presenças guardadas com sucesso.');
+            await loadServices({ silent: true });
             setTimeout(() => {
                 setIsModalOpen(false);
                 setSelectedServiceId('');
@@ -1157,10 +1324,7 @@ export default function PresencasProfessorPage() {
     }
 
     function isMarked(service) {
-        const date = getServiceDisplayDate(service);
-        return Boolean(
-            service.marcada || savedAttendanceMap[`${service.id}:${date}`]
-        );
+        return Boolean(service.marcada);
     }
 
     function openService(service) {
@@ -1194,13 +1358,27 @@ export default function PresencasProfessorPage() {
             {error && (
                 <div className="rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-sm text-rose-800 flex items-start gap-3">
                     <AlertCircle size={17} className="mt-0.5 flex-shrink-0" />
-                    <span>{error}</span>
+                    <span className="flex-1">{error}</span>
+                    <button
+                        type="button"
+                        onClick={() => setError('')}
+                        className="text-rose-400 hover:text-rose-700 transition flex-shrink-0"
+                    >
+                        <X size={15} />
+                    </button>
                 </div>
             )}
             {message && (
                 <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 flex items-start gap-3">
                     <CheckCircle2 size={17} className="mt-0.5 flex-shrink-0" />
-                    <span>{message}</span>
+                    <span className="flex-1">{message}</span>
+                    <button
+                        type="button"
+                        onClick={() => setMessage('')}
+                        className="text-emerald-500 hover:text-emerald-700 transition flex-shrink-0"
+                    >
+                        <X size={15} />
+                    </button>
                 </div>
             )}
 
@@ -1214,19 +1392,75 @@ export default function PresencasProfessorPage() {
                         A carregar serviços...
                     </p>
                 </div>
+            ) : services.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-14 text-center">
+                    <Calendar
+                        size={32}
+                        className="mx-auto mb-3 text-slate-300"
+                    />
+                    <p className="text-sm font-medium text-slate-500">
+                        Ainda não tens serviços atribuídos este mês
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                        As tuas aulas vão aparecer aqui assim que forem
+                        agendadas.
+                    </p>
+                </div>
             ) : (
-                <div className="space-y-8">
-                    <div className="space-y-4">
+                <div className="grid gap-5 lg:grid-cols-[290px_1fr] items-start">
+                    <MiniCalendar
+                        monthDate={calendarMonth}
+                        selectedDate={selectedCalendarDate}
+                        dayStatus={dayStatus}
+                        onSelectDate={setSelectedCalendarDate}
+                        onPrevMonth={() =>
+                            setCalendarMonth(
+                                (cur) =>
+                                    new Date(
+                                        cur.getFullYear(),
+                                        cur.getMonth() - 1,
+                                        1
+                                    )
+                            )
+                        }
+                        onNextMonth={() =>
+                            setCalendarMonth(
+                                (cur) =>
+                                    new Date(
+                                        cur.getFullYear(),
+                                        cur.getMonth() + 1,
+                                        1
+                                    )
+                            )
+                        }
+                        onToday={() => {
+                            setCalendarMonth(new Date());
+                            setSelectedCalendarDate(todayIso());
+                        }}
+                    />
+
+                    <div className="space-y-3">
                         <div className="flex items-center gap-2">
                             <Calendar size={19} className="text-blue-600" />
-                            <h2 className="text-2xl font-bold text-slate-900">
-                                Aulas de Hoje
+                            <h2 className="text-xl font-bold text-slate-900">
+                                {selectedCalendarDate === todayIso()
+                                    ? 'Hoje'
+                                    : formatDayHeading(selectedCalendarDate)}
                             </h2>
+                            {selectedDayServices.length > 0 && (
+                                <span className="text-sm font-normal text-slate-400">
+                                    {selectedDayServices.length} aula
+                                    {selectedDayServices.length > 1
+                                        ? 's'
+                                        : ''}
+                                </span>
+                            )}
                         </div>
-                        {todayServices.length ? (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {todayServices.map((s) => (
-                                    <ServiceCard
+
+                        {selectedDayServices.length ? (
+                            <div className="space-y-2.5">
+                                {selectedDayServices.map((s) => (
+                                    <ServiceListRow
                                         key={
                                             s.sessionKey ||
                                             `${s.id}:${getServiceDisplayDate(s)}`
@@ -1238,6 +1472,10 @@ export default function PresencasProfessorPage() {
                                             selectedSessionKey
                                         }
                                         isMarked={isMarked(s)}
+                                        isFuture={
+                                            getServiceDisplayDate(s) >
+                                            todayIso()
+                                        }
                                         onOpen={() => openService(s)}
                                     />
                                 ))}
@@ -1249,133 +1487,11 @@ export default function PresencasProfessorPage() {
                                     className="mx-auto mb-3 text-slate-300"
                                 />
                                 <p className="text-sm text-slate-400">
-                                    Não há aulas para hoje
+                                    Sem aulas neste dia
                                 </p>
                             </div>
                         )}
                     </div>
-
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle size={19} className="text-amber-500" />
-                            <h2 className="text-2xl font-bold text-slate-900">
-                                Presenças Pendentes
-                            </h2>
-                        </div>
-                        {pendingServices.length ? (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {pendingServices.map((s) => (
-                                    <ServiceCard
-                                        key={
-                                            s.sessionKey ||
-                                            `${s.id}:${getServiceDisplayDate(s)}`
-                                        }
-                                        service={s}
-                                        isActive={
-                                            (s.sessionKey ||
-                                                `${s.id}:${getServiceDisplayDate(s)}`) ===
-                                            selectedSessionKey
-                                        }
-                                        isMarked={isMarked(s)}
-                                        onOpen={() => openService(s)}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
-                                <CheckCircle2
-                                    size={28}
-                                    className="mx-auto mb-3 text-emerald-300"
-                                />
-                                <p className="text-sm text-slate-400">
-                                    Sem registos pendentes
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Histórico de Presenças por Aluno */}
-            {!loadingServices && services.length > 0 && (
-                <div className="space-y-4 border-t border-slate-200 pt-6">
-                    <div className="flex items-center gap-2">
-                        <Users size={19} className="text-violet-600" />
-                        <h2 className="text-2xl font-bold text-slate-900">Histórico por Aluno</h2>
-                    </div>
-                    <p className="text-sm text-slate-500">Selecione um serviço para ver o histórico acumulado de presenças e faltas de cada aluno.</p>
-                    <div className="flex items-center gap-3">
-                        <select
-                            value={historicoServiceId}
-                            onChange={(e) => setHistoricoServiceId(e.target.value)}
-                            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200 bg-white"
-                        >
-                            <option value="">Escolher serviço...</option>
-                            {services.map((s) => (
-                                <option key={s.id} value={String(s.id)}>{s.titulo || s.disciplina}</option>
-                            ))}
-                        </select>
-                        {historicoServiceId && (
-                            <button onClick={() => setHistoricoServiceId('')} className="text-slate-400 hover:text-slate-600 p-1">
-                                <X size={18} />
-                            </button>
-                        )}
-                    </div>
-
-                    {loadingHistorico && (
-                        <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
-                            <Loader2 size={16} className="animate-spin" /> A carregar histórico...
-                        </div>
-                    )}
-
-                    {historico && !loadingHistorico && (
-                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                            {historico.resumo_por_aluno?.length === 0 ? (
-                                <div className="py-12 text-center">
-                                    <Users size={28} className="mx-auto mb-3 text-slate-200" />
-                                    <p className="text-sm text-slate-400">Sem registos de presenças para este serviço</p>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b border-slate-200 bg-slate-50">
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Aluno</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ano/Turma</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-emerald-600 uppercase">Presenças</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-rose-600 uppercase">Faltas</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-blue-600 uppercase">Repostas</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Total</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Taxa Presença</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {historico.resumo_por_aluno.map((aluno, i) => {
-                                                const taxa = aluno.total > 0 ? Math.round(((aluno.presentes + aluno.repostas) / aluno.total) * 100) : 0;
-                                                return (
-                                                    <tr key={i} className={`hover:bg-slate-50 ${aluno.faltas > 2 ? 'bg-rose-50/40' : ''}`}>
-                                                        <td className="px-4 py-3 font-medium text-slate-800">{aluno.nome}</td>
-                                                        <td className="px-4 py-3 text-slate-500">{aluno.ano ? `${aluno.ano}º` : ''}{aluno.turma ? ` T${aluno.turma}` : ''}</td>
-                                                        <td className="px-4 py-3 text-center font-semibold text-emerald-700">{aluno.presentes}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className={`font-semibold ${aluno.faltas > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{aluno.faltas}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center font-semibold text-blue-700">{aluno.repostas}</td>
-                                                        <td className="px-4 py-3 text-center text-slate-600">{aluno.total}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${taxa >= 80 ? 'bg-emerald-100 text-emerald-700' : taxa >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
-                                                                {taxa}%
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             )}
 

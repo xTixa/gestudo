@@ -60,7 +60,8 @@
       "Bash(timeout 8 node backend/src/loader.cjs)",
       "Bash(node --check src/controllers/agendaController.js)",
       "Bash(timeout 20 node src/server.js)",
-      "Bash(node --input-type=module -e ' *)"
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(node -e \"import\\('pg'\\).then\\(m => console.log\\('Pool:', typeof m.default.Pool, 'types:', typeof m.default.types, 'setTypeParser:', typeof m.default.types.setTypeParser\\)\\)\")"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

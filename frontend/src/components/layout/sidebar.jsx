@@ -220,6 +220,12 @@ const menuByRole = {
             icon: ClipboardCheck,
         },
         {
+            key: 'assiduidade',
+            label: 'Assiduidade',
+            path: '/professor/assiduidade',
+            icon: BarChart3,
+        },
+        {
             key: 'notificacoes',
             label: 'Notificações',
             path: '/professor/notificacoes',
