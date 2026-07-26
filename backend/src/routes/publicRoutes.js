@@ -6,6 +6,7 @@ import {
 import { obterInscricaoTextosPublico } from '../controllers/inscricaoFormTextosController.js';
 import { obterFeatureFlagsPublico } from '../controllers/featureFlagsController.js';
 import { listarAgenda } from '../controllers/agendaController.js';
+import { obterFeedICS } from '../controllers/calendarFeedController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
 
@@ -61,5 +62,17 @@ router.post(
  * Status: 200 OK | 400 Bad Request | 500 Internal Server Error
  */
 router.get('/agenda', authMiddleware, listarAgenda);
+
+/**
+ * GET /api/public/agenda.ics
+ * Feed iCalendar da agenda de um utilizador, autenticado via token opaco na
+ * query string (não usa JWT/cookies) — pensado para ser subscrito
+ * diretamente por Google Calendar, Outlook ou Apple Calendar.
+ *
+ * Query: {token: string} — obtido em GET /api/agenda/calendar-token
+ * Response: text/calendar (.ics)
+ * Status: 200 OK | 400 Bad Request | 404 Not Found
+ */
+router.get('/agenda.ics', obterFeedICS);
 
 export default router;

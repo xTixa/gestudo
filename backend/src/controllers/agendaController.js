@@ -505,6 +505,290 @@ async function resolveInscricoesServicoColumn() {
 }
 
 /**
+ * Busca as atividades de agenda de um utilizador num intervalo de datas,
+ * agrupadas por dia. Reutilizada tanto pelo endpoint JSON (listarAgenda)
+ * como pelo gerador de feed iCalendar (calendarFeedService).
+ *
+ * @param {number|null} userId - ID do utilizador autenticado (ou null para vazio)
+ * @param {string} fromParam - Data de início (YYYY-MM-DD)
+ * @param {string} toParam - Data de fim (YYYY-MM-DD)
+ * @param {Object} [options]
+ * @param {boolean} [options.rescheduleEligible] - Filtra só atividades elegíveis para reagendamento
+ * @returns {Promise<{atividadesPorDia: Object, totalServicos: number}>}
+ */
+export async function buscarAtividadesPorDia(
+    userId,
+    fromParam,
+    toParam,
+    options = {}
+) {
+    const fromDate = parseDateOrNull(fromParam);
+    const toDate = parseDateOrNull(toParam);
+
+    if (!fromDate || !toDate || fromDate > toDate) {
+        const error = new Error('Intervalo de datas inválido.');
+        error.status = 400;
+        throw error;
+    }
+
+    const tableCheck = await db.query(
+        `
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'servicos_curriculares'
+        LIMIT 1
+      `
+    );
+
+    if (!tableCheck.rows.length) {
+        return { atividadesPorDia: {}, totalServicos: 0 };
+    }
+
+    let alunoId = null;
+    let professorId = null;
+
+    if (userId) {
+        const { rows: userRows } = await db.query(
+            `
+          SELECT role
+          FROM users
+          WHERE id_user = $1
+          LIMIT 1
+        `,
+            [userId]
+        );
+
+        const role = String(userRows[0]?.role || '').toLowerCase();
+
+        if (role === 'aluno') {
+            const { rows: alunoRows } = await db.query(
+                `
+            SELECT id_aluno
+            FROM alunos
+            WHERE id_user = $1
+            LIMIT 1
+          `,
+                [userId]
+            );
+
+            alunoId = alunoRows[0]?.id_aluno ?? -1;
+        }
+
+        if (role === 'professor') {
+            const { rows: profRows } = await db.query(
+                `
+            SELECT id_professor
+            FROM professores
+            WHERE id_user = $1
+            LIMIT 1
+          `,
+                [userId]
+            );
+
+            professorId = profRows[0]?.id_professor ?? -1;
+        }
+    }
+
+    const inscricoesServicoColumn = await resolveInscricoesServicoColumn();
+
+    const buildAlunosSelect = (servicoAlias) =>
+        inscricoesServicoColumn
+            ? `
+            COALESCE(
+                (
+                    SELECT json_agg(DISTINCT COALESCE(NULLIF(TRIM(pes_aluno.nome), ''), NULLIF(TRIM(u_aluno.email), ''), 'Aluno'))
+                    FROM inscricoes i2
+                    INNER JOIN alunos a2 ON a2.id_aluno = i2.id_aluno
+                    LEFT JOIN pessoas pes_aluno ON pes_aluno.id_pessoa = a2.id_pessoa
+                    LEFT JOIN users u_aluno ON u_aluno.id_user = a2.id_user
+                    WHERE i2.${inscricoesServicoColumn} = ${servicoAlias}.id_servico
+                        AND LOWER(COALESCE(i2.estado, 'ativa')) = 'ativa'
+                ),
+                '[]'::json
+            ) AS alunos
+        `
+            : `'[]'::json AS alunos`;
+
+    const hasDataReposicao = await hasPresencasDataReposicaoColumn();
+    const replacementOverlapCondition =
+        hasDataReposicao && alunoId
+            ? `
+                OR EXISTS (
+                    SELECT 1
+                    FROM presencas pr_reposta
+                    WHERE pr_reposta.id_servico = s.id_servico
+                      AND pr_reposta.id_aluno = $4::int
+                      AND LOWER(COALESCE(pr_reposta.estado, '')) = 'reposta'
+                      AND pr_reposta.data_reposicao >= $1::date
+                      AND pr_reposta.data_reposicao <= $2::date
+                )
+            `
+            : '';
+
+    const query = `
+  (
+    SELECT
+      s.id_servico,
+      s.tipo,
+      s.data_inicio,
+      s.data_fim,
+      s.hora_inicio,
+      s.hora_fim,
+      s.dias_semana,
+      d.nome AS disciplina,
+      m.nome AS modalidade,
+      sa.nome AS sala,
+      COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
+      p.cor AS professor_cor,
+      'curricular' AS categoria,
+      ${buildAlunosSelect('s')}
+    FROM servicos_curriculares s
+    LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
+    LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
+    LEFT JOIN salas sa ON sa.id_sala = s.id_sala
+    LEFT JOIN professores p ON p.id_professor = s.id_professor
+    LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
+    LEFT JOIN users u ON u.id_user = p.id_user
+    WHERE COALESCE(s.ativo, true) = true
+      AND (
+        (
+          s.data_inicio <= $2::date
+          AND COALESCE(s.data_fim, s.data_inicio) >= $1::date
+        )
+        ${replacementOverlapCondition}
+      )
+      AND ($3::int IS NULL OR s.id_professor = $3::int)
+      AND (
+        $4::int IS NULL
+        OR ${
+            inscricoesServicoColumn
+                ? `EXISTS (
+          SELECT 1
+          FROM inscricoes i
+          WHERE i.${inscricoesServicoColumn} = s.id_servico
+            AND i.id_aluno = $4::int
+            AND i.estado = 'ativa'
+        )`
+                : 'false'
+        }
+      )
+  )
+  UNION ALL
+  (
+    SELECT
+      se.id_servico,
+      COALESCE(tse.nome, se.tipo, 'Serviço Extra') AS tipo,
+      se.data_inicio,
+      se.data_fim,
+      se.hora_inicio,
+      se.hora_fim,
+      se.dias_semana,
+      NULL::text AS disciplina,
+      m.nome AS modalidade,
+      sa.nome AS sala,
+      COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
+      p.cor AS professor_cor,
+      'extra-curricular' AS categoria,
+      ${buildAlunosSelect('se')}
+    FROM servicos_extracurriculares se
+    LEFT JOIN tipo_servico_extracurricular tse ON tse.id_tipo_servico_extra = se.id_tipo_servico_extra
+    LEFT JOIN modalidades m ON m.id_modalidade = se.id_modalidade
+    LEFT JOIN salas sa ON sa.id_sala = se.id_sala
+    LEFT JOIN professores p ON p.id_professor = se.id_professor
+    LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
+    LEFT JOIN users u ON u.id_user = p.id_user
+    WHERE COALESCE(se.ativo, true) = true
+      AND se.data_inicio <= $2::date
+      AND COALESCE(se.data_fim, se.data_inicio) >= $1::date
+      AND ($3::int IS NULL OR se.id_professor = $3::int)
+      AND (
+        $4::int IS NULL
+        OR ${
+            inscricoesServicoColumn
+                ? `EXISTS (
+          SELECT 1
+          FROM inscricoes i
+          WHERE i.${inscricoesServicoColumn} = se.id_servico
+            AND i.id_aluno = $4::int
+            AND i.estado = 'ativa'
+        )`
+                : 'false'
+        }
+      )
+  )
+  ORDER BY data_inicio ASC, hora_inicio ASC, id_servico ASC
+`;
+
+    const { rows } = await db.query(query, [
+        fromParam,
+        toParam,
+        professorId,
+        alunoId,
+    ]);
+
+    let presencasBySession = null;
+    let presencasByService = null;
+    if (alunoId) {
+        const { rows: presencasRows } = await db.query(
+            `
+            SELECT
+                id_servico,
+                data_aula,
+                estado,
+                ${
+                    hasDataReposicao
+                        ? 'data_reposicao'
+                        : 'NULL::date AS data_reposicao'
+                }
+            FROM presencas
+            WHERE id_aluno = $1
+              AND LOWER(COALESCE(estado, '')) = 'reposta'
+              AND (
+                (data_aula >= $2::date AND data_aula <= $3::date)
+                ${
+                    hasDataReposicao
+                        ? 'OR (data_reposicao >= $2::date AND data_reposicao <= $3::date)'
+                        : ''
+                }
+              )
+            `,
+            [alunoId, fromParam, toParam]
+        );
+
+        presencasBySession = buildPresencasBySession(presencasRows);
+        presencasByService = buildPresencasByService(presencasRows);
+    }
+
+    const rescheduleEligible = String(
+        options?.rescheduleEligible || ''
+    ).toLowerCase();
+    const cutoffDate = new Date(
+        Date.now() + RESCHEDULE_MIN_LEAD_MINUTES * 60000
+    );
+
+    const atividadesBase = buildAtividadesPorDia(
+        rows,
+        fromDate,
+        toDate,
+        presencasBySession,
+        presencasByService
+    );
+    const atividadesPorDia =
+        rescheduleEligible === 'true'
+            ? filterAtividadesElegiveisPorData(atividadesBase, cutoffDate)
+            : atividadesBase;
+
+    const totalServicos = Object.values(atividadesPorDia).reduce(
+        (total, atividades) =>
+            total + (Array.isArray(atividades) ? atividades.length : 0),
+        0
+    );
+
+    return { atividadesPorDia, totalServicos };
+}
+
+/**
  * Lista agenda de atividades para utilizador autenticado num intervalo de datas
  * Filtra automaticamente por tipo de utilizador (aluno, professor, ou gestor)
  * Retorna estrutura de atividades agruadas por dia
@@ -525,277 +809,18 @@ export async function listarAgenda(req, res) {
             });
         }
 
-        const fromDate = parseDateOrNull(fromParam);
-        const toDate = parseDateOrNull(toParam);
-
-        if (!fromDate || !toDate || fromDate > toDate) {
-            return res.status(400).json({
-                message: 'Intervalo de datas inválido.',
-            });
-        }
-
-        const tableCheck = await db.query(
-            `
-        SELECT 1
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-          AND table_name = 'servicos_curriculares'
-        LIMIT 1
-      `
-        );
-
-        if (!tableCheck.rows.length) {
-            return res
-                .status(200)
-                .json({ atividadesPorDia: {}, totalServicos: 0 });
-        }
-
-        let alunoId = null;
-        let professorId = null;
-
-        if (req.userId) {
-            const { rows: userRows } = await db.query(
-                `
-          SELECT role
-          FROM users
-          WHERE id_user = $1
-          LIMIT 1
-        `,
-                [req.userId]
-            );
-
-            const role = String(userRows[0]?.role || '').toLowerCase();
-
-            if (role === 'aluno') {
-                const { rows: alunoRows } = await db.query(
-                    `
-            SELECT id_aluno
-            FROM alunos
-            WHERE id_user = $1
-            LIMIT 1
-          `,
-                    [req.userId]
-                );
-
-                alunoId = alunoRows[0]?.id_aluno ?? -1;
-            }
-
-            if (role === 'professor') {
-                const { rows: profRows } = await db.query(
-                    `
-            SELECT id_professor
-            FROM professores
-            WHERE id_user = $1
-            LIMIT 1
-          `,
-                    [req.userId]
-                );
-
-                professorId = profRows[0]?.id_professor ?? -1;
-            }
-        }
-
-        const inscricoesServicoColumn = await resolveInscricoesServicoColumn();
-
-        const buildAlunosSelect = (servicoAlias) =>
-            inscricoesServicoColumn
-                ? `
-                COALESCE(
-                    (
-                        SELECT json_agg(DISTINCT COALESCE(NULLIF(TRIM(pes_aluno.nome), ''), NULLIF(TRIM(u_aluno.email), ''), 'Aluno'))
-                        FROM inscricoes i2
-                        INNER JOIN alunos a2 ON a2.id_aluno = i2.id_aluno
-                        LEFT JOIN pessoas pes_aluno ON pes_aluno.id_pessoa = a2.id_pessoa
-                        LEFT JOIN users u_aluno ON u_aluno.id_user = a2.id_user
-                        WHERE i2.${inscricoesServicoColumn} = ${servicoAlias}.id_servico
-                            AND LOWER(COALESCE(i2.estado, 'ativa')) = 'ativa'
-                    ),
-                    '[]'::json
-                ) AS alunos
-            `
-                : `'[]'::json AS alunos`;
-
-        const hasDataReposicao = await hasPresencasDataReposicaoColumn();
-        const replacementOverlapCondition =
-            hasDataReposicao && alunoId
-                ? `
-                    OR EXISTS (
-                        SELECT 1
-                        FROM presencas pr_reposta
-                        WHERE pr_reposta.id_servico = s.id_servico
-                          AND pr_reposta.id_aluno = $4::int
-                          AND LOWER(COALESCE(pr_reposta.estado, '')) = 'reposta'
-                          AND pr_reposta.data_reposicao >= $1::date
-                          AND pr_reposta.data_reposicao <= $2::date
-                    )
-                `
-                : '';
-
-        const query = `
-      (
-        SELECT
-          s.id_servico,
-          s.tipo,
-          s.data_inicio,
-          s.data_fim,
-          s.hora_inicio,
-          s.hora_fim,
-          s.dias_semana,
-          d.nome AS disciplina,
-          m.nome AS modalidade,
-          sa.nome AS sala,
-          COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
-          p.cor AS professor_cor,
-          'curricular' AS categoria,
-          ${buildAlunosSelect('s')}
-        FROM servicos_curriculares s
-        LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
-        LEFT JOIN modalidades m ON m.id_modalidade = s.id_modalidade
-        LEFT JOIN salas sa ON sa.id_sala = s.id_sala
-        LEFT JOIN professores p ON p.id_professor = s.id_professor
-        LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
-        LEFT JOIN users u ON u.id_user = p.id_user
-        WHERE COALESCE(s.ativo, true) = true
-          AND (
-            (
-              s.data_inicio <= $2::date
-              AND COALESCE(s.data_fim, s.data_inicio) >= $1::date
-            )
-            ${replacementOverlapCondition}
-          )
-          AND ($3::int IS NULL OR s.id_professor = $3::int)
-          AND (
-            $4::int IS NULL
-            OR ${
-                inscricoesServicoColumn
-                    ? `EXISTS (
-              SELECT 1
-              FROM inscricoes i
-              WHERE i.${inscricoesServicoColumn} = s.id_servico
-                AND i.id_aluno = $4::int
-                AND i.estado = 'ativa'
-            )`
-                    : 'false'
-            }
-          )
-      )
-      UNION ALL
-      (
-        SELECT
-          se.id_servico,
-          COALESCE(tse.nome, se.tipo, 'Serviço Extra') AS tipo,
-          se.data_inicio,
-          se.data_fim,
-          se.hora_inicio,
-          se.hora_fim,
-          se.dias_semana,
-          NULL::text AS disciplina,
-          m.nome AS modalidade,
-          sa.nome AS sala,
-          COALESCE(NULLIF(TRIM(pes.nome), ''), u.email, 'Professor') AS professor,
-          p.cor AS professor_cor,
-          'extra-curricular' AS categoria,
-          ${buildAlunosSelect('se')}
-        FROM servicos_extracurriculares se
-        LEFT JOIN tipo_servico_extracurricular tse ON tse.id_tipo_servico_extra = se.id_tipo_servico_extra
-        LEFT JOIN modalidades m ON m.id_modalidade = se.id_modalidade
-        LEFT JOIN salas sa ON sa.id_sala = se.id_sala
-        LEFT JOIN professores p ON p.id_professor = se.id_professor
-        LEFT JOIN pessoas pes ON pes.id_pessoa = p.id_pessoa
-        LEFT JOIN users u ON u.id_user = p.id_user
-        WHERE COALESCE(se.ativo, true) = true
-          AND se.data_inicio <= $2::date
-          AND COALESCE(se.data_fim, se.data_inicio) >= $1::date
-          AND ($3::int IS NULL OR se.id_professor = $3::int)
-          AND (
-            $4::int IS NULL
-            OR ${
-                inscricoesServicoColumn
-                    ? `EXISTS (
-              SELECT 1
-              FROM inscricoes i
-              WHERE i.${inscricoesServicoColumn} = se.id_servico
-                AND i.id_aluno = $4::int
-                AND i.estado = 'ativa'
-            )`
-                    : 'false'
-            }
-          )
-      )
-      ORDER BY data_inicio ASC, hora_inicio ASC, id_servico ASC
-    `;
-
-        const { rows } = await db.query(query, [
+        const resultado = await buscarAtividadesPorDia(
+            req.userId,
             fromParam,
             toParam,
-            professorId,
-            alunoId,
-        ]);
-
-        let presencasBySession = null;
-        let presencasByService = null;
-        if (alunoId) {
-            const { rows: presencasRows } = await db.query(
-                `
-                SELECT
-                    id_servico,
-                    data_aula,
-                    estado,
-                    ${
-                        hasDataReposicao
-                            ? 'data_reposicao'
-                            : 'NULL::date AS data_reposicao'
-                    }
-                FROM presencas
-                WHERE id_aluno = $1
-                  AND LOWER(COALESCE(estado, '')) = 'reposta'
-                  AND (
-                    (data_aula >= $2::date AND data_aula <= $3::date)
-                    ${
-                        hasDataReposicao
-                            ? 'OR (data_reposicao >= $2::date AND data_reposicao <= $3::date)'
-                            : ''
-                    }
-                  )
-                `,
-                [alunoId, fromParam, toParam]
-            );
-
-            presencasBySession = buildPresencasBySession(presencasRows);
-            presencasByService = buildPresencasByService(presencasRows);
-        }
-
-        const rescheduleEligible = String(
-            req.query?.rescheduleEligible || ''
-        ).toLowerCase();
-        const cutoffDate = new Date(
-            Date.now() + RESCHEDULE_MIN_LEAD_MINUTES * 60000
+            { rescheduleEligible: req.query?.rescheduleEligible }
         );
 
-        const atividadesBase = buildAtividadesPorDia(
-            rows,
-            fromDate,
-            toDate,
-            presencasBySession,
-            presencasByService
-        );
-        const atividadesPorDia =
-            rescheduleEligible === 'true'
-                ? filterAtividadesElegiveisPorData(atividadesBase, cutoffDate)
-                : atividadesBase;
-
-        const totalServicos = Object.values(atividadesPorDia).reduce(
-            (total, atividades) =>
-                total + (Array.isArray(atividades) ? atividades.length : 0),
-            0
-        );
-
-        return res.status(200).json({
-            atividadesPorDia,
-            totalServicos,
-        });
+        return res.status(200).json(resultado);
     } catch (error) {
         console.error('Erro ao listar agenda:', error.message);
-        return res.status(500).json({ message: 'Erro ao obter agenda.' });
+        return res
+            .status(error.status || 500)
+            .json({ message: error.message || 'Erro ao obter agenda.' });
     }
 }

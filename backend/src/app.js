@@ -21,6 +21,7 @@ import professorRoutes from './routes/professorRoutes.js';
 import notificacoesRoutes from './routes/notificacoesRoutes.js';
 import alertasRoutes from './routes/alertasRoutes.js';
 import buscaRoutes from './routes/buscaRoutes.js';
+import calendarRoutes from './routes/calendarRoutes.js';
 import { db } from './config/db.js';
 
 const app = express();
@@ -87,6 +88,7 @@ app.use('/api/busca', buscaRoutes); // Busca global (autenticada)
 app.use('/api/gestor', gestorRoutes); // Admin only (roleMiddleware aplicado na rota)
 app.use('/api/notificacoes', notificacoesRoutes); // Notificações (auth + role verificati)
 app.use('/api/alertas', alertasRoutes); // Alertas (catalog público, preferências autenticadas)
+app.use('/api/agenda', calendarRoutes); // Token de subscrição de calendário externo (qualquer role autenticado)
 
 app.use(notFoundHandler); // 404 - Rota não encontrada
 app.use(errorHandler); // Erro global

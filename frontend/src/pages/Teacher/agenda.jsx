@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { apiGet } from '../../utils/api.js';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
+import CalendarSyncButton from '../../components/agenda/CalendarSyncButton';
 
 const monthNames = [
     'Janeiro',
@@ -378,18 +379,21 @@ export default function AgendaPage() {
                 subtitle="Visualize as suas atividades, aulas e eventos agendados."
                 icon={CalendarDays}
                 actions={
-                    <button
-                        type="button"
-                        onClick={() => setReloadToken((prev) => prev + 1)}
-                        disabled={loading}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <RefreshCw
-                            size={16}
-                            className={loading ? 'animate-spin' : ''}
-                        />
-                        Atualizar
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <CalendarSyncButton />
+                        <button
+                            type="button"
+                            onClick={() => setReloadToken((prev) => prev + 1)}
+                            disabled={loading}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            <RefreshCw
+                                size={16}
+                                className={loading ? 'animate-spin' : ''}
+                            />
+                            Atualizar
+                        </button>
+                    </div>
                 }
             />
 
