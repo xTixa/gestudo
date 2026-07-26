@@ -8,6 +8,8 @@ import {
     eliminarAlunoDefinitivo,
     resetarPasswordAluno,
     adicionarServicoCurricularAluno,
+    removerServicoAluno,
+    atualizarDisciplinasPretendidasAluno,
     listarAlteracoesPendentesPerfil,
     aprovarAlteracaoPendentePerfil,
     rejeitarAlteracaoPendentePerfil,
@@ -65,6 +67,10 @@ import {
     atualizarInscricaoTextos,
     reporInscricaoTexto,
 } from '../controllers/inscricaoFormTextosController.js';
+import {
+    listarFeatureFlags,
+    atualizarFeatureFlag,
+} from '../controllers/featureFlagsController.js';
 import {
     listarAlunosMatriculaExpirada,
     suspenderAlunosExpirados,
@@ -312,6 +318,16 @@ router.post(
     validateParams({ id: 'number' }),
     validateBody({ id_servico: { type: 'number', required: true } }),
     adicionarServicoCurricularAluno
+);
+router.delete(
+    '/alunos/:id/servicos/:idServico',
+    validateParams({ id: 'number', idServico: 'number' }),
+    removerServicoAluno
+);
+router.patch(
+    '/alunos/:id/disciplinas-pretendidas',
+    validateParams({ id: 'number' }),
+    atualizarDisciplinasPretendidasAluno
 );
 router.patch(
     '/alunos/:id/status',
@@ -791,6 +807,14 @@ router.post(
     '/inscricao-textos/:key/reset',
     validateParams({ key: 'string' }),
     reporInscricaoTexto
+);
+
+router.get('/feature-flags', listarFeatureFlags);
+router.patch(
+    '/feature-flags/:key',
+    validateParams({ key: 'string' }),
+    validateBody({ ativo: { type: 'boolean', required: true } }),
+    atualizarFeatureFlag
 );
 
 /**

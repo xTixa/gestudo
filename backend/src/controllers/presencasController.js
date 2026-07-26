@@ -705,10 +705,15 @@ export async function obterPresencaProfessor(req, res) {
                 `
                     SELECT
                         pr.id_aluno,
+                        p.nome,
+                        a.ano,
+                        a.turma,
                         pr.estado,
                         pr.observacao
                         ${hasDataReposicao ? ', pr.data_reposicao' : ''}
                     FROM presencas pr
+                    INNER JOIN alunos a ON a.id_aluno = pr.id_aluno
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
                     WHERE pr.id_servico = $1
                       AND pr.data_aula = $2
                     ORDER BY pr.id_aluno ASC
@@ -732,7 +737,11 @@ export async function obterPresencaProfessor(req, res) {
             ])
         );
 
-        const alunos = studentsResult.rows.map((row) => {
+        const idsInscritos = new Set(
+            studentsResult.rows.map((row) => Number(row.id_aluno))
+        );
+
+        const alunosInscritos = studentsResult.rows.map((row) => {
             const attendance = presencasByAluno.get(Number(row.id_aluno));
 
             return {
@@ -743,8 +752,32 @@ export async function obterPresencaProfessor(req, res) {
                 estado: attendance?.estado || 'pendente',
                 observacao: attendance?.observacao || '',
                 data_reposicao: attendance?.data_reposicao || null,
+                _extra: false,
             };
         });
+
+        // Alunos que têm presença registada nesta aula mas não estão
+        // inscritos no serviço ("alunos extra" adicionados pelo professor)
+        // não aparecem em studentsResult; são recuperados aqui a partir da
+        // própria tabela presencas para que continuem visíveis ao reabrir.
+        const alunosExtra = presencasResult.rows
+            .filter((row) => !idsInscritos.has(Number(row.id_aluno)))
+            .map((row) => {
+                const attendance = presencasByAluno.get(Number(row.id_aluno));
+
+                return {
+                    id_aluno: row.id_aluno,
+                    nome: String(row.nome || 'Aluno').trim(),
+                    ano: row.ano == null ? '' : String(row.ano).trim(),
+                    turma: row.turma == null ? '' : String(row.turma).trim(),
+                    estado: attendance?.estado || 'pendente',
+                    observacao: attendance?.observacao || '',
+                    data_reposicao: attendance?.data_reposicao || null,
+                    _extra: true,
+                };
+            });
+
+        const alunos = [...alunosInscritos, ...alunosExtra];
 
         return res.status(200).json({
             servico: {

@@ -177,7 +177,7 @@ export const DEFAULT_INSCRICAO_TEXTOS = {
     section_plano_descricao: {
         secao: 'Plano',
         label: 'Texto explicativo da secção',
-        value: 'Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e pacote.',
+        value: 'Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e horas pretendidas.',
     },
     label_disciplina: {
         secao: 'Plano',
@@ -206,18 +206,18 @@ export const DEFAULT_INSCRICAO_TEXTOS = {
     },
     label_pacote: {
         secao: 'Plano',
-        label: 'Rótulo do campo Pacote',
-        value: 'Pacote',
+        label: 'Rótulo do campo Horas Pretendidas',
+        value: 'Horas Pretendidas',
     },
     help_pacote_sem_modalidade: {
         secao: 'Plano',
         label: 'Texto de ajuda antes de escolher a modalidade',
-        value: 'Selecione primeiro a modalidade para escolher um pacote.',
+        value: 'Selecione primeiro a modalidade para escolher as horas pretendidas.',
     },
     text_pacotes_individual: {
         secao: 'Plano',
-        label: 'Texto quando a modalidade é individual (sem pacotes)',
-        value: 'Pacotes não disponíveis para explicação individual.',
+        label: 'Texto quando a modalidade é individual (sem horas pretendidas)',
+        value: 'Horas pretendidas não aplicáveis para explicação individual.',
     },
     button_adicionar_disciplina: {
         secao: 'Plano',

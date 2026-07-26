@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Book, Info, Pencil, Plus, School, Trash2, User, Users, X } from 'lucide-react';
 import EnrollmentStatusBadge from './EnrollmentStatusBadge';
+import { apiGet } from '../../utils/api';
+
+function formatHorasPretendidas(value) {
+    const numero = Number(value);
+    if (!Number.isFinite(numero) || numero <= 0) return '';
+    return `${numero}h`;
+}
+
+function normalizeNome(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase();
+}
 
 function formatDateTime(value) {
     if (!value) return '-';
@@ -63,6 +76,30 @@ function EditField({ label, value, onChange }) {
     );
 }
 
+function EditHorasPretendidas({ value, onChange, opcoes }) {
+    return (
+        <label className="block">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Horas Pretendidas
+            </p>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            >
+                <option value="">
+                    {opcoes.length === 0 ? 'Sem pacotes disponíveis' : 'Selecionar'}
+                </option>
+                {opcoes.map((horas) => (
+                    <option key={horas} value={horas}>
+                        {horas}h
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
+}
+
 function Section({ title, icon: Icon, children, action }) {
     return (
         <div className="space-y-2">
@@ -101,6 +138,9 @@ export default function EnrollmentDrawer({
     }));
     const [plano, setPlano] = useState(() => getPlanoFromItem(item));
     const [saveError, setSaveError] = useState('');
+    const [disciplinasCatalogo, setDisciplinasCatalogo] = useState([]);
+    const [modalidadesCatalogo, setModalidadesCatalogo] = useState([]);
+    const [pacotesCatalogo, setPacotesCatalogo] = useState([]);
 
     useEffect(() => {
         function handleKey(e) {
@@ -109,6 +149,85 @@ export default function EnrollmentDrawer({
         document.addEventListener('keydown', handleKey);
         return () => document.removeEventListener('keydown', handleKey);
     }, [onClose]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function carregarCatalogos() {
+            try {
+                const [disciplinasRes, modalidadesRes, pacotesRes] =
+                    await Promise.all([
+                        apiGet('/api/gestor/disciplinas'),
+                        apiGet('/api/gestor/modalidades'),
+                        apiGet('/api/gestor/pacotes'),
+                    ]);
+                const [disciplinasData, modalidadesData, pacotesData] =
+                    await Promise.all([
+                        disciplinasRes.json(),
+                        modalidadesRes.json(),
+                        pacotesRes.json(),
+                    ]);
+
+                if (!isMounted) return;
+
+                setDisciplinasCatalogo(
+                    Array.isArray(disciplinasData?.disciplinas)
+                        ? disciplinasData.disciplinas
+                        : []
+                );
+                setModalidadesCatalogo(
+                    Array.isArray(modalidadesData?.modalidades)
+                        ? modalidadesData.modalidades
+                        : []
+                );
+                setPacotesCatalogo(
+                    Array.isArray(pacotesData?.pacotes)
+                        ? pacotesData.pacotes
+                        : []
+                );
+            } catch {
+                // Falha silenciosa: o dropdown de horas fica sem opções.
+            }
+        }
+
+        carregarCatalogos();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    function getHorasDisponiveis(planoItem) {
+        const disciplina = disciplinasCatalogo.find(
+            (d) => normalizeNome(d.nome) === normalizeNome(planoItem.disciplina)
+        );
+        const modalidade = modalidadesCatalogo.find(
+            (m) => normalizeNome(m.nome) === normalizeNome(planoItem.modalidade)
+        );
+        const idDisciplina = disciplina
+            ? String(disciplina.id_disciplina ?? disciplina.id)
+            : '';
+        const idModalidade = modalidade
+            ? String(modalidade.id_modalidade ?? modalidade.id)
+            : '';
+
+        const compativel = pacotesCatalogo.filter((p) => {
+            if (p?.ativa === false || p?.ativo === false) return false;
+            const horas = p?.horas_mensais ?? p?.horas;
+            if (horas == null) return false;
+            const pIdDisciplina =
+                p?.id_disciplina != null ? String(p.id_disciplina) : '';
+            const pIdModalidade =
+                p?.id_modalidade != null ? String(p.id_modalidade) : '';
+            const disciplinaOk = !pIdDisciplina || pIdDisciplina === idDisciplina;
+            const modalidadeOk = !pIdModalidade || pIdModalidade === idModalidade;
+            return disciplinaOk && modalidadeOk;
+        });
+
+        return Array.from(
+            new Set(compativel.map((p) => Number(p.horas_mensais ?? p.horas)))
+        ).sort((a, b) => a - b);
+    }
 
     if (!item) return null;
 
@@ -177,6 +296,21 @@ export default function EnrollmentDrawer({
 
         if (trimmedPlano.some((p) => !p.disciplina || !p.modalidade)) {
             setSaveError('Cada disciplina do plano precisa de nome e modalidade.');
+            return;
+        }
+
+        const horasInvalidas = trimmedPlano.some((p) => {
+            if (!p.pacote) return false;
+            const horas = Number(p.pacote);
+            return (
+                !Number.isInteger(horas) ||
+                horas % 2 !== 0 ||
+                horas < 4 ||
+                horas > 20
+            );
+        });
+        if (horasInvalidas) {
+            setSaveError('As horas pretendidas devem ser um número par entre 4 e 20.');
             return;
         }
 
@@ -321,10 +455,10 @@ export default function EnrollmentDrawer({
                                             value={p.modalidade}
                                             onChange={(v) => updatePlanoField(index, 'modalidade', v)}
                                         />
-                                        <EditField
-                                            label="Pacote"
+                                        <EditHorasPretendidas
                                             value={p.pacote}
                                             onChange={(v) => updatePlanoField(index, 'pacote', v)}
+                                            opcoes={getHorasDisponiveis(p)}
                                         />
                                     </div>
                                 ))}
@@ -371,7 +505,10 @@ export default function EnrollmentDrawer({
                                         ) : null}
                                         <DetailRow label="Disciplina" value={p.disciplina} />
                                         <DetailRow label="Modalidade" value={p.modalidade} />
-                                        <DetailRow label="Pacote" value={p.pacote} />
+                                        <DetailRow
+                                            label="Horas Pretendidas"
+                                            value={formatHorasPretendidas(p.pacote)}
+                                        />
                                     </div>
                                 ))}
                             </Section>

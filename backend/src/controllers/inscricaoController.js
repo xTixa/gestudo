@@ -199,6 +199,7 @@ export async function listarOpcoesInscricao(req, res) {
             niveisTable,
             modalidadesTable,
             tiposServicoTable,
+            pacotesTable,
         ] = await Promise.all([
             findTableByCandidates(['disciplinas', 'disciplina']),
             findTableByCandidates([
@@ -214,6 +215,7 @@ export async function listarOpcoesInscricao(req, res) {
                 'tipos_servico',
                 'tiposervico',
             ]),
+            findTableByCandidates(['pacotes', 'pacote']),
         ]);
 
         if (
@@ -244,11 +246,23 @@ export async function listarOpcoesInscricao(req, res) {
             niveisResult,
             modalidadesResult,
             tiposServicoResult,
+            pacotesResult,
         ] = await Promise.all([
             db.query(disciplinasQuery),
             db.query(niveisQuery),
             db.query(modalidadesQuery),
             db.query(tiposServicoQuery),
+            pacotesTable
+                ? db.query(
+                      `
+                        SELECT id_pacote, nome, horas_mensais, id_disciplina, id_modalidade
+                        FROM ${quoteIdent(pacotesTable.table_schema)}.${quoteIdent(pacotesTable.table_name)}
+                        WHERE COALESCE(ativo, true) = true
+                          AND horas_mensais IS NOT NULL
+                        ORDER BY horas_mensais
+                    `
+                  )
+                : Promise.resolve({ rows: [] }),
         ]);
 
         return res.status(200).json({
@@ -256,6 +270,19 @@ export async function listarOpcoesInscricao(req, res) {
             niveisEnsino: normalizeOptionRows(niveisResult.rows),
             modalidades: normalizeOptionRows(modalidadesResult.rows),
             tiposServico: normalizeOptionRows(tiposServicoResult.rows),
+            pacotes: pacotesResult.rows.map((row) => ({
+                id: row.id_pacote,
+                nome: row.nome,
+                horas: row.horas_mensais,
+                idDisciplina:
+                    row.id_disciplina != null
+                        ? String(row.id_disciplina)
+                        : '',
+                idModalidade:
+                    row.id_modalidade != null
+                        ? String(row.id_modalidade)
+                        : '',
+            })),
         });
     } catch (error) {
         console.error('Erro ao listar opcoes de inscricao:', error.message);
@@ -267,6 +294,21 @@ export async function listarOpcoesInscricao(req, res) {
 
 function getBodyValue(body, key) {
     return String(body?.[key] ?? '').trim();
+}
+
+/**
+ * Valida que as horas pretendidas (antigo "pacote") são um número par entre
+ * 4 e 20. Um valor vazio é considerado válido (o campo pode ser opcional
+ * consoante a modalidade, ex: explicação individual).
+ */
+function isHorasPretendidasValido(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return true;
+
+    const horas = Number(raw);
+    return (
+        Number.isInteger(horas) && horas % 2 === 0 && horas >= 4 && horas <= 20
+    );
 }
 
 function toNullableText(value) {
@@ -738,15 +780,22 @@ async function integrarInscricaoAprovada(inscricao) {
 
         const anoEscolar = Number.parseInt(inscricao?.ano_escolar, 10);
 
+        const planoDisciplinas = Array.isArray(inscricao?.dados?.plano)
+            ? inscricao.dados.plano
+                  .map((item) => String(item?.disciplina ?? '').trim())
+                  .filter((nome, index, all) => nome && all.indexOf(nome) === index)
+            : [];
+
         await client.query(
             `
                 INSERT INTO alunos (
                     id_user, id_pessoa, id_encarregado, ano, turma, escola,
                     nivel_ensino, data_inicio, observacoes,
                     aut_saida_nome_1, aut_saida_parentesco_1,
-                    aut_saida_nome_2, aut_saida_parentesco_2
+                    aut_saida_nome_2, aut_saida_parentesco_2,
+                    disciplinas_pretendidas
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
             `,
             [
                 idUser,
@@ -762,6 +811,7 @@ async function integrarInscricaoAprovada(inscricao) {
                 toNullableText(inscricao?.aut_saida_parentesco_1),
                 toNullableText(inscricao?.aut_saida_nome_2),
                 toNullableText(inscricao?.aut_saida_parentesco_2),
+                JSON.stringify(planoDisciplinas),
             ]
         );
 
@@ -846,6 +896,19 @@ export async function criarInscricaoPublica(req, res) {
             return res.status(400).json({
                 message:
                     'Campos obrigatórios em falta (nome completo, email, telemóvel e nome do encarregado).',
+            });
+        }
+
+        const planoParaValidar = Array.isArray(body.plano) ? body.plano : [];
+        const horasInvalidas = [
+            getBodyValue(body, 'pacote'),
+            ...planoParaValidar.map((item) => String(item?.pacote ?? '').trim()),
+        ].some((valor) => !isHorasPretendidasValido(valor));
+
+        if (horasInvalidas) {
+            return res.status(400).json({
+                message:
+                    'Horas pretendidas inválidas. Deve ser um número par entre 4 e 20.',
             });
         }
 
@@ -1387,6 +1450,11 @@ export async function atualizarCamposInscricaoPublica(req, res) {
                 if (!plano[i].disciplina || !plano[i].modalidade) {
                     return res.status(400).json({
                         message: `Plano ${i + 1}: disciplina e modalidade são obrigatórias.`,
+                    });
+                }
+                if (!isHorasPretendidasValido(plano[i].pacote)) {
+                    return res.status(400).json({
+                        message: `Plano ${i + 1}: horas pretendidas inválidas. Deve ser um número par entre 4 e 20.`,
                     });
                 }
             }

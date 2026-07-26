@@ -148,7 +148,7 @@ export default function EnrollmentTable({
                                             <p className="text-xs text-slate-500">
                                                 {item.modalidade || '-'}
                                                 {item.pacote
-                                                    ? ` · ${item.pacote}`
+                                                    ? ` · ${item.pacote}h`
                                                     : ''}
                                             </p>
                                         </td>

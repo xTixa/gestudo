@@ -1099,7 +1099,8 @@ export async function obterAluno(req, res) {
 				a.aut_saida_nome_1,
 				a.aut_saida_parentesco_1,
 				a.aut_saida_nome_2,
-				a.aut_saida_parentesco_2
+				a.aut_saida_parentesco_2,
+				COALESCE(a.disciplinas_pretendidas, '[]'::jsonb) AS disciplinas_pretendidas
 			FROM alunos a
 			WHERE a.id_aluno = $1
 		`;
@@ -1275,6 +1276,11 @@ export async function obterAluno(req, res) {
                     : null,
                 encarregado: encarregado,
                 servicosSubscritos,
+                disciplinasPretendidas: Array.isArray(
+                    aluno.disciplinas_pretendidas
+                )
+                    ? aluno.disciplinas_pretendidas
+                    : [],
             },
         });
     } catch (error) {
@@ -2334,6 +2340,160 @@ export async function adicionarServicoCurricularAluno(req, res) {
             .json({ message: error.message || 'Erro ao inscrever aluno no serviço.' });
     } finally {
         client.release();
+    }
+}
+
+/**
+ * Remove (inativa) a inscrição de um aluno num serviço (curricular ou
+ * extracurricular), sem afetar as inscrições dos restantes alunos desse
+ * mesmo serviço.
+ *
+ * @param {Object} req - Objecto de requisição (params: id, idServico)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Confirmação da remoção
+ */
+export async function removerServicoAluno(req, res) {
+    const { id, idServico } = req.params;
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de aluno inválido.' });
+    }
+
+    if (!idServico || Number.isNaN(Number(idServico))) {
+        return res.status(400).json({ message: 'ID de serviço inválido.' });
+    }
+
+    const client = await db.connect();
+
+    try {
+        const inscricoesColumns = await getTableColumns(client, 'inscricoes');
+        const inscricoesServicoColumn =
+            await resolveInscricoesServicoColumn(client);
+        const inscricoesExtraServicoColumn = pickFirstColumn(inscricoesColumns, [
+            'id_servico_extracurricular',
+            'id_servico_extra_curricular',
+            'id_servico_extra',
+            'servico_extra_id',
+            'id_servicos_extra',
+        ]);
+
+        const candidateColumns = [
+            inscricoesServicoColumn,
+            inscricoesExtraServicoColumn,
+        ].filter(Boolean);
+
+        if (!candidateColumns.length) {
+            return res
+                .status(500)
+                .json({ message: 'Não foi possível identificar a inscrição.' });
+        }
+
+        const existenteResult = await client.query(
+            `
+                SELECT id_inscricao, ${candidateColumns.join(', ')}
+                FROM inscricoes
+                WHERE id_aluno = $1
+                  AND LOWER(COALESCE(estado, 'ativa')) = 'ativa'
+                  AND (${candidateColumns
+                      .map((column) => `${column} = $2`)
+                      .join(' OR ')})
+                LIMIT 1
+            `,
+            [id, idServico]
+        );
+
+        if (!existenteResult.rows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Inscrição não encontrada para este aluno.' });
+        }
+
+        const inscricaoAnterior = existenteResult.rows[0];
+
+        await client.query(
+            `
+                UPDATE inscricoes
+                SET estado = 'cancelada'
+                WHERE id_inscricao = $1
+            `,
+            [inscricaoAnterior.id_inscricao]
+        );
+
+        await registarDelete(
+            req.userId ?? null,
+            'inscricoes',
+            inscricaoAnterior.id_inscricao,
+            inscricaoAnterior
+        );
+
+        return res
+            .status(200)
+            .json({ message: 'Serviço removido do aluno com sucesso.' });
+    } catch (error) {
+        console.error('Erro ao remover serviço do aluno:', error.message);
+        return res
+            .status(500)
+            .json({ message: error.message || 'Erro ao remover serviço do aluno.' });
+    } finally {
+        client.release();
+    }
+}
+
+/**
+ * Substitui a lista de disciplinas pretendidas de um aluno (disciplinas que
+ * o aluno/encarregado indicou interesse mas que ainda não têm
+ * necessariamente um serviço curricular atribuído).
+ *
+ * @param {Object} req - Objecto de requisição (params: id, body: disciplinas)
+ * @param {Object} res - Objecto de resposta
+ * @returns {JSON} Lista atualizada de disciplinas pretendidas
+ */
+export async function atualizarDisciplinasPretendidasAluno(req, res) {
+    const { id } = req.params;
+
+    if (!id || Number.isNaN(Number(id))) {
+        return res.status(400).json({ message: 'ID de aluno inválido.' });
+    }
+
+    if (!Array.isArray(req.body?.disciplinas)) {
+        return res
+            .status(400)
+            .json({ message: 'Lista de disciplinas inválida.' });
+    }
+
+    const disciplinas = req.body.disciplinas
+        .map((nome) => String(nome ?? '').trim())
+        .filter((nome, index, all) => nome && all.indexOf(nome) === index);
+
+    try {
+        const { rows } = await db.query(
+            `
+                UPDATE alunos
+                SET disciplinas_pretendidas = $2::jsonb
+                WHERE id_aluno = $1
+                RETURNING disciplinas_pretendidas
+            `,
+            [id, JSON.stringify(disciplinas)]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ message: 'Aluno não encontrado.' });
+        }
+
+        return res.status(200).json({
+            message: 'Disciplinas pretendidas atualizadas com sucesso.',
+            disciplinasPretendidas: rows[0].disciplinas_pretendidas,
+        });
+    } catch (error) {
+        console.error(
+            'Erro ao atualizar disciplinas pretendidas do aluno:',
+            error.message
+        );
+        return res.status(500).json({
+            message:
+                error.message ||
+                'Erro ao atualizar disciplinas pretendidas do aluno.',
+        });
     }
 }
 

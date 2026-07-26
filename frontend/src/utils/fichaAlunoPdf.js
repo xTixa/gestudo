@@ -51,14 +51,14 @@ function formatNivelEnsino(value) {
     return map[key] || raw.replace(/_/g, ' ');
 }
 
-function addSectionTable(doc, startY, title, rows) {
+function addSectionTable(doc, startY, title, rows, head = ['Campo', 'Valor']) {
     doc.setFontSize(12);
     doc.setTextColor(30, 41, 59);
     doc.text(title, 14, startY);
 
     autoTable(doc, {
         startY: startY + 4,
-        head: [['Campo', 'Valor']],
+        head: [head],
         body: rows,
         styles: { fontSize: 10, cellPadding: 4 },
         headStyles: { fillColor: [59, 130, 246], textColor: 255 },
@@ -123,6 +123,31 @@ export function gerarFichaAlunoPdf(aluno) {
     const servicosSubscritos = Array.isArray(aluno.servicosSubscritos)
         ? aluno.servicosSubscritos
         : [];
+    const disciplinasPretendidas = Array.isArray(aluno.disciplinasPretendidas)
+        ? aluno.disciplinasPretendidas
+        : [];
+
+    if (disciplinasPretendidas.length > 0) {
+        const disciplinasComServico = new Set(
+            servicosSubscritos
+                .map((servico) => String(servico.disciplina || '').toLowerCase())
+                .filter(Boolean)
+        );
+
+        y = ensureSpace(doc, y);
+        y = addSectionTable(
+            doc,
+            y,
+            'Disciplinas Pretendidas',
+            disciplinasPretendidas.map((disciplina) => [
+                disciplina,
+                disciplinasComServico.has(disciplina.toLowerCase())
+                    ? 'Com serviço associado'
+                    : 'Sem serviço associado',
+            ]),
+            ['Disciplina', 'Estado']
+        );
+    }
 
     if (servicosSubscritos.length > 0) {
         y = ensureSpace(doc, y);

@@ -1268,7 +1268,7 @@ export async function sincronizarInscricoesServicoCurricular(
         await client.query(
             `
 				UPDATE inscricoes
-				SET estado = 'inativa'
+				SET estado = 'cancelada'
 				WHERE ${inscricoesServicoColumn} = $1
 				  AND LOWER(COALESCE(estado, 'ativa')) = 'ativa'
 				  AND NOT (id_aluno = ANY($2::int[]))
@@ -1279,7 +1279,7 @@ export async function sincronizarInscricoesServicoCurricular(
         await client.query(
             `
 				UPDATE inscricoes
-				SET estado = 'inativa'
+				SET estado = 'cancelada'
 				WHERE ${inscricoesServicoColumn} = $1
 				  AND LOWER(COALESCE(estado, 'ativa')) = 'ativa'
 			`,

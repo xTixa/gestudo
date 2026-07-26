@@ -4,6 +4,7 @@ import {
     criarInscricaoPublica,
 } from '../controllers/inscricaoController.js';
 import { obterInscricaoTextosPublico } from '../controllers/inscricaoFormTextosController.js';
+import { obterFeatureFlagsPublico } from '../controllers/featureFlagsController.js';
 import { listarAgenda } from '../controllers/agendaController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
@@ -36,6 +37,7 @@ const router = express.Router();
  */
 router.get('/inscricao-opcoes', listarOpcoesInscricao);
 router.get('/inscricao-textos', obterInscricaoTextosPublico);
+router.get('/feature-flags', obterFeatureFlagsPublico);
 router.post(
     '/inscricao',
     validateBody({

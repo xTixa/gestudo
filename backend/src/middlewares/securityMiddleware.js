@@ -371,7 +371,7 @@ function sanitizeString(str) {
 
     return str
         .replace(/[<>]/g, '') // Remove tags simples
-        .replace(/[\u0000-\u001F\u007F]/g, '') // Remove control chars
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '') // Remove control chars (mantem tab, LF e CR)
         .trim();
 }
 

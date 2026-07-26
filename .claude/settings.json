@@ -61,7 +61,24 @@
       "Bash(node --check src/controllers/agendaController.js)",
       "Bash(timeout 20 node src/server.js)",
       "Bash(node --input-type=module -e ' *)",
-      "Bash(node -e \"import\\('pg'\\).then\\(m => console.log\\('Pool:', typeof m.default.Pool, 'types:', typeof m.default.types, 'setTypeParser:', typeof m.default.types.setTypeParser\\)\\)\")"
+      "Bash(node -e \"import\\('pg'\\).then\\(m => console.log\\('Pool:', typeof m.default.Pool, 'types:', typeof m.default.types, 'setTypeParser:', typeof m.default.types.setTypeParser\\)\\)\")",
+      "Bash(xargs grep -l \"CREATE TABLE\")",
+      "Bash(node --check backend/src/controllers/alunoController.js)",
+      "Bash(node --check backend/src/controllers/inscricaoController.js)",
+      "Bash(node --check backend/src/routes/gestorRoutes.js)",
+      "Bash(node --check backend/src/controllers/servicosController.js)",
+      "Bash(node --check backend/src/services/inscricaoFormTextosService.js)",
+      "Bash(node --check backend/src/controllers/gestaoInternaController.js)",
+      "Bash(node --check backend/src/controllers/presencasController.js)",
+      "Bash(grep -rn \"sanitize\\\\|trim\\(\\)\\\\|replace\\(/\\\\\\\\\\\\\\\\s+/\" backend/src/middlewares backend/src/app.js backend/src/server.js)",
+      "Bash(python3 -c ' *)",
+      "Bash(node --input-type=commonjs -e ' *)",
+      "Bash(node \"C:/Users/patri/AppData/Local/Temp/claude/e--MEDIACENTER-mediacenter-main-mediacenter-main/415ecf12-8df6-4161-8e6f-b61526560aef/scratchpad/fix-sanitize.js\")",
+      "Bash(node \"C:/Users/patri/AppData/Local/Temp/claude/e--MEDIACENTER-mediacenter-main-mediacenter-main/415ecf12-8df6-4161-8e6f-b61526560aef/scratchpad/fix-sanitize2.js\")",
+      "Bash(node --check backend/src/middlewares/securityMiddleware.js)",
+      "Bash(node --check backend/src/services/featureFlagsService.js)",
+      "Bash(node --check backend/src/controllers/featureFlagsController.js)",
+      "Bash(node --check backend/src/routes/publicRoutes.js)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

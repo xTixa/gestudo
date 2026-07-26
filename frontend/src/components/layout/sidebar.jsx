@@ -24,7 +24,8 @@ import {
     BarChart3,
     ClipboardEdit,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { apiGet } from '../../utils/api';
 
 function isPathActive(currentPath, itemPath) {
     if (!itemPath) {
@@ -242,7 +243,41 @@ export default function Sidebar({
     onToggle,
     onClose,
 }) {
-    const menu = useMemo(() => menuByRole[role] || [], [role]);
+    const [reinscricaoAtiva, setReinscricaoAtiva] = useState(true);
+
+    useEffect(() => {
+        if (role !== 'aluno') return;
+
+        let isMounted = true;
+
+        async function carregarFeatureFlags() {
+            try {
+                const response = await apiGet('/api/public/feature-flags');
+                const data = await response.json();
+                if (!isMounted || !response.ok) return;
+
+                if (data?.flags?.reinscricao_ativa === false) {
+                    setReinscricaoAtiva(false);
+                }
+            } catch {
+                // Falha silenciosa: mantém o item visível por omissão.
+            }
+        }
+
+        carregarFeatureFlags();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [role]);
+
+    const menu = useMemo(() => {
+        const items = menuByRole[role] || [];
+        if (role === 'aluno' && !reinscricaoAtiva) {
+            return items.filter((item) => item.key !== 'reinscricao');
+        }
+        return items;
+    }, [role, reinscricaoAtiva]);
     const showLabels = isOpen;
     const [openGroups, setOpenGroups] = useState({});
     const isAdmin = role === 'gestor';

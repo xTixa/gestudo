@@ -376,8 +376,17 @@ export async function criarPacoteCatalogo(req, res) {
         if (info.horasColumn) {
             const horas =
                 horasRaw === '' || horasRaw == null ? null : Number(horasRaw);
-            if (horas != null && Number.isNaN(horas)) {
-                return res.status(400).json({ message: 'Horas inválidas.' });
+            if (
+                horas != null &&
+                (!Number.isInteger(horas) ||
+                    horas % 2 !== 0 ||
+                    horas < 4 ||
+                    horas > 20)
+            ) {
+                return res.status(400).json({
+                    message:
+                        'Horas mensais inválidas. Deve ser um número par entre 4 e 20.',
+                });
             }
             insertColumns.push(info.horasColumn);
             insertValues.push(horas);
@@ -485,8 +494,17 @@ export async function atualizarPacoteCatalogo(req, res) {
         if (info.horasColumn && horasRaw !== undefined) {
             const horas =
                 horasRaw === '' || horasRaw == null ? null : Number(horasRaw);
-            if (horas != null && Number.isNaN(horas)) {
-                return res.status(400).json({ message: 'Horas inválidas.' });
+            if (
+                horas != null &&
+                (!Number.isInteger(horas) ||
+                    horas % 2 !== 0 ||
+                    horas < 4 ||
+                    horas > 20)
+            ) {
+                return res.status(400).json({
+                    message:
+                        'Horas mensais inválidas. Deve ser um número par entre 4 e 20.',
+                });
             }
             values.push(horas);
             setClauses.push(`${quoteIdent(info.horasColumn)} = $${values.length}`);

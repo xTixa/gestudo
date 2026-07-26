@@ -6,8 +6,6 @@ const API_BASES = Array.from(
     new Set([API_URL, ''].map((base) => String(base || '').trim()))
 ).filter((base) => base !== '');
 
-const PACOTE_OPTIONS = ['6h/mês', '8h/mês', '12h/mês'];
-
 const ANO_ESCOLAR_OPTIONS = [
     '1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano',
     '7º Ano', '8º Ano', '9º Ano', '10º Ano', '11º Ano', '12º Ano',
@@ -82,6 +80,7 @@ export default function InfosInscricaoPage() {
     const [niveisEnsinoOptions, setNiveisEnsinoOptions] = useState([]);
     const [modalidadesOptions, setModalidadesOptions] = useState([]);
     const [tipoServicoOptions, setTipoServicoOptions] = useState([]);
+    const [pacotesOptions, setPacotesOptions] = useState([]);
     const [selectedNivel, setSelectedNivel] = useState('');
     const [selectedAnoEscolar, setSelectedAnoEscolar] = useState('');
     const [loadingOpcoes, setLoadingOpcoes] = useState(true);
@@ -126,6 +125,11 @@ export default function InfosInscricaoPage() {
                         : Array.isArray(data?.tipoServico)
                           ? data.tipoServico.filter((i) => i?.label)
                           : []
+                );
+                setPacotesOptions(
+                    Array.isArray(data?.pacotes)
+                        ? data.pacotes.filter((p) => p?.horas != null)
+                        : []
                 );
             } catch (error) {
                 if (!isMounted) return;
@@ -192,6 +196,24 @@ export default function InfosInscricaoPage() {
         return n.includes('individu') || n.includes('explicacao_individual');
     }
 
+    function getHorasDisponiveis(item) {
+        const disciplinaOption = disciplinasOptions.find(
+            (opt) => opt.value === item.disciplina
+        );
+        const idDisciplina = disciplinaOption ? String(disciplinaOption.id) : '';
+        const idModalidade = item.modalidade ? String(item.modalidade) : '';
+
+        const compativel = pacotesOptions.filter((p) => {
+            const disciplinaOk = !p.idDisciplina || p.idDisciplina === idDisciplina;
+            const modalidadeOk = !p.idModalidade || p.idModalidade === idModalidade;
+            return disciplinaOk && modalidadeOk;
+        });
+
+        return Array.from(new Set(compativel.map((p) => p.horas))).sort(
+            (a, b) => a - b
+        );
+    }
+
     function updatePlanoItem(id, field, value) {
         setPlanoItems((prev) =>
             prev.map((item) => {
@@ -222,7 +244,7 @@ export default function InfosInscricaoPage() {
             if (!item.tipoServico) return `Selecione o tipo de serviço no plano ${n}.`;
             if (!item.modalidade) return `Selecione a modalidade no plano ${n}.`;
             if (!isModalidadeIndividual(item.modalidade) && !item.pacote) {
-                return `Selecione um pacote no plano ${n}.`;
+                return `Selecione as horas pretendidas no plano ${n}.`;
             }
         }
         return '';
@@ -650,7 +672,7 @@ export default function InfosInscricaoPage() {
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                             <h2 className="text-lg font-bold text-slate-800 sm:text-xl">{t('section_plano_heading', 'Plano')}</h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                {t('section_plano_descricao', 'Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e pacote.')}
+                                {t('section_plano_descricao', 'Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e horas pretendidas.')}
                             </p>
 
                             <div className="mt-5 space-y-4">
@@ -658,6 +680,7 @@ export default function InfosInscricaoPage() {
                                     const podeModalidade = Boolean(item.tipoServico) && !loadingOpcoes;
                                     const isIndividual = isModalidadeIndividual(item.modalidade);
                                     const podePacote = Boolean(item.modalidade) && !isIndividual;
+                                    const horasDisponiveis = podePacote ? getHorasDisponiveis(item) : [];
 
                                     return (
                                         <div
@@ -737,36 +760,40 @@ export default function InfosInscricaoPage() {
                                                 {!isIndividual ? (
                                                     <fieldset className="sm:col-span-2" disabled={!podePacote}>
                                                         <legend className={LABEL_CLS}>
-                                                            {t('label_pacote', 'Pacote')} {podePacote && <Req />}
+                                                            {t('label_pacote', 'Horas Pretendidas')} {podePacote && <Req />}
                                                         </legend>
-                                                        <div className="mt-2 grid gap-2">
-                                                            {PACOTE_OPTIONS.map((p) => (
+                                                        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                                                            {horasDisponiveis.map((horas) => (
                                                                 <label
-                                                                    key={p}
-                                                                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                                                                    key={horas}
+                                                                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
                                                                 >
                                                                     <input
                                                                         type="radio"
                                                                         name={`pacote_${item.id}`}
-                                                                        value={p}
-                                                                        checked={item.pacote === p}
-                                                                        onChange={() => updatePlanoItem(item.id, 'pacote', p)}
+                                                                        value={horas}
+                                                                        checked={Number(item.pacote) === horas}
+                                                                        onChange={() => updatePlanoItem(item.id, 'pacote', String(horas))}
                                                                         disabled={!podePacote}
                                                                         className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
                                                                     />
-                                                                    <span>{p}</span>
+                                                                    <span>{horas}h</span>
                                                                 </label>
                                                             ))}
                                                         </div>
                                                         {!item.modalidade ? (
                                                             <p className="mt-2 text-xs text-slate-500">
-                                                                {t('help_pacote_sem_modalidade', 'Selecione primeiro a modalidade para escolher um pacote.')}
+                                                                {t('help_pacote_sem_modalidade', 'Selecione primeiro a modalidade para escolher as horas pretendidas.')}
+                                                            </p>
+                                                        ) : podePacote && horasDisponiveis.length === 0 ? (
+                                                            <p className="mt-2 text-xs text-amber-600">
+                                                                Sem pacotes de horas disponíveis para esta disciplina/modalidade.
                                                             </p>
                                                         ) : null}
                                                     </fieldset>
                                                 ) : (
                                                     <p className="text-xs text-slate-500 sm:col-span-2">
-                                                        {t('text_pacotes_individual', 'Pacotes não disponíveis para explicação individual.')}
+                                                        {t('text_pacotes_individual', 'Horas pretendidas não aplicáveis para explicação individual.')}
                                                     </p>
                                                 )}
                                             </div>

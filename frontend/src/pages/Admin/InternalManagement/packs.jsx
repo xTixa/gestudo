@@ -6,6 +6,8 @@ import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const HORAS_MENSAIS_OPTIONS = [4, 6, 8, 10, 12, 14, 16, 18, 20];
+
 const EMPTY_FORM = {
     nome: '',
     preco: '',
@@ -178,9 +180,19 @@ export default function PacotesPage() {
             return;
         }
 
-        if (formData.horas && Number.isNaN(Number(formData.horas))) {
-            setFormError('As horas devem ser um número válido.');
-            return;
+        if (formData.horas) {
+            const horas = Number(formData.horas);
+            if (
+                !Number.isInteger(horas) ||
+                horas % 2 !== 0 ||
+                horas < 4 ||
+                horas > 20
+            ) {
+                setFormError(
+                    'As horas mensais devem ser um número par entre 4 e 20.'
+                );
+                return;
+            }
         }
 
         setSubmitting(true);
@@ -352,9 +364,7 @@ export default function PacotesPage() {
                                 <span className="text-sm font-medium text-slate-700">
                                     Horas mensais
                                 </span>
-                                <input
-                                    type="number"
-                                    min="0"
+                                <select
                                     value={formData.horas}
                                     onChange={(event) =>
                                         setFormData((prev) => ({
@@ -363,8 +373,14 @@ export default function PacotesPage() {
                                         }))
                                     }
                                     className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#14ad81] focus:ring-2 focus:ring-[#d1f3ea]"
-                                    placeholder="Ex: 8"
-                                />
+                                >
+                                    <option value="">Sem horas definidas</option>
+                                    {HORAS_MENSAIS_OPTIONS.map((horas) => (
+                                        <option key={horas} value={horas}>
+                                            {horas}h
+                                        </option>
+                                    ))}
+                                </select>
                             </label>
 
                             <label className="block space-y-1.5">

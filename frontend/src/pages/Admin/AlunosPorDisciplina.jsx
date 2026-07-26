@@ -300,7 +300,12 @@ export default function AlunosPorDisciplinaPage() {
                                                             {c.nome_completo}
                                                         </p>
                                                         <p className="truncate text-[11px] text-slate-500">
-                                                            {[c.modalidade, c.pacote]
+                                                            {[
+                                                                c.modalidade,
+                                                                c.pacote
+                                                                    ? `${c.pacote}h`
+                                                                    : '',
+                                                            ]
                                                                 .filter(Boolean)
                                                                 .join(' · ') || '-'}
                                                         </p>

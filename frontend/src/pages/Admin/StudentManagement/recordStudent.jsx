@@ -8,6 +8,7 @@ import {
     Plus,
     UserRound,
     RefreshCw,
+    X,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
@@ -113,6 +114,50 @@ export default function FichaAlunoPage() {
         servicos: [],
         selectedId: '',
     });
+    const [removingServicoId, setRemovingServicoId] = useState(null);
+    const [novaDisciplinaPretendida, setNovaDisciplinaPretendida] =
+        useState('');
+    const [disciplinasPretendidasSaving, setDisciplinasPretendidasSaving] =
+        useState(false);
+    const [disciplinasCatalogo, setDisciplinasCatalogo] = useState([]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function carregarDisciplinasCatalogo() {
+            try {
+                const response = await apiGet('/api/gestor/disciplinas');
+                const data = await response.json();
+
+                if (!response.ok || !isMounted) {
+                    return;
+                }
+
+                const disciplinas = Array.isArray(data?.disciplinas)
+                    ? data.disciplinas
+                    : [];
+
+                setDisciplinasCatalogo(
+                    disciplinas
+                        .filter((item) => item?.ativa !== false)
+                        .map((item) => ({
+                            id: item.id_disciplina ?? item.id,
+                            nome: item.nome,
+                        }))
+                        .filter((item) => item.nome)
+                );
+            } catch (err) {
+                console.error('Erro ao carregar catálogo de disciplinas:', err);
+            }
+        }
+
+        carregarDisciplinasCatalogo();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -385,6 +430,21 @@ export default function FichaAlunoPage() {
     const servicosSubscritos = Array.isArray(aluno.servicosSubscritos)
         ? aluno.servicosSubscritos
         : [];
+    const disciplinasPretendidas = Array.isArray(aluno.disciplinasPretendidas)
+        ? aluno.disciplinasPretendidas
+        : [];
+    const disciplinasComServico = new Set(
+        servicosSubscritos
+            .map((servico) => String(servico.disciplina || '').toLowerCase())
+            .filter(Boolean)
+    );
+    const disciplinasPretendidasLower = new Set(
+        disciplinasPretendidas.map((nome) => nome.toLowerCase())
+    );
+    const disciplinasDisponiveisParaAdicionar = disciplinasCatalogo.filter(
+        (disciplina) =>
+            !disciplinasPretendidasLower.has(disciplina.nome.toLowerCase())
+    );
 
     function handleDownloadFicha() {
         gerarFichaAlunoPdf(aluno);
@@ -484,6 +544,95 @@ export default function FichaAlunoPage() {
                 error: err?.message || 'Não foi possível adicionar o serviço.',
             }));
         }
+    }
+
+    async function handleRemoverServico(servico) {
+        if (!servico?.id_servico) return;
+        if (
+            !window.confirm(
+                `Remover o serviço "${servico.tipoServico || servico.modalidade || 'Serviço'}" deste aluno?`
+            )
+        ) {
+            return;
+        }
+
+        setRemovingServicoId(servico.id_servico);
+        setActionMessage('');
+        setError('');
+
+        try {
+            const response = await apiDelete(
+                `/api/gestor/alunos/${alunoId}/servicos/${servico.id_servico}`
+            );
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message || 'Não foi possível remover o serviço.'
+                );
+            }
+
+            await refetchAluno();
+            setActionMessage(data?.message || 'Serviço removido com sucesso.');
+        } catch (err) {
+            setError(err?.message || 'Não foi possível remover o serviço.');
+        } finally {
+            setRemovingServicoId(null);
+        }
+    }
+
+    async function salvarDisciplinasPretendidas(novaLista) {
+        setDisciplinasPretendidasSaving(true);
+        setError('');
+
+        try {
+            const response = await apiPatch(
+                `/api/gestor/alunos/${alunoId}/disciplinas-pretendidas`,
+                { disciplinas: novaLista }
+            );
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                        'Não foi possível atualizar as disciplinas pretendidas.'
+                );
+            }
+
+            setAluno((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          disciplinasPretendidas: data.disciplinasPretendidas,
+                      }
+                    : prev
+            );
+        } catch (err) {
+            setError(
+                err?.message ||
+                    'Não foi possível atualizar as disciplinas pretendidas.'
+            );
+        } finally {
+            setDisciplinasPretendidasSaving(false);
+        }
+    }
+
+    async function handleAdicionarDisciplinaPretendida(event) {
+        event.preventDefault();
+        const nome = novaDisciplinaPretendida.trim();
+        if (!nome) return;
+
+        await salvarDisciplinasPretendidas([
+            ...disciplinasPretendidas,
+            nome,
+        ]);
+        setNovaDisciplinaPretendida('');
+    }
+
+    async function handleRemoverDisciplinaPretendida(nome) {
+        await salvarDisciplinasPretendidas(
+            disciplinasPretendidas.filter((item) => item !== nome)
+        );
     }
 
     return (
@@ -731,6 +880,105 @@ export default function FichaAlunoPage() {
                 </div>
             </div>
 
+            {/* Disciplinas Pretendidas */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                    <div className="h-5 w-1 rounded bg-blue-500" />
+                    <h2 className="text-base font-semibold text-slate-800">
+                        Disciplinas Pretendidas
+                    </h2>
+                </div>
+
+                {disciplinasPretendidas.length === 0 ? (
+                    <p className="mb-4 text-sm text-slate-500">
+                        Não existem disciplinas pretendidas registadas para
+                        este aluno.
+                    </p>
+                ) : (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        {disciplinasPretendidas.map((disciplina) => {
+                            const temServico = disciplinasComServico.has(
+                                disciplina.toLowerCase()
+                            );
+                            return (
+                                <span
+                                    key={disciplina}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                                        temServico
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            : 'border-amber-200 bg-amber-50 text-amber-700'
+                                    }`}
+                                >
+                                    {disciplina}
+                                    <span className="text-[10px] uppercase opacity-75">
+                                        {temServico
+                                            ? 'com serviço'
+                                            : 'sem serviço'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleRemoverDisciplinaPretendida(
+                                                disciplina
+                                            )
+                                        }
+                                        disabled={disciplinasPretendidasSaving}
+                                        title="Remover"
+                                        className="text-current hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </span>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <form
+                    onSubmit={handleAdicionarDisciplinaPretendida}
+                    className="flex gap-2"
+                >
+                    <select
+                        value={novaDisciplinaPretendida}
+                        onChange={(event) =>
+                            setNovaDisciplinaPretendida(event.target.value)
+                        }
+                        className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                        disabled={
+                            disciplinasPretendidasSaving ||
+                            disciplinasDisponiveisParaAdicionar.length === 0
+                        }
+                    >
+                        <option value="">
+                            {disciplinasDisponiveisParaAdicionar.length === 0
+                                ? 'Sem disciplinas disponíveis'
+                                : 'Selecionar disciplina...'}
+                        </option>
+                        {disciplinasDisponiveisParaAdicionar.map(
+                            (disciplina) => (
+                                <option
+                                    key={disciplina.id ?? disciplina.nome}
+                                    value={disciplina.nome}
+                                >
+                                    {disciplina.nome}
+                                </option>
+                            )
+                        )}
+                    </select>
+                    <button
+                        type="submit"
+                        disabled={
+                            disciplinasPretendidasSaving ||
+                            !novaDisciplinaPretendida
+                        }
+                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <Plus size={14} />
+                        Adicionar
+                    </button>
+                </form>
+            </div>
+
             {/* Serviços Subscritos */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
@@ -761,11 +1009,30 @@ export default function FichaAlunoPage() {
                                 key={servico.id_servico ?? idx}
                                 className="rounded-lg border border-slate-200 bg-slate-50 p-4"
                             >
-                                <p className="mb-3 text-sm font-semibold text-slate-700">
-                                    {servico.tipoServico ||
-                                        servico.modalidade ||
-                                        'Serviço'}
-                                </p>
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <p className="text-sm font-semibold text-slate-700">
+                                        {servico.tipoServico ||
+                                            servico.modalidade ||
+                                            'Serviço'}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleRemoverServico(servico)
+                                        }
+                                        disabled={
+                                            removingServicoId ===
+                                            servico.id_servico
+                                        }
+                                        className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <Trash size={12} />
+                                        {removingServicoId ===
+                                        servico.id_servico
+                                            ? 'A remover...'
+                                            : 'Remover'}
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <p className="text-xs font-semibold uppercase text-slate-500">

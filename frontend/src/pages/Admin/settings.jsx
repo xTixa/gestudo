@@ -12,16 +12,16 @@ import {
     ToggleLeft,
     ToggleRight,
     DatabaseZap,
-    GraduationCap,
     FileText,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import AlertsPage from './alerts';
 import EmailTemplatesSettings from '../../components/settings/EmailTemplatesSettings';
 import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
-import AcademicYearSettings from '../../components/settings/AcademicYearSettings';
 import EnrollmentFormTextsSettings from '../../components/settings/EnrollmentFormTextsSettings';
+import FeatureFlagsSettings from '../../components/settings/FeatureFlagsSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 
 export default function SettingsPage() {
@@ -159,8 +159,8 @@ export default function SettingsPage() {
         { id: 'manutencao', label: 'Avisos de Manutenção', icon: AlertTriangle },
         { id: 'gestores', label: 'Administradores', icon: Shield },
         { id: 'limpeza', label: 'Limpeza de Dados', icon: DatabaseZap },
-        { id: 'ano-letivo', label: 'Ano Lectivo', icon: GraduationCap },
         { id: 'inscricao-textos', label: 'Formulário de Inscrição', icon: FileText },
+        { id: 'funcionalidades', label: 'Funcionalidades', icon: SlidersHorizontal },
     ];
 
     async function handleAddMaintenance() {
@@ -306,8 +306,8 @@ export default function SettingsPage() {
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
                     {activeTab === 'limpeza' && <DataCleanupSettings />}
-                    {activeTab === 'ano-letivo' && <AcademicYearSettings />}
                     {activeTab === 'inscricao-textos' && <EnrollmentFormTextsSettings />}
+                    {activeTab === 'funcionalidades' && <FeatureFlagsSettings />}
 
                     {/* ABA: Administradores */}
                     {activeTab === 'gestores' && (
