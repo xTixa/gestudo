@@ -110,6 +110,22 @@ function calcularDuracaoMinutos(horaInicio, horaFim) {
 }
 
 /**
+ * Título simplificado da atividade (só a disciplina/modalidade), igual ao
+ * usado nos cards da agenda interna — sem o prefixo "periodico"/"eventual"
+ * nem o sufixo "(Individual)/(Grupo)" que aparecem em `atividade.titulo`.
+ */
+function getEventoTitle(atividade) {
+    const titulo = String(
+        atividade?.disciplina ||
+            atividade?.modalidade ||
+            atividade?.tipo ||
+            atividade?.titulo ||
+            'Aula'
+    ).trim();
+    return titulo || 'Aula';
+}
+
+/**
  * Converte o mapa {data: [atividades]} (o mesmo formato usado pela agenda
  * interna) numa lista de eventos no formato esperado pela biblioteca `ics`.
  *
@@ -155,7 +171,7 @@ function construirEventosICS(atividadesPorDia) {
 
             eventos.push({
                 uid: `mc-servico-${atividade.id}-${dataKey}@mediacenter.app`,
-                title: atividade.titulo || 'Aula',
+                title: getEventoTitle(atividade),
                 start: [ano, mes, dia, hora.horas, hora.minutos],
                 startInputType: 'local',
                 startOutputType: 'local',

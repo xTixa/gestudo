@@ -42,8 +42,8 @@ const weekDayNamesLong = [
     'Sexta',
     'Sábado',
 ];
-const HOUR_LABELS = Array.from({ length: 16 }, (_, i) => {
-    const hour = i + 7;
+const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => {
+    const hour = i + 8;
     return `${String(hour).padStart(2, '0')}:00`;
 });
 
@@ -96,6 +96,18 @@ function getAtividadeCategoria(atividade) {
         return 'extra';
     }
     return 'curricular';
+}
+
+function getAgendaCardTitle(atividade) {
+    return (
+        String(
+            atividade?.disciplina ||
+                atividade?.modalidade ||
+                atividade?.tipo ||
+                atividade?.titulo ||
+                'Servico'
+        ).trim() || 'Servico'
+    );
 }
 
 function isAtividadeReposta(atividade) {
@@ -297,7 +309,7 @@ export default function AgendaPage() {
     }
 
     return (
-        <section className="space-y-5">
+        <section className="flex h-full flex-col space-y-5">
             <UsersPageHeader
                 eyebrow="Painel do Aluno"
                 title="A minha agenda"
@@ -392,45 +404,47 @@ export default function AgendaPage() {
                 </div>
             </div>
 
-            {/* Week View */}
-            {viewMode === 'week' && (
-                <WeekView
-                    weekStart={weekStart}
-                    weekEnd={weekEnd}
-                    atividadesPorDia={atividadesPorDiaFiltradas}
-                    loading={loading}
-                    error={error}
-                    onPreviousWeek={goToPreviousWeek}
-                    onNextWeek={goToNextWeek}
-                    todayKey={todayKey}
-                    selectedDate={selectedDate}
-                    setSelectedDate={setSelectedDate}
-                    currentMonth={currentMonth}
-                    setCurrentMonth={setCurrentMonth}
-                    setSelectedAtividade={setSelectedAtividade}
-                />
-            )}
+            <div className="min-h-0 flex-1">
+                {/* Week View */}
+                {viewMode === 'week' && (
+                    <WeekView
+                        weekStart={weekStart}
+                        weekEnd={weekEnd}
+                        atividadesPorDia={atividadesPorDiaFiltradas}
+                        loading={loading}
+                        error={error}
+                        onPreviousWeek={goToPreviousWeek}
+                        onNextWeek={goToNextWeek}
+                        todayKey={todayKey}
+                        selectedDate={selectedDate}
+                        setSelectedDate={setSelectedDate}
+                        currentMonth={currentMonth}
+                        setCurrentMonth={setCurrentMonth}
+                        setSelectedAtividade={setSelectedAtividade}
+                    />
+                )}
 
-            {/* Month View */}
-            {viewMode === 'month' && (
-                <MonthView
-                    currentMonth={currentMonth}
-                    selectedDate={selectedDate}
-                    setSelectedDate={setSelectedDate}
-                    atividadesPorDia={atividadesPorDiaFiltradas}
-                    calendarDays={calendarDays}
-                    todayKey={todayKey}
-                    selectedMonthValue={selectedMonthValue}
-                    loading={loading}
-                    error={error}
-                    atividades={atividadesFiltradas}
-                    goToPreviousMonth={goToPreviousMonth}
-                    goToNextMonth={goToNextMonth}
-                    goToMonth={goToMonth}
-                    setCurrentMonth={setCurrentMonth}
-                    setSelectedAtividade={setSelectedAtividade}
-                />
-            )}
+                {/* Month View */}
+                {viewMode === 'month' && (
+                    <MonthView
+                        currentMonth={currentMonth}
+                        selectedDate={selectedDate}
+                        setSelectedDate={setSelectedDate}
+                        atividadesPorDia={atividadesPorDiaFiltradas}
+                        calendarDays={calendarDays}
+                        todayKey={todayKey}
+                        selectedMonthValue={selectedMonthValue}
+                        loading={loading}
+                        error={error}
+                        atividades={atividadesFiltradas}
+                        goToPreviousMonth={goToPreviousMonth}
+                        goToNextMonth={goToNextMonth}
+                        goToMonth={goToMonth}
+                        setCurrentMonth={setCurrentMonth}
+                        setSelectedAtividade={setSelectedAtividade}
+                    />
+                )}
+            </div>
 
             {/* Modal de Detalhes */}
             {selectedAtividade && (
@@ -479,18 +493,18 @@ function WeekView({
         if (
             isCurrentWeekToday &&
             gridContainerRef.current &&
-            currentMinutes >= 420 &&
-            currentMinutes <= 1380
+            currentMinutes >= 480 &&
+            currentMinutes <= 1260
         ) {
-            // Calcular posição baseado na hora (80px per hour, começando em 7:00)
-            const hourIndex = currentMinutes - 420; // minutos desde 7:00
+            // Calcular posição baseado na hora (80px per hour, começando em 8:00)
+            const hourIndex = currentMinutes - 480; // minutos desde 8:00
             const scrollTop = (hourIndex / 60) * 80 - 200; // deixar 200px de margem do topo
             gridContainerRef.current.scrollTop = Math.max(0, scrollTop);
         }
     }, [isCurrentWeekToday, currentMinutes]);
 
     return (
-        <article className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             {/* Header */}
             <div className="border-b border-slate-200 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -558,8 +572,7 @@ function WeekView({
             ) : (
                 <div
                     ref={gridContainerRef}
-                    className="overflow-auto"
-                    style={{ maxHeight: 'calc(100vh - 300px)' }}
+                    className="min-h-0 flex-1 overflow-auto"
                 >
                     <div className="grid grid-cols-8 min-w-full">
                         {/* Time column */}
@@ -623,12 +636,12 @@ function WeekView({
                                         {/* Linha hora atual */}
                                         {isCurrentWeekToday &&
                                             formatDateKey(date) === todayKey &&
-                                            currentMinutes >= 420 &&
-                                            currentMinutes <= 1380 && (
+                                            currentMinutes >= 480 &&
+                                            currentMinutes <= 1260 && (
                                                 <div
                                                     className="absolute left-0 right-0 border-t-2 border-red-500 z-10"
                                                     style={{
-                                                        top: `${((currentMinutes - 420) / (16 * 60)) * 100}%`,
+                                                        top: `${((currentMinutes - 480) / (14 * 60)) * 100}%`,
                                                     }}
                                                 >
                                                     <div className="absolute left-0 top-0 h-3 w-3 -translate-y-1.5 rounded-full bg-red-500" />
@@ -645,8 +658,8 @@ function WeekView({
                                                   )
                                                 : startMinutes + 60;
 
-                                            const firstHourMinutes = 7 * 60;
-                                            const lastHourMinutes = 23 * 60;
+                                            const firstHourMinutes = 8 * 60;
+                                            const lastHourMinutes = 21 * 60;
 
                                             const clampedStart = Math.max(
                                                 startMinutes,
@@ -681,13 +694,13 @@ function WeekView({
                                             const topOffset =
                                                 ((clampedStart -
                                                     firstHourMinutes) /
-                                                    (16 * 60)) *
+                                                    (14 * 60)) *
                                                 100;
                                             const height =
                                                 (((clampedEnd - clampedStart) /
                                                     60) *
                                                     100) /
-                                                16;
+                                                14;
 
                                             const colors =
                                                 getAtividadeColors(atividade);
@@ -720,7 +733,9 @@ function WeekView({
                                                         className={`h-full rounded px-2 py-1 text-xs overflow-hidden flex flex-col ${colors.bg} border-l-4 ${colors.border} ${colors.text} transition hover:shadow-lg hover:z-20`}
                                                     >
                                                         <p className="font-semibold truncate">
-                                                            {atividade.titulo}
+                                                            {getAgendaCardTitle(
+                                                                atividade
+                                                            )}
                                                         </p>
                                                         <p className="text-xs opacity-75 truncate">
                                                             {atividade.hora}
@@ -764,8 +779,8 @@ function MonthView({
     const selectedKey = formatDateKey(selectedDate);
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            <article className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="grid h-full grid-cols-1 gap-5 overflow-y-auto xl:grid-cols-3 xl:overflow-hidden">
+            <article className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 xl:overflow-y-auto">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                     <div className="flex items-center gap-2 text-slate-700">
                         <CalendarDays size={16} />
@@ -915,7 +930,7 @@ function MonthView({
                 </div>
             </article>
 
-            <aside className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <aside className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 xl:min-h-0">
                 <h3 className="text-2xl font-medium text-slate-700">
                     {selectedDate.toLocaleDateString('pt-PT', {
                         day: 'numeric',
@@ -923,7 +938,7 @@ function MonthView({
                     })}
                 </h3>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
                     {loading ? (
                         <p className="text-sm text-slate-500">
                             A carregar agenda...
@@ -958,7 +973,7 @@ function MonthView({
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <p className="font-semibold text-slate-800">
-                                            {atividade.titulo}
+                                            {getAgendaCardTitle(atividade)}
                                         </p>
                                         <span
                                             className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${badgeColor}`}
@@ -1040,7 +1055,7 @@ function AtividadeModal({ atividade, onClose }) {
                                 <h2
                                     className={`text-2xl font-bold ${colors.text}`}
                                 >
-                                    {atividade.titulo}
+                                    {getAgendaCardTitle(atividade)}
                                 </h2>
                                 <span
                                     className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${colors.badge}`}

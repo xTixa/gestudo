@@ -119,7 +119,15 @@
       "Bash(curl -s --ssl-no-revoke \"https://cash-pumps-forgotten-pool.trycloudflare.com/api/public/agenda.ics?token=bf1c61f61ced6629fcb1e769b72726f772f75515000ad4a4\" -o /tmp_out.ics --max-time 15 -D -)",
       "Bash(wc -l /tmp_out.ics)",
       "Bash(head -15 /tmp_out.ics)",
-      "Bash(curl -s --ssl-no-revoke \"https://cash-pumps-forgotten-pool.trycloudflare.com/api/public/agenda.ics?token=bf1c61f61ced6629fcb1e769b72726f772f75515000ad4a4\" --max-time 15 -o \"C:/Users/patri/AppData/Local/Temp/claude/e--MEDIACENTER-mediacenter-main-mediacenter-main/415ecf12-8df6-4161-8e6f-b61526560aef/scratchpad/agenda_test.ics\")"
+      "Bash(curl -s --ssl-no-revoke \"https://cash-pumps-forgotten-pool.trycloudflare.com/api/public/agenda.ics?token=bf1c61f61ced6629fcb1e769b72726f772f75515000ad4a4\" --max-time 15 -o \"C:/Users/patri/AppData/Local/Temp/claude/e--MEDIACENTER-mediacenter-main-mediacenter-main/415ecf12-8df6-4161-8e6f-b61526560aef/scratchpad/agenda_test.ics\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5180/ --max-time 3)",
+      "Bash(node --check src/services/calendarFeedService.js)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\")",
+      "Bash(node check_token_tmp.mjs)",
+      "Bash(curl -s \"http://localhost:5050/api/public/agenda.ics?token=ae5b75edc129b1a93f6d2a40e250ff9eb99f055f3a90a944\")",
+      "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 5050 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique\")",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 30516 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5050/api/health --max-time 5)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

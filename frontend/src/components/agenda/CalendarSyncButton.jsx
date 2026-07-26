@@ -2,6 +2,39 @@ import { useState } from 'react';
 import { CalendarPlus, Check, Copy, RefreshCw, X } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 
+const GUIAS = {
+    google: {
+        label: 'Google Calendar',
+        passos: [
+            'Abra o Google Calendar num computador (a opção não está disponível na app móvel).',
+            'No painel esquerdo, ao lado de "Outros calendários", clique no + e escolha "A partir do URL".',
+            'Cole o link copiado acima no campo apresentado.',
+            'Clique em "Adicionar calendário".',
+        ],
+        nota: 'O Google Calendar atualiza o calendário periodicamente (pode demorar algumas horas a aparecer e a refletir alterações — não é instantâneo).',
+    },
+    outlook: {
+        label: 'Outlook',
+        passos: [
+            'Abra o Outlook na web (outlook.com) e vá a "Calendário".',
+            'No painel esquerdo, clique em "Adicionar calendário" e depois em "Subscrever a partir da web".',
+            'Cole o link copiado acima no campo do URL e dê um nome ao calendário.',
+            'Clique em "Importar". No Outlook para ambiente de trabalho, o calendário subscrito aparece automaticamente depois de sincronizar.',
+        ],
+        nota: 'O Outlook também atualiza periodicamente, não em tempo real.',
+    },
+    apple: {
+        label: 'Apple Calendar',
+        passos: [
+            'No Mac, abra a app "Calendário" e escolha Ficheiro → "Nova Subscrição de Calendário".',
+            'No iPhone/iPad, vá a Definições → Calendário → Contas → Adicionar Conta → "Outra" → "Adicionar Calendário Subscrito".',
+            'Cole o link copiado acima e confirme.',
+            'Escolha a frequência de atualização (por exemplo, a cada hora) e guarde.',
+        ],
+        nota: 'A frequência de atualização é definida por si nas definições da subscrição.',
+    },
+};
+
 export default function CalendarSyncButton() {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -9,6 +42,7 @@ export default function CalendarSyncButton() {
     const [error, setError] = useState('');
     const [url, setUrl] = useState('');
     const [copied, setCopied] = useState(false);
+    const [guiaAtivo, setGuiaAtivo] = useState('google');
 
     async function abrirModal() {
         setOpen(true);
@@ -169,6 +203,56 @@ export default function CalendarSyncButton() {
                                         Este link é pessoal — não o partilhe,
                                         dá acesso à sua agenda.
                                     </p>
+                                </div>
+                            ) : null}
+
+                            {url ? (
+                                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="flex gap-1.5">
+                                        {Object.entries(GUIAS).map(
+                                            ([key, guia]) => (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setGuiaAtivo(key)
+                                                    }
+                                                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                                        guiaAtivo === key
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {guia.label}
+                                                </button>
+                                            )
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Como adicionar no{' '}
+                                            {GUIAS[guiaAtivo].label}
+                                        </p>
+                                        <ol className="mt-2 space-y-1.5 text-sm text-slate-700">
+                                            {GUIAS[guiaAtivo].passos.map(
+                                                (passo, index) => (
+                                                    <li
+                                                        key={index}
+                                                        className="flex gap-2"
+                                                    >
+                                                        <span className="font-semibold text-blue-600">
+                                                            {index + 1}.
+                                                        </span>
+                                                        <span>{passo}</span>
+                                                    </li>
+                                                )
+                                            )}
+                                        </ol>
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            {GUIAS[guiaAtivo].nota}
+                                        </p>
+                                    </div>
                                 </div>
                             ) : null}
                         </div>
