@@ -1061,6 +1061,211 @@ export async function criarInscricaoPublica(req, res) {
     }
 }
 
+/**
+ * Reinscrição de um aluno já existente: recebe apenas nível de ensino, ano
+ * escolar, turma e plano (disciplinas/serviços pretendidos), reaproveitando
+ * os dados pessoais e do encarregado já guardados na BD. Cria um pedido em
+ * `inscricoes_publicas`, tal como a inscrição pública, para o gestor rever e
+ * aprovar manualmente.
+ */
+export async function criarReinscricaoAluno(req, res) {
+    try {
+        await ensureInscricoesPublicasTable();
+
+        if (!req.userId) {
+            return res.status(401).json({ message: 'Autenticação necessária.' });
+        }
+
+        const perfilResult = await db.query(
+            `
+                SELECT
+                    a.id_aluno,
+                    a.escola,
+                    p.nome,
+                    p.data_nasc,
+                    p.cc,
+                    p.nif,
+                    p.morada,
+                    p.localidade,
+                    p.cod_postal,
+                    p.telemovel,
+                    p.telefone,
+                    u.email,
+                    ep.nome AS ee_nome,
+                    ep.nif AS ee_nif,
+                    ep.morada AS ee_morada,
+                    ep.localidade AS ee_localidade,
+                    ep.cod_postal AS ee_codigo_postal,
+                    ep.telemovel AS ee_telemovel,
+                    ep.telefone AS ee_telefone,
+                    e.parentesco AS ee_parentesco,
+                    eu.email AS ee_email
+                FROM alunos a
+                INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                INNER JOIN users u ON u.id_user = a.id_user
+                INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+                INNER JOIN pessoas ep ON ep.id_pessoa = e.id_pessoa
+                LEFT JOIN users eu ON eu.id_user = e.id_user
+                WHERE a.id_user = $1
+                LIMIT 1
+            `,
+            [req.userId]
+        );
+
+        if (!perfilResult.rows.length) {
+            return res.status(404).json({ message: 'Aluno não encontrado.' });
+        }
+
+        const perfil = perfilResult.rows[0];
+        const body = req.body || {};
+
+        const planoParaValidar = Array.isArray(body.plano) ? body.plano : [];
+        const horasInvalidas = planoParaValidar
+            .map((item) => String(item?.pacote ?? '').trim())
+            .some((valor) => !isHorasPretendidasValido(valor));
+
+        if (planoParaValidar.length === 0) {
+            return res.status(400).json({
+                message: 'Adicione pelo menos uma disciplina ao plano.',
+            });
+        }
+
+        if (horasInvalidas) {
+            return res.status(400).json({
+                message:
+                    'Horas pretendidas inválidas. Deve ser um número par entre 4 e 20.',
+            });
+        }
+
+        const first = planoParaValidar[0] || {};
+        const dadosCompletos = {
+            ...body,
+            nome_completo: perfil.nome,
+            email: perfil.email,
+            telemovel: perfil.telemovel,
+            cartao_cidadao: perfil.cc,
+            nif: perfil.nif,
+            morada: perfil.morada,
+            localidade: perfil.localidade,
+            codigo_postal: perfil.cod_postal,
+            escola: perfil.escola,
+            ee_nome: perfil.ee_nome,
+            ee_nif: perfil.ee_nif,
+            ee_email: perfil.ee_email,
+            ee_telemovel: perfil.ee_telemovel,
+            ee_morada: perfil.ee_morada,
+            ee_localidade: perfil.ee_localidade,
+            ee_codigo_postal: perfil.ee_codigo_postal,
+            ee_parentesco: perfil.ee_parentesco,
+        };
+
+        const insertQuery = `
+            INSERT INTO public.inscricoes_publicas (
+                nome_completo,
+                data_nascimento,
+                email,
+                telemovel,
+                telefone,
+                cartao_cidadao,
+                nif,
+                morada,
+                localidade,
+                codigo_postal,
+                escola,
+                nivel_ensino,
+                ano_escolar,
+                turma,
+                disciplina,
+                tipo_servico,
+                modalidade,
+                pacote,
+                obs,
+                ee_nome,
+                ee_nif,
+                ee_email,
+                ee_telemovel,
+                ee_telefone,
+                ee_morada,
+                ee_localidade,
+                ee_codigo_postal,
+                ee_parentesco,
+                dados
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
+                $27, $28, $29::jsonb
+            )
+            RETURNING id_inscricao_publica, created_at
+        `;
+
+        const values = [
+            perfil.nome,
+            toSqlDateOrNull(perfil.data_nasc),
+            perfil.email,
+            perfil.telemovel,
+            perfil.telefone,
+            perfil.cc,
+            perfil.nif,
+            perfil.morada,
+            perfil.localidade,
+            perfil.cod_postal,
+            perfil.escola,
+            getBodyValue(body, 'nivel_ensino'),
+            getBodyValue(body, 'ano_escolar'),
+            getBodyValue(body, 'turma'),
+            String(first.disciplina ?? '').trim(),
+            String(first.tipo_servico ?? '').trim(),
+            String(first.modalidade ?? '').trim(),
+            String(first.pacote ?? '').trim(),
+            getBodyValue(body, 'obs'),
+            perfil.ee_nome,
+            perfil.ee_nif,
+            perfil.ee_email,
+            perfil.ee_telemovel,
+            perfil.ee_telefone,
+            perfil.ee_morada,
+            perfil.ee_localidade,
+            perfil.ee_codigo_postal,
+            perfil.ee_parentesco,
+            JSON.stringify(dadosCompletos),
+        ];
+
+        const result = await db.query(insertQuery, values);
+
+        await registarInsert(
+            req.userId,
+            'inscricoes_publicas',
+            {
+                id_inscricao_publica: result.rows[0]?.id_inscricao_publica,
+                nome_completo: perfil.nome,
+                email: perfil.email,
+                estado: 'pendente',
+                origem: 'reinscricao_aluno',
+            },
+            result.rows[0]?.id_inscricao_publica || null
+        );
+
+        notificarGestoresNovaInscricao({
+            nomeAluno: perfil.nome,
+            email: perfil.email,
+            modalidade: String(first.modalidade ?? '').trim(),
+            tipoServico: String(first.tipo_servico ?? '').trim(),
+            id: result.rows[0]?.id_inscricao_publica,
+        });
+
+        return res.status(201).json({
+            message: 'Reinscrição recebida com sucesso.',
+            inscricao: result.rows[0],
+        });
+    } catch (error) {
+        console.error('Erro ao criar reinscrição:', error.message);
+        return res.status(500).json({
+            message: 'Erro ao registar reinscrição.',
+        });
+    }
+}
+
 export async function listarInscricoesPublicas(req, res) {
     try {
         await ensureInscricoesPublicasTable();

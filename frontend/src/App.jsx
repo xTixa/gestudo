@@ -46,6 +46,7 @@ import AssiduidadeProfessorPage from './pages/Teacher/attendance';
 import NotificationsProfessorPage from './pages/Teacher/notifications';
 import DashboardAlunoPage from './pages/Student/dashboard';
 import AgendaAlunoPage from './pages/Student/agenda';
+import ReinscricaoAlunoPage from './pages/Student/reinscricao';
 import ServicosAlunoPage from './pages/Student/services';
 import PresencasAlunoPage from './pages/Student/presences';
 import NotificationsAlunoPage from './pages/Student/notifications';
@@ -247,7 +248,7 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     />
                     <Route
                         path="/aluno/reinscricao"
-                        element={<InfosInscricaoPage />}
+                        element={<ReinscricaoAlunoPage />}
                     />
                     <Route
                         path="/aluno/presencas"

@@ -8,6 +8,10 @@ import {
     obterStatusRenovacao,
     renovarMatriculaAluno,
 } from '../controllers/renovacaoMatriculaController.js';
+import {
+    listarOpcoesInscricao,
+    criarReinscricaoAluno,
+} from '../controllers/inscricaoController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 
@@ -23,5 +27,9 @@ router.get('/presencas', listarMinhasPresencasAluno);
 // Rotas de renovação de matrícula
 router.get('/renovacao/status', obterStatusRenovacao);
 router.post('/renovacao/renovar', renovarMatriculaAluno);
+
+// Rotas de reinscrição (nível/ano/turma/plano apenas)
+router.get('/reinscricao/opcoes', listarOpcoesInscricao);
+router.post('/reinscricao', criarReinscricaoAluno);
 
 export default router;
