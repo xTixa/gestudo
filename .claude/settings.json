@@ -132,7 +132,8 @@
       "Bash(npx --no-install eslint src/pages/Infos/enrollment.jsx)",
       "Bash(node --check src/controllers/calendarFeedController.js)",
       "Bash(node --check src/routes/alunoRoutes.js)",
-      "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx src/App.jsx)"
+      "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx src/App.jsx)",
+      "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

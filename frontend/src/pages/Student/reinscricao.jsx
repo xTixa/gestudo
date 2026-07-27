@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
+import {
+    BookOpen,
+    CheckCircle2,
+    ClipboardList,
+    GraduationCap,
+    Layers,
+    Plus,
+    RefreshCcw,
+    Trash2,
+} from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
 
@@ -40,11 +49,11 @@ function newPlanoItem(id) {
 }
 
 const SELECT_CLS =
-    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const SELECT_DISABLED_CLS =
-    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+    'mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const INPUT_CLS =
-    'mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200';
+    'mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const LABEL_CLS = 'text-sm font-semibold text-slate-700';
 
 function Req() {
@@ -242,238 +251,334 @@ export default function ReinscricaoAlunoPage() {
         }
     }
 
+    const disciplinasPreenchidas = planoItems.filter((item) => item.disciplina).length;
+    const nivelLabel = nivelSelecionado?.label || '';
+
     return (
         <section className="space-y-5">
             <UsersPageHeader
                 eyebrow="Painel do Aluno"
                 title="Reinscrição"
-                subtitle="Atualize o nível de ensino, ano, turma e as disciplinas pretendidas."
+                subtitle="Atualize o nível de ensino, ano, turma e as disciplinas pretendidas para o novo ano letivo."
                 icon={RefreshCcw}
             />
 
-            <div className="mx-auto w-full max-w-4xl">
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                    {erroOpcoes ? (
-                        <p role="alert" aria-live="assertive" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                            {erroOpcoes}
+            {sent ? (
+                <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">
+                    <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-emerald-600" />
+                    <div>
+                        <p className="font-medium text-emerald-800">Reinscrição enviada com sucesso!</p>
+                        <p className="mt-0.5 text-sm text-emerald-700">
+                            Aguarde a confirmação por parte do gestor. Pode acompanhar o estado a partir do dashboard.
                         </p>
-                    ) : null}
-                    {submitError ? (
-                        <p role="alert" aria-live="assertive" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {submitError}
-                        </p>
-                    ) : null}
-                    {sent ? (
-                        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                            Reinscrição enviada com sucesso. Aguarde a confirmação por parte do gestor.
-                        </p>
-                    ) : null}
+                    </div>
+                </div>
+            ) : null}
 
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                        <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
-                            Nível e Turma
-                        </h2>
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                            <label className={LABEL_CLS}>
-                                Nível de Ensino <Req />
-                                <select
-                                    required value={selectedNivel}
-                                    onChange={(e) => setSelectedNivel(e.target.value)}
-                                    className={SELECT_CLS}
-                                >
-                                    <option value="">Selecionar</option>
-                                    {loadingOpcoes ? <option value="">A carregar...</option> : null}
-                                    {niveisEnsinoOptions.map((item) => (
-                                        <option key={item.id} value={item.id}>{item.label}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className={LABEL_CLS}>
-                                Ano Escolar {!isEnsinoSuperior && <Req />}
-                                <select
-                                    required value={selectedAnoEscolar}
-                                    onChange={(e) => setSelectedAnoEscolar(e.target.value)}
-                                    disabled={!selectedNivel || loadingOpcoes || isEnsinoSuperior}
-                                    className={SELECT_DISABLED_CLS}
-                                >
-                                    <option value="">
-                                        {!selectedNivel ? 'Selecione primeiro o nível' : isEnsinoSuperior ? 'Não aplicável' : 'Selecionar'}
-                                    </option>
-                                    {!isEnsinoSuperior
-                                        ? anosEscolaresOptions.map((ano) => (
-                                              <option key={ano} value={ano}>{ano}</option>
-                                          ))
-                                        : null}
-                                </select>
-                            </label>
-                            <label className={LABEL_CLS}>
-                                Turma
-                                <input
-                                    type="text" value={turma}
-                                    onChange={(e) => setTurma(e.target.value)}
-                                    placeholder="Ex: B" className={INPUT_CLS}
-                                />
-                            </label>
-                        </div>
-                    </section>
+            {erroOpcoes ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-700 shadow-sm">
+                    {erroOpcoes}
+                </div>
+            ) : null}
 
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                        <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Plano</h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Pode inscrever-se em mais do que uma disciplina. Cada disciplina tem o seu próprio tipo de serviço, modalidade e horas pretendidas.
-                        </p>
+            <form onSubmit={handleSubmit} noValidate>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="space-y-6">
+                        {submitError ? (
+                            <p role="alert" aria-live="assertive" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                {submitError}
+                            </p>
+                        ) : null}
 
-                        <div className="mt-5 space-y-4">
-                            {planoItems.map((item, index) => {
-                                const isIndividual = isModalidadeIndividual(item.modalidade);
-                                const podePacote = Boolean(item.tipoServico) && !isIndividual;
-                                const horasDisponiveis = podePacote ? getHorasDisponiveis(item) : [];
+                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                                    <GraduationCap size={20} />
+                                </span>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Nível e Turma</h2>
+                                    <p className="text-sm text-slate-500">Em que nível/ano vai continuar os estudos.</p>
+                                </div>
+                            </div>
 
-                                return (
-                                    <div
-                                        key={item.id}
-                                        className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                                <label className={LABEL_CLS}>
+                                    Nível de Ensino <Req />
+                                    <select
+                                        required value={selectedNivel}
+                                        onChange={(e) => setSelectedNivel(e.target.value)}
+                                        className={SELECT_CLS}
                                     >
-                                        <div className="mb-3 flex items-center justify-between">
-                                            <span className="text-sm font-bold text-slate-700">
-                                                Disciplina {index + 1}
-                                            </span>
-                                            {planoItems.length > 1 ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removePlanoItem(item.id)}
-                                                    className="text-xs font-semibold text-red-600 transition hover:text-red-800"
-                                                >
-                                                    Remover
-                                                </button>
-                                            ) : null}
-                                        </div>
+                                        <option value="">Selecionar</option>
+                                        {loadingOpcoes ? <option value="">A carregar...</option> : null}
+                                        {niveisEnsinoOptions.map((item) => (
+                                            <option key={item.id} value={item.id}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className={LABEL_CLS}>
+                                    Ano Escolar {!isEnsinoSuperior && <Req />}
+                                    <select
+                                        required value={selectedAnoEscolar}
+                                        onChange={(e) => setSelectedAnoEscolar(e.target.value)}
+                                        disabled={!selectedNivel || loadingOpcoes || isEnsinoSuperior}
+                                        className={SELECT_DISABLED_CLS}
+                                    >
+                                        <option value="">
+                                            {!selectedNivel ? 'Selecione primeiro o nível' : isEnsinoSuperior ? 'Não aplicável' : 'Selecionar'}
+                                        </option>
+                                        {!isEnsinoSuperior
+                                            ? anosEscolaresOptions.map((ano) => (
+                                                  <option key={ano} value={ano}>{ano}</option>
+                                              ))
+                                            : null}
+                                    </select>
+                                </label>
+                                <label className={LABEL_CLS}>
+                                    Turma
+                                    <input
+                                        type="text" value={turma}
+                                        onChange={(e) => setTurma(e.target.value)}
+                                        placeholder="Ex: B" className={INPUT_CLS}
+                                    />
+                                </label>
+                            </div>
+                        </article>
 
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <label className={LABEL_CLS}>
-                                                Disciplina <Req />
-                                                <select
-                                                    value={item.disciplina}
-                                                    onChange={(e) => updatePlanoItem(item.id, 'disciplina', e.target.value)}
-                                                    disabled={!selectedNivel || loadingOpcoes}
-                                                    className={SELECT_DISABLED_CLS}
-                                                >
-                                                    <option value="">
-                                                        {!selectedNivel ? 'Selecione primeiro o nível' : 'Selecionar'}
-                                                    </option>
-                                                    {disciplinasFiltradas.map((d) => (
-                                                        <option key={d.id} value={d.value}>{d.label}</option>
-                                                    ))}
-                                                </select>
-                                                {selectedNivel && !loadingOpcoes && disciplinasFiltradas.length === 0 ? (
-                                                    <p className="mt-1 text-xs text-amber-600">
-                                                        Sem disciplinas para este nível.
-                                                    </p>
+                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                                    <BookOpen size={20} />
+                                </span>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-800 sm:text-xl">Plano de Disciplinas</h2>
+                                    <p className="text-sm text-slate-500">
+                                        Pode inscrever-se em mais do que uma disciplina, cada uma com o seu tipo de serviço, modalidade e horas.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 space-y-4">
+                                {planoItems.map((item, index) => {
+                                    const isIndividual = isModalidadeIndividual(item.modalidade);
+                                    const podePacote = Boolean(item.tipoServico) && !isIndividual;
+                                    const horasDisponiveis = podePacote ? getHorasDisponiveis(item) : [];
+
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                                        >
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">
+                                                        {index + 1}
+                                                    </span>
+                                                    Disciplina {index + 1}
+                                                </span>
+                                                {planoItems.length > 1 ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removePlanoItem(item.id)}
+                                                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Remover
+                                                    </button>
                                                 ) : null}
-                                            </label>
+                                            </div>
 
-                                            <label className={LABEL_CLS}>
-                                                Tipo de Serviço <Req />
-                                                <select
-                                                    value={item.tipoServico}
-                                                    onChange={(e) => updatePlanoItem(item.id, 'tipoServico', e.target.value)}
-                                                    className={SELECT_CLS}
-                                                >
-                                                    <option value="">Selecionar</option>
-                                                    {loadingOpcoes ? <option value="">A carregar...</option> : null}
-                                                    {tipoServicoOptions.map((o) => (
-                                                        <option key={o.id} value={o.id}>{o.label || o.value}</option>
-                                                    ))}
-                                                </select>
-                                            </label>
-
-                                            <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                                Modalidade
-                                                <select
-                                                    value={item.modalidade}
-                                                    onChange={(e) => updatePlanoItem(item.id, 'modalidade', e.target.value)}
-                                                    disabled={!item.tipoServico || loadingOpcoes}
-                                                    className={SELECT_DISABLED_CLS}
-                                                >
-                                                    <option value="">
-                                                        {!item.tipoServico ? 'Selecione primeiro o tipo de serviço' : 'Selecionar'}
-                                                    </option>
-                                                    {modalidadesOptions.map((o) => (
-                                                        <option key={o.id} value={o.id}>{o.label}</option>
-                                                    ))}
-                                                </select>
-                                            </label>
-
-                                            {!isIndividual ? (
-                                                <fieldset className="sm:col-span-2" disabled={!podePacote}>
-                                                    <legend className={LABEL_CLS}>
-                                                        Horas Pretendidas {podePacote && <Req />}
-                                                    </legend>
-                                                    <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                                                        {horasDisponiveis.map((horas) => (
-                                                            <label
-                                                                key={horas}
-                                                                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
-                                                            >
-                                                                <input
-                                                                    type="radio"
-                                                                    name={`pacote_${item.id}`}
-                                                                    value={horas}
-                                                                    checked={Number(item.pacote) === horas}
-                                                                    onChange={() => updatePlanoItem(item.id, 'pacote', String(horas))}
-                                                                    disabled={!podePacote}
-                                                                    className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
-                                                                />
-                                                                <span>{horas}h</span>
-                                                            </label>
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <label className={LABEL_CLS}>
+                                                    Disciplina <Req />
+                                                    <select
+                                                        value={item.disciplina}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'disciplina', e.target.value)}
+                                                        disabled={!selectedNivel || loadingOpcoes}
+                                                        className={SELECT_DISABLED_CLS}
+                                                    >
+                                                        <option value="">
+                                                            {!selectedNivel ? 'Selecione primeiro o nível' : 'Selecionar'}
+                                                        </option>
+                                                        {disciplinasFiltradas.map((d) => (
+                                                            <option key={d.id} value={d.value}>{d.label}</option>
                                                         ))}
-                                                    </div>
-                                                    {podePacote && horasDisponiveis.length === 0 ? (
-                                                        <p className="mt-2 text-xs text-amber-600">
-                                                            Sem pacotes de horas disponíveis para esta disciplina/modalidade.
+                                                    </select>
+                                                    {selectedNivel && !loadingOpcoes && disciplinasFiltradas.length === 0 ? (
+                                                        <p className="mt-1 text-xs text-amber-600">
+                                                            Sem disciplinas para este nível.
                                                         </p>
                                                     ) : null}
-                                                </fieldset>
-                                            ) : (
-                                                <p className="text-xs text-slate-500 sm:col-span-2">
-                                                    Horas pretendidas não aplicáveis para explicação individual.
-                                                </p>
-                                            )}
+                                                </label>
+
+                                                <label className={LABEL_CLS}>
+                                                    Tipo de Serviço <Req />
+                                                    <select
+                                                        value={item.tipoServico}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'tipoServico', e.target.value)}
+                                                        className={SELECT_CLS}
+                                                    >
+                                                        <option value="">Selecionar</option>
+                                                        {loadingOpcoes ? <option value="">A carregar...</option> : null}
+                                                        {tipoServicoOptions.map((o) => (
+                                                            <option key={o.id} value={o.id}>{o.label || o.value}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <label className={`${LABEL_CLS} sm:col-span-2`}>
+                                                    Modalidade
+                                                    <select
+                                                        value={item.modalidade}
+                                                        onChange={(e) => updatePlanoItem(item.id, 'modalidade', e.target.value)}
+                                                        disabled={!item.tipoServico || loadingOpcoes}
+                                                        className={SELECT_DISABLED_CLS}
+                                                    >
+                                                        <option value="">
+                                                            {!item.tipoServico ? 'Selecione primeiro o tipo de serviço' : 'Selecionar'}
+                                                        </option>
+                                                        {modalidadesOptions.map((o) => (
+                                                            <option key={o.id} value={o.id}>{o.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                {!isIndividual ? (
+                                                    <fieldset className="sm:col-span-2" disabled={!podePacote}>
+                                                        <legend className={LABEL_CLS}>
+                                                            Horas Pretendidas {podePacote && <Req />}
+                                                        </legend>
+                                                        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                                                            {horasDisponiveis.map((horas) => (
+                                                                <label
+                                                                    key={horas}
+                                                                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : Number(item.pacote) === horas ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`pacote_${item.id}`}
+                                                                        value={horas}
+                                                                        checked={Number(item.pacote) === horas}
+                                                                        onChange={() => updatePlanoItem(item.id, 'pacote', String(horas))}
+                                                                        disabled={!podePacote}
+                                                                        className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                                    />
+                                                                    <span>{horas}h</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        {podePacote && horasDisponiveis.length === 0 ? (
+                                                            <p className="mt-2 text-xs text-amber-600">
+                                                                Sem pacotes de horas disponíveis para esta disciplina/modalidade.
+                                                            </p>
+                                                        ) : null}
+                                                    </fieldset>
+                                                ) : (
+                                                    <p className="text-xs text-slate-500 sm:col-span-2">
+                                                        Horas pretendidas não aplicáveis para explicação individual.
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
 
-                            <button
-                                type="button"
-                                onClick={addPlanoItem}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
-                            >
-                                + Adicionar outra disciplina
-                            </button>
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={addPlanoItem}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
+                                >
+                                    <Plus size={16} />
+                                    Adicionar outra disciplina
+                                </button>
+                            </div>
 
-                        <label className={`${LABEL_CLS} mt-5 block`}>
-                            Observações
-                            <textarea
-                                rows={4}
-                                value={obs}
-                                onChange={(e) => setObs(e.target.value)}
-                                className={`${INPUT_CLS} resize-none`}
-                                placeholder="Informações relevantes sobre objetivos ou disponibilidade."
-                            />
-                        </label>
+                            <label className={`${LABEL_CLS} mt-5 block`}>
+                                Observações
+                                <textarea
+                                    rows={4}
+                                    value={obs}
+                                    onChange={(e) => setObs(e.target.value)}
+                                    className={`${INPUT_CLS} resize-none`}
+                                    placeholder="Informações relevantes sobre objetivos ou disponibilidade."
+                                />
+                            </label>
+                        </article>
 
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="mt-5 w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {submitting ? 'A enviar...' : 'Enviar Reinscrição'}
+                            {submitting ? (
+                                'A enviar...'
+                            ) : (
+                                <>
+                                    <RefreshCcw size={16} />
+                                    Enviar Reinscrição
+                                </>
+                            )}
                         </button>
-                    </section>
-                </form>
-            </div>
+                    </div>
+
+                    <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+                        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                                    <ClipboardList size={20} />
+                                </span>
+                                <h2 className="text-base font-bold text-slate-800">Resumo</h2>
+                            </div>
+
+                            <dl className="mt-4 space-y-3 text-sm">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <dt className="text-slate-500">Nível de ensino</dt>
+                                    <dd className="font-semibold text-slate-800">
+                                        {nivelLabel || '—'}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <dt className="text-slate-500">Ano escolar</dt>
+                                    <dd className="font-semibold text-slate-800">
+                                        {isEnsinoSuperior ? 'Não aplicável' : selectedAnoEscolar || '—'}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <dt className="text-slate-500">Turma</dt>
+                                    <dd className="font-semibold text-slate-800">{turma || '—'}</dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="flex items-center gap-1.5 text-slate-500">
+                                        <Layers size={14} />
+                                        Disciplinas no plano
+                                    </dt>
+                                    <dd className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-100 px-2 text-xs font-bold text-emerald-700">
+                                        {disciplinasPreenchidas}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </article>
+
+                        <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                            <h3 className="text-sm font-bold text-emerald-800">Como funciona</h3>
+                            <ul className="mt-3 space-y-2 text-sm text-emerald-700">
+                                <li className="flex gap-2">
+                                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                                    Os seus dados pessoais e do encarregado de educação já estão guardados e não precisam de ser repetidos.
+                                </li>
+                                <li className="flex gap-2">
+                                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                                    Depois de enviar, o pedido fica pendente até o gestor o aprovar.
+                                </li>
+                                <li className="flex gap-2">
+                                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                                    Pode acompanhar o estado do pedido a partir do dashboard.
+                                </li>
+                            </ul>
+                        </article>
+                    </aside>
+                </div>
+            </form>
         </section>
     );
 }
