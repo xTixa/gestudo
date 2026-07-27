@@ -129,7 +129,8 @@
       "Bash(powershell -NoProfile -Command \"Stop-Process -Id 30516 -Force\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5050/api/health --max-time 5)",
       "Bash(node -e \"const crypto = require\\('crypto'\\); console.log\\(crypto.randomBytes\\(9\\).toString\\('base64url'\\)\\); console.log\\(crypto.randomBytes\\(9\\).toString\\('base64url'\\).length\\);\")",
-      "Bash(npx --no-install eslint src/pages/Infos/enrollment.jsx)"
+      "Bash(npx --no-install eslint src/pages/Infos/enrollment.jsx)",
+      "Bash(node --check src/controllers/calendarFeedController.js)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

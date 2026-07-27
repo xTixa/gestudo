@@ -5,9 +5,8 @@ import {
 } from '../services/calendarFeedService.js';
 
 function buildFeedUrl(req, token) {
-    const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
-    return `${protocol}://${host}/api/public/agenda.ics?token=${token}`;
+    return `${req.protocol}://${host}/api/public/agenda.ics?token=${token}`;
 }
 
 export async function obterCalendarToken(req, res) {
