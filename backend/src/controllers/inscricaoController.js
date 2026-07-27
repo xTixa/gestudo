@@ -7,6 +7,11 @@ import {
     registarUpdate,
     registarDelete,
 } from '../services/logService.js';
+import {
+    renovarMatricula,
+    ativarContaAluno,
+} from '../models/renovacaoMatricula.js';
+import { getAnoLetivo } from './renovacaoMatriculaController.js';
 
 /**
  * ========================================
@@ -580,6 +585,21 @@ async function integrarInscricaoAprovada(inscricao) {
 
         if (existingAlunoResult.rows.length > 0) {
             await client.query('COMMIT');
+
+            let matriculaRenovada = false;
+            if (inscricao?.dados?.origem === 'reinscricao_aluno') {
+                const idAluno = existingAlunoResult.rows[0].id_aluno;
+                const anoLetivoAtual = getAnoLetivo(new Date());
+                const resultadoRenovacao = await renovarMatricula(
+                    idAluno,
+                    anoLetivoAtual
+                );
+                if (resultadoRenovacao) {
+                    await ativarContaAluno(idAluno);
+                    matriculaRenovada = true;
+                }
+            }
+
             return {
                 createdUser,
                 createdAluno: false,
@@ -591,6 +611,7 @@ async function integrarInscricaoAprovada(inscricao) {
                 encarregadoEmail: null,
                 encarregadoTemporaryPassword: null,
                 encarregadoUserCreated: false,
+                matriculaRenovada,
             };
         }
 
@@ -1472,7 +1493,9 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
         );
 
         return res.status(200).json({
-            message: 'Estado atualizado com sucesso.',
+            message: integracao?.matriculaRenovada
+                ? 'Estado atualizado com sucesso. Matrícula renovada para o novo ano letivo.'
+                : 'Estado atualizado com sucesso.',
             inscricao: rows[0],
         });
     } catch (error) {

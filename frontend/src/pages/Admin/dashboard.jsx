@@ -256,6 +256,7 @@ export default function DashboardGestor() {
                     value={resumo.matriculasExpiradas}
                     icon={RefreshCcw}
                     alertColor="amber"
+                    onClick={() => navigate('/gestor/renovacoes')}
                 />
                 <AlertMetricCard
                     title="Reagendamentos Pendentes"

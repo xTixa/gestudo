@@ -5,10 +5,6 @@ import {
 } from '../controllers/alunoController.js';
 import { listarMinhasPresencasAluno } from '../controllers/presencasController.js';
 import {
-    obterStatusRenovacao,
-    renovarMatriculaAluno,
-} from '../controllers/renovacaoMatriculaController.js';
-import {
     listarOpcoesInscricao,
     criarReinscricaoAluno,
 } from '../controllers/inscricaoController.js';
@@ -24,11 +20,9 @@ router.get('/perfil', obterMeuPerfil);
 router.patch('/perfil', atualizarMeuPerfil);
 router.get('/presencas', listarMinhasPresencasAluno);
 
-// Rotas de renovação de matrícula
-router.get('/renovacao/status', obterStatusRenovacao);
-router.post('/renovacao/renovar', renovarMatriculaAluno);
-
-// Rotas de reinscrição (nível/ano/turma/plano apenas)
+// Rotas de reinscrição (nível/ano/turma/plano apenas). A renovação da
+// matrícula acontece quando o gestor aprova o pedido de reinscrição
+// (ver atualizarEstadoInscricaoPublica em inscricaoController.js).
 router.get('/reinscricao/opcoes', listarOpcoesInscricao);
 router.post('/reinscricao', criarReinscricaoAluno);
 

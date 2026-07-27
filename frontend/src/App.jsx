@@ -20,6 +20,7 @@ import NotificationsPage from './pages/Admin/notifications';
 import SettingsPage from './pages/Admin/settings';
 import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
 import PendingProfileChangesPage from './pages/Admin/PendingProfileChanges';
+import RenewalsPage from './pages/Admin/renewals';
 import AgendaPage from './pages/Admin/agenda';
 import PresencasGestorPage from './pages/Admin/presences';
 import ReagendamentosPage from './pages/Admin/rescheduling';
@@ -127,6 +128,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/alteracoes-pendentes"
                         element={<PendingProfileChangesPage />}
+                    />
+                    <Route
+                        path="/gestor/renovacoes"
+                        element={<RenewalsPage />}
                     />
                     <Route path="/gestor/alertas" element={<AlertsPage />} />
                     <Route

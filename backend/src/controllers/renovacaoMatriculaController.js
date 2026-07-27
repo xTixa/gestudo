@@ -1,7 +1,6 @@
 import { db } from '../config/db.js';
 import {
     renovarMatricula,
-    obterDadosRenovacao,
     isMatriculaAtiva,
     ativarContaAluno,
 } from '../models/renovacaoMatricula.js';
@@ -60,7 +59,7 @@ async function ensureRenovacaoMatriculaAlertDefinition() {
  * @param {*} dateValue - Data (string ou Date)
  * @returns {string|null} Ano letivo ou null se inválido
  */
-function getAnoLetivo(dateValue) {
+export function getAnoLetivo(dateValue) {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) {
         return null;
@@ -72,84 +71,40 @@ function getAnoLetivo(dateValue) {
 }
 
 /**
- * GET /api/aluno/renovacao/status
- * Retorna o status de renovação de matrícula do aluno autenticado
+ * POST /api/gestor/renovacoes/:idAluno/renovar
+ * Renova a matrícula de um aluno específico (apenas gestor)
  */
-export async function obterStatusRenovacao(req, res) {
+export async function renovarMatriculaAlunoPorGestor(req, res) {
     try {
         if (!req.userId) {
             return res.status(401).json({ message: 'Não autenticado.' });
         }
 
-        // Obter ID do aluno
-        const { rows: alunoRows } = await db.query(
-            `SELECT id_aluno FROM alunos WHERE id_user = $1 LIMIT 1`,
-            [req.userId]
-        );
-
-        if (!alunoRows.length) {
-            return res.status(404).json({ message: 'Aluno não encontrado.' });
-        }
-
-        const idAluno = alunoRows[0].id_aluno;
-        const anoLetivoAtual = getAnoLetivo(new Date());
-
-        // Obter dados de renovação
-        const renovacao = await obterDadosRenovacao(idAluno);
-
-        // Verificar se está renovado
-        const matriculaAtiva = await isMatriculaAtiva(idAluno, anoLetivoAtual);
-
-        // Obter status da conta
         const { rows: userRows } = await db.query(
-            `SELECT status FROM users WHERE id_user = $1`,
+            `SELECT role FROM users WHERE id_user = $1`,
             [req.userId]
         );
 
-        const statusConta = userRows[0]?.status ?? false;
-
-        return res.status(200).json({
-            renovacao: {
-                dataUltmaRenovacao: renovacao?.data_renovacao_ultima || null,
-                anoLetivoRenovacao: renovacao?.ano_letivo_renovacao || null,
-            },
-            anoLetivoAtual,
-            matriculaAtiva,
-            statusConta,
-            precisaRenovar: !matriculaAtiva,
-        });
-    } catch (error) {
-        console.error('Erro ao obter status de renovação:', error.message);
-        return res
-            .status(500)
-            .json({ message: 'Erro ao obter status de renovação.' });
-    }
-}
-
-/**
- * POST /api/aluno/renovacao/renovar
- * Renova a matrícula do aluno para o ano letivo seguinte
- */
-export async function renovarMatriculaAluno(req, res) {
-    try {
-        if (!req.userId) {
-            return res.status(401).json({ message: 'Não autenticado.' });
+        const role = String(userRows[0]?.role || '').toLowerCase();
+        if (role !== 'gestor' && role !== 'admin') {
+            return res.status(403).json({ message: 'Acesso negado.' });
         }
 
-        // Obter ID do aluno
+        const idAluno = Number(req.params.idAluno);
+        if (!Number.isInteger(idAluno) || idAluno <= 0) {
+            return res.status(400).json({ message: 'ID de aluno inválido.' });
+        }
+
         const { rows: alunoRows } = await db.query(
-            `SELECT id_aluno FROM alunos WHERE id_user = $1 LIMIT 1`,
-            [req.userId]
+            `SELECT id_aluno, id_user FROM alunos WHERE id_aluno = $1 LIMIT 1`,
+            [idAluno]
         );
 
         if (!alunoRows.length) {
             return res.status(404).json({ message: 'Aluno não encontrado.' });
         }
 
-        const idAluno = alunoRows[0].id_aluno;
         const anoLetivoAtual = getAnoLetivo(new Date());
-
-        // Verificar se já está renovado
         const jaRenovado = await isMatriculaAtiva(idAluno, anoLetivoAtual);
 
         if (jaRenovado) {
@@ -159,7 +114,6 @@ export async function renovarMatriculaAluno(req, res) {
             });
         }
 
-        // Renovar matrícula
         const resultadoRenovacao = await renovarMatricula(
             idAluno,
             anoLetivoAtual
@@ -171,14 +125,13 @@ export async function renovarMatriculaAluno(req, res) {
             });
         }
 
-        // Ativar conta se estava suspensa
         await ativarContaAluno(idAluno);
 
         await ensureRenovacaoMatriculaAlertDefinition();
 
         await dispatchAlert({
             codigo: 'renovacao-matricula',
-            for_user_ids: [req.userId],
+            for_user_ids: [alunoRows[0].id_user],
             titulo: 'Matrícula renovada com sucesso',
             descricao: `A matrícula foi renovada para ${anoLetivoAtual}.`,
             nivel: 'success',
@@ -186,10 +139,9 @@ export async function renovarMatriculaAluno(req, res) {
                 id_aluno: idAluno,
                 ano_letivo: anoLetivoAtual,
             },
-            pushLink: '/aluno/renovacao',
+            pushLink: '/aluno/perfil',
         });
 
-        // Registar na auditoria
         await registarUpdate(
             req.userId,
             'alunos',
@@ -207,7 +159,7 @@ export async function renovarMatriculaAluno(req, res) {
             },
         });
     } catch (error) {
-        console.error('Erro ao renovar matrícula:', error.message);
+        console.error('Erro ao renovar matrícula (gestor):', error.message);
         return res.status(500).json({
             message: 'Erro ao renovar matrícula.',
         });

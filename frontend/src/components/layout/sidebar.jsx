@@ -101,6 +101,12 @@ const menuByRole = {
             icon: ClipboardEdit,
         },
         {
+            key: 'renovacoes',
+            label: 'Renovações',
+            path: '/gestor/renovacoes',
+            icon: RefreshCcw,
+        },
+        {
             key: 'relatorios',
             label: 'Relatórios',
             path: '/gestor/relatorios',

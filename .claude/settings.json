@@ -133,7 +133,12 @@
       "Bash(node --check src/controllers/calendarFeedController.js)",
       "Bash(node --check src/routes/alunoRoutes.js)",
       "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx src/App.jsx)",
-      "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx)"
+      "Bash(npx --no-install eslint src/pages/Student/reinscricao.jsx)",
+      "Bash(node -e \"import\\('./src/controllers/inscricaoController.js'\\).then\\(\\(\\) => console.log\\('OK: no circular import issue'\\)\\).catch\\(e => console.error\\('FAIL:', e.message\\)\\)\")",
+      "Bash(node -e \"import\\('./src/controllers/inscricaoController.js'\\).then\\(\\(\\) => console.log\\('OK'\\)\\).catch\\(e => console.error\\('FAIL:', e.message\\)\\)\")",
+      "Bash(npx --no-install eslint src/pages/Admin/renewals.jsx src/pages/Admin/dashboard.jsx src/pages/Student/Profile/profile.jsx src/App.jsx src/components/layout/sidebar.jsx)",
+      "Bash(npx --no-install eslint src/pages/Admin/PublicEnrollments.jsx)",
+      "Bash(npx --no-install eslint src/pages/Admin/renewals.jsx)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

@@ -74,6 +74,7 @@ import {
 import {
     listarAlunosMatriculaExpirada,
     suspenderAlunosExpirados,
+    renovarMatriculaAlunoPorGestor,
 } from '../controllers/renovacaoMatriculaController.js';
 import {
     listarRelatorioGestor,
@@ -897,6 +898,15 @@ router.get('/renovacoes/alunos-expirados', listarAlunosMatriculaExpirada);
  * Status: 200 OK | 403 Forbidden | 500 Internal Server Error
  */
 router.post('/renovacoes/suspender-expirados', suspenderAlunosExpirados);
+
+/**
+ * POST /api/gestor/renovacoes/:idAluno/renovar
+ * Renova a matrícula de um aluno específico
+ *
+ * Response: {message: string, renovacao: {dataUltmaRenovacao, anoLetivoRenovacao}}
+ * Status: 200 OK | 400 Bad Request | 403 Forbidden | 404 Not Found | 500 Internal Server Error
+ */
+router.post('/renovacoes/:idAluno/renovar', renovarMatriculaAlunoPorGestor);
 
 // =============== GESTÃO DE ADMINISTRADORES ===============
 

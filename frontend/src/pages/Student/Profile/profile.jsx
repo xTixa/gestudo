@@ -11,7 +11,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { apiGet } from '../../../utils/api';
 import defaultAvatar from '../../../assets/img/default-avatar.svg';
-import RenewalStatus from '../../../components/RenewalStatus';
 import UsersPageHeader from '../../../components/layout/UsersPageHeader';
 
 function getStoredUser() {
@@ -286,9 +285,6 @@ export default function PerfilAlunoPage() {
 
             {!loading ? (
                 <div className="space-y-4">
-                    {/* Renewal Status Card */}
-                    <RenewalStatus />
-
                     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex items-center gap-4">
