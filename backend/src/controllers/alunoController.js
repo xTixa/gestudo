@@ -807,6 +807,7 @@ export async function criarAluno(req, res) {
     const client = await db.connect();
     let idAluno = null;
     let credenciais = null;
+    let guardianTempPassword = null;
 
     try {
         await client.query('BEGIN');
@@ -895,7 +896,7 @@ export async function criarAluno(req, res) {
             if (guardianUserExisting.rows.length) {
                 idUserEncarregado = guardianUserExisting.rows[0].id_user;
             } else {
-                const guardianTempPassword = gerarPasswordTemporaria();
+                guardianTempPassword = gerarPasswordTemporaria();
                 const guardianPasswordHash = await bcrypt.hash(
                     guardianTempPassword,
                     10
@@ -998,15 +999,16 @@ export async function criarAluno(req, res) {
         );
         const emailEnviado = emailResultado.ok === true;
 
-        // Enviar também para o encarregado de educação se tiver email real
+        // Enviar também para o encarregado de educação se for uma conta nova com email real
         if (
+            guardianTempPassword &&
             encarregadoEmail &&
             !encarregadoEmail.includes('@placeholder.local')
         ) {
             await enviarEmailContaCriadaEE(
                 alunoNome,
                 encarregadoEmail,
-                passwordTemporaria
+                guardianTempPassword
             ).catch(() => {});
         }
 

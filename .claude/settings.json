@@ -127,7 +127,9 @@
       "Bash(curl -s \"http://localhost:5050/api/public/agenda.ics?token=ae5b75edc129b1a93f6d2a40e250ff9eb99f055f3a90a944\")",
       "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 5050 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique\")",
       "Bash(powershell -NoProfile -Command \"Stop-Process -Id 30516 -Force\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5050/api/health --max-time 5)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5050/api/health --max-time 5)",
+      "Bash(node -e \"const crypto = require\\('crypto'\\); console.log\\(crypto.randomBytes\\(9\\).toString\\('base64url'\\)\\); console.log\\(crypto.randomBytes\\(9\\).toString\\('base64url'\\).length\\);\")",
+      "Bash(npx --no-install eslint src/pages/Infos/enrollment.jsx)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

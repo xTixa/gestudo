@@ -242,7 +242,6 @@ export default function InfosInscricaoPage() {
             const n = i + 1;
             if (!item.disciplina) return `Selecione a disciplina no plano ${n}.`;
             if (!item.tipoServico) return `Selecione o tipo de serviço no plano ${n}.`;
-            if (!item.modalidade) return `Selecione a modalidade no plano ${n}.`;
             if (!isModalidadeIndividual(item.modalidade) && !item.pacote) {
                 return `Selecione as horas pretendidas no plano ${n}.`;
             }
@@ -679,7 +678,7 @@ export default function InfosInscricaoPage() {
                                 {planoItems.map((item, index) => {
                                     const podeModalidade = Boolean(item.tipoServico) && !loadingOpcoes;
                                     const isIndividual = isModalidadeIndividual(item.modalidade);
-                                    const podePacote = Boolean(item.modalidade) && !isIndividual;
+                                    const podePacote = Boolean(item.tipoServico) && !isIndividual;
                                     const horasDisponiveis = podePacote ? getHorasDisponiveis(item) : [];
 
                                     return (
@@ -741,7 +740,7 @@ export default function InfosInscricaoPage() {
                                                 </label>
 
                                                 <label className={`${LABEL_CLS} sm:col-span-2`}>
-                                                    {t('label_modalidade', 'Modalidade')} <Req />
+                                                    {t('label_modalidade', 'Modalidade')}
                                                     <select
                                                         value={item.modalidade}
                                                         onChange={(e) => updatePlanoItem(item.id, 'modalidade', e.target.value)}
@@ -781,11 +780,7 @@ export default function InfosInscricaoPage() {
                                                                 </label>
                                                             ))}
                                                         </div>
-                                                        {!item.modalidade ? (
-                                                            <p className="mt-2 text-xs text-slate-500">
-                                                                {t('help_pacote_sem_modalidade', 'Selecione primeiro a modalidade para escolher as horas pretendidas.')}
-                                                            </p>
-                                                        ) : podePacote && horasDisponiveis.length === 0 ? (
+                                                        {podePacote && horasDisponiveis.length === 0 ? (
                                                             <p className="mt-2 text-xs text-amber-600">
                                                                 Sem pacotes de horas disponíveis para esta disciplina/modalidade.
                                                             </p>

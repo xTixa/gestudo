@@ -14,7 +14,9 @@ function formatDateKey(date) {
 }
 
 function gerarTokenAleatorio() {
-    return crypto.randomBytes(24).toString('hex');
+    // 9 bytes (72 bits de entropia) em base64url ~ 12 caracteres — link mais
+    // curto para partilhar/colar, mantendo-se impraticável de adivinhar.
+    return crypto.randomBytes(9).toString('base64url');
 }
 
 /**
