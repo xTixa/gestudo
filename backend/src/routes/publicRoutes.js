@@ -9,6 +9,7 @@ import { listarAgenda } from '../controllers/agendaController.js';
 import { obterFeedICS } from '../controllers/calendarFeedController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
+import { rateLimitMiddleware } from '../middlewares/securityMiddleware.js';
 
 /**
  * ========================================
@@ -28,6 +29,11 @@ import { validateBody } from '../middlewares/validationMiddleware.js';
 
 const router = express.Router();
 
+// Limite mais apertado que o global, específico para submissão de
+// inscrições públicas: endpoint sem autenticação que escreve na BD e
+// dispara emails, logo alvo fácil de spam/abuso automatizado.
+const inscricaoRateLimit = rateLimitMiddleware(5, 60);
+
 /**
  * GET /api/public/inscricao-opcoes
  * Lista opções de filtros disponíveis para formulário de inscrição
@@ -41,6 +47,7 @@ router.get('/inscricao-textos', obterInscricaoTextosPublico);
 router.get('/feature-flags', obterFeatureFlagsPublico);
 router.post(
     '/inscricao',
+    inscricaoRateLimit,
     validateBody({
         nome_completo: { type: 'string', required: true, min: 3 },
         email: { type: 'email', required: true },

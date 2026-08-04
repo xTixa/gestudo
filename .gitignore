@@ -5,6 +5,7 @@ package-lock.json
 # Env files
 .env
 .env.*
+!.env.example
 
 # Logs
 logs

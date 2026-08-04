@@ -187,12 +187,6 @@ export function csrfProtectionMiddleware(options = {}) {
         const csrfCookie = cookies[CSRF_COOKIE_NAME];
         const csrfHeader = String(req.headers['x-csrf-token'] || '').trim();
 
-        console.log('=== CSRF DEBUG ===');
-        console.log('Cookie CSRF:', csrfCookie);
-        console.log('Header CSRF:', csrfHeader);
-        console.log('Cookie Auth:', authCookie);
-        console.log('==================');
-
         if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
             return res.status(403).json({
                 message: 'Validação CSRF falhou.',

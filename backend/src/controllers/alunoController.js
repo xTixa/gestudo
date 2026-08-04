@@ -2339,7 +2339,7 @@ export async function adicionarServicoCurricularAluno(req, res) {
         console.error('Erro ao inscrever aluno em serviço curricular:', error.message);
         return res
             .status(500)
-            .json({ message: error.message || 'Erro ao inscrever aluno no serviço.' });
+            .json({ message: 'Erro ao inscrever aluno no serviço.' });
     } finally {
         client.release();
     }
@@ -2435,7 +2435,7 @@ export async function removerServicoAluno(req, res) {
         console.error('Erro ao remover serviço do aluno:', error.message);
         return res
             .status(500)
-            .json({ message: error.message || 'Erro ao remover serviço do aluno.' });
+            .json({ message: 'Erro ao remover serviço do aluno.' });
     } finally {
         client.release();
     }
@@ -2492,9 +2492,7 @@ export async function atualizarDisciplinasPretendidasAluno(req, res) {
             error.message
         );
         return res.status(500).json({
-            message:
-                error.message ||
-                'Erro ao atualizar disciplinas pretendidas do aluno.',
+            message: 'Erro ao atualizar disciplinas pretendidas do aluno.',
         });
     }
 }
