@@ -24,17 +24,37 @@ LEFT JOIN public.professores prof ON prof.id_professor = sc.id_professor
 LEFT JOIN public.pessoas profp ON profp.id_pessoa = prof.id_pessoa
 WHERE lower(coalesce(i.estado, 'ativa')) = 'ativa';
 
-CREATE OR REPLACE VIEW public.vw_interesse_disciplinas AS
+-- DROP necessario porque a versao anterior desta view expandia o array
+-- 'plano' com jsonb_array_elements sem agregar de volta por inscricao,
+-- gerando uma linha por disciplina em vez de uma linha por candidato nos
+-- relatorios/exports. As colunas disciplina/modalidade/pacote (singular)
+-- foram substituidas por disciplinas/modalidades/pacotes (agregadas via
+-- string_agg), o que CREATE OR REPLACE VIEW nao permite sem DROP.
+DROP VIEW IF EXISTS public.vw_interesse_disciplinas;
+
+CREATE VIEW public.vw_interesse_disciplinas AS
 SELECT
     ip.id_inscricao_publica,
     ip.nome_completo,
     ip.estado,
-    COALESCE(NULLIF(plano_item->>'disciplina', ''), ip.disciplina) AS disciplina,
-    COALESCE(
-        mod.nome,
-        COALESCE(NULLIF(plano_item->>'modalidade', ''), ip.modalidade)
-    ) AS modalidade,
-    COALESCE(NULLIF(plano_item->>'pacote', ''), ip.pacote) AS pacote,
+    string_agg(
+        DISTINCT COALESCE(NULLIF(plano_item->>'disciplina', ''), ip.disciplina),
+        '; ' ORDER BY COALESCE(NULLIF(plano_item->>'disciplina', ''), ip.disciplina)
+    ) AS disciplinas,
+    string_agg(
+        DISTINCT COALESCE(
+            mod.nome,
+            COALESCE(NULLIF(plano_item->>'modalidade', ''), ip.modalidade)
+        ),
+        '; ' ORDER BY COALESCE(
+            mod.nome,
+            COALESCE(NULLIF(plano_item->>'modalidade', ''), ip.modalidade)
+        )
+    ) AS modalidades,
+    string_agg(
+        DISTINCT COALESCE(NULLIF(plano_item->>'pacote', ''), ip.pacote),
+        '; ' ORDER BY COALESCE(NULLIF(plano_item->>'pacote', ''), ip.pacote)
+    ) AS pacotes,
     ip.created_at
 FROM public.inscricoes_publicas ip
 LEFT JOIN LATERAL jsonb_array_elements(
@@ -54,4 +74,5 @@ LEFT JOIN LATERAL jsonb_array_elements(
 LEFT JOIN public.modalidades mod
     ON mod.id_modalidade::text = COALESCE(NULLIF(plano_item->>'modalidade', ''), ip.modalidade)
     OR LOWER(mod.nome) = LOWER(COALESCE(NULLIF(plano_item->>'modalidade', ''), ip.modalidade))
-WHERE lower(ip.estado) IN ('pendente', 'aprovada');
+WHERE lower(ip.estado) IN ('pendente', 'aprovada')
+GROUP BY ip.id_inscricao_publica, ip.nome_completo, ip.estado, ip.created_at;

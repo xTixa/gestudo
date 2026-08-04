@@ -22,6 +22,7 @@ import {
     ClipboardCheck,
     BarChart3,
     ClipboardEdit,
+    ListChecks,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../../utils/api';
@@ -148,6 +149,12 @@ const menuByRole = {
             label: 'Pacotes',
             path: '/gestor/pacotes',
             icon: BoxIcon,
+        },
+        {
+            key: 'tipos-servico',
+            label: 'Tipos de Serviço',
+            path: '/gestor/tipos-servico',
+            icon: ListChecks,
         },
     ],
     aluno: [

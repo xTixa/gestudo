@@ -6,6 +6,7 @@ import {
     UserPlus,
     CalendarDays,
     FileText,
+    AlertTriangle,
 } from 'lucide-react';
 import { listarEventos, marcarAlertalido } from '../../utils/api';
 
@@ -42,7 +43,21 @@ function getDateLabel(isoDate) {
     });
 }
 
-function getNotificationStyle(tipo) {
+function getNotificationStyle(tipo, nivel) {
+    if (nivel === 'danger') {
+        return {
+            iconBg: 'bg-red-100 text-red-600',
+            Icon: AlertTriangle,
+        };
+    }
+
+    if (nivel === 'warning') {
+        return {
+            iconBg: 'bg-amber-100 text-amber-600',
+            Icon: AlertTriangle,
+        };
+    }
+
     if (tipo === 'manutencao') {
         return {
             iconBg: 'bg-rose-100 text-rose-500',
@@ -511,7 +526,8 @@ export default function NotificationsPage() {
                     visibleNotifications.map((notification) => {
                         const isRead = notification.lido;
                         const { Icon, iconBg } = getNotificationStyle(
-                            notification.tipo
+                            notification.tipo,
+                            notification.nivel
                         );
 
                         return (

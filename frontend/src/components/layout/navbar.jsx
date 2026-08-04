@@ -235,8 +235,10 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                     professores: [],
                     servicosCurriculares: [],
                     servicosExtraCurriculares: [],
+                    encarregados: [],
+                    inscricoesPublicas: [],
                 };
-                // Estrutura esperada: { alunos: [], professores: [], servicosCurriculares: [], servicosExtraCurriculares: [] }
+                // Estrutura esperada: { alunos: [], professores: [], servicosCurriculares: [], servicosExtraCurriculares: [], encarregados: [], inscricoesPublicas: [] }
                 const results = [];
 
                 if (data.alunos && Array.isArray(data.alunos)) {
@@ -289,6 +291,33 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                             tipo: 'servico_extra',
                             modalidade: s.modalidade,
                             responsavel: s.responsavel,
+                        })),
+                    });
+                }
+
+                if (data.encarregados && Array.isArray(data.encarregados)) {
+                    results.push({
+                        categoria: 'Encarregados',
+                        items: data.encarregados.map((e) => ({
+                            id: e.id,
+                            nome: e.nome,
+                            tipo: 'encarregado',
+                            idAluno: e.id_aluno ?? null,
+                        })),
+                    });
+                }
+
+                if (
+                    data.inscricoesPublicas &&
+                    Array.isArray(data.inscricoesPublicas)
+                ) {
+                    results.push({
+                        categoria: 'Inscrições Públicas',
+                        items: data.inscricoesPublicas.map((i) => ({
+                            id: i.id,
+                            nome: i.nome,
+                            tipo: 'inscricao_publica',
+                            estado: i.estado,
                         })),
                     });
                 }
@@ -371,6 +400,15 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                 path = `/gestor/servicos/curriculares`;
             } else if (result.tipo === 'servico_extra') {
                 path = `/gestor/servicos/extra-curriculares`;
+            } else if (result.tipo === 'encarregado') {
+                // Não existe ficha própria de EE — navega para a ficha do
+                // aluno associado (id_aluno resolvido no backend via
+                // DISTINCT ON). Sem aluno associado, não há para onde navegar.
+                if (result.idAluno) {
+                    path = `/gestor/alunos/ficha/${result.idAluno}`;
+                }
+            } else if (result.tipo === 'inscricao_publica') {
+                path = `/gestor/inscricoes-publicas`;
             }
         } else if (user?.role === 'professor') {
             if (

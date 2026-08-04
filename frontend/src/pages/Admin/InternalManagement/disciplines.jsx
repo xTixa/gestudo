@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
 import GestaoInternaTabs from './internalManagementTabs.jsx';
 import GestaoInternaFilters from './internalManagementFilters.jsx';
+import { SortableTh } from './sortableTableHeader.jsx';
+import { useSortedRows } from './useSortedRows.js';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -227,7 +229,7 @@ export default function DisciplinasPage() {
     const visibleRows = useMemo(
         () =>
             rows.map((row) => ({
-                id: row?.id ?? row?.id_disciplina ?? row?.disciplina_id ?? null,
+                id: row?.id ?? null,
                 nome: row?.nome || row?.disciplina || '-',
                 nivelEnsino: getNivelEnsinoLabel(row, niveisMap),
                 nivelEnsinoRaw: getNivelEnsinoRaw(row),
@@ -257,6 +259,23 @@ export default function DisciplinasPage() {
             return matchesText && matchesNivel;
         });
     }, [searchTerm, selectedNivel, visibleRows]);
+
+    const nivelEnsinoComparators = useMemo(
+        () => ({
+            nivelEnsino: (a, b) => {
+                const rankA = getNivelSortRank(a);
+                const rankB = getNivelSortRank(b);
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+                return String(a ?? '').localeCompare(String(b ?? ''), 'pt-PT');
+            },
+        }),
+        []
+    );
+
+    const { sortedRows, sortColumn, sortDirection, toggleSort } =
+        useSortedRows(filteredRows, null, 'asc', nivelEnsinoComparators);
 
     const nivelOptions = useMemo(() => {
         const unique = Array.from(
@@ -340,12 +359,16 @@ export default function DisciplinasPage() {
         setSubmitting(true);
         setFormError('');
 
+        const niveisGuardados = [];
+        let nivelEmProcessamento = null;
+
         try {
             const isEditing = editingId != null;
             const url = `${API_URL}/api/gestor/disciplinas${isEditing ? `/${editingId}` : ''}`;
 
             if (isEditing) {
                 const [primaryNivel, ...extraNiveis] = formData.niveisEnsino;
+                nivelEmProcessamento = primaryNivel;
                 const response = await apiPatch(url, {
                     nome,
                     nivelEnsino: primaryNivel,
@@ -358,52 +381,64 @@ export default function DisciplinasPage() {
                             'Não foi possível guardar disciplina.'
                     );
                 }
+                niveisGuardados.push(primaryNivel);
 
-                const extraResponses = await Promise.all(
-                    extraNiveis.map((nivelEnsino) =>
-                        apiPost(`${API_URL}/api/gestor/disciplinas`, {
-                            nome,
-                            nivelEnsino,
-                        })
-                    )
-                );
-
-                const failedExtraResponse = extraResponses.find(
-                    (response) => !response.ok
-                );
-                if (failedExtraResponse) {
-                    const payload = await failedExtraResponse.json();
-                    throw new Error(
-                        payload.message ||
-                            'Não foi possível guardar todos os níveis.'
-                    );
+                for (const nivelEnsino of extraNiveis) {
+                    nivelEmProcessamento = nivelEnsino;
+                    const extraResponse = await apiPost(`${API_URL}/api/gestor/disciplinas`, {
+                        nome,
+                        nivelEnsino,
+                    });
+                    if (!extraResponse.ok) {
+                        const payload = await extraResponse.json();
+                        throw new Error(
+                            payload.message ||
+                                'Não foi possível guardar todos os níveis.'
+                        );
+                    }
+                    niveisGuardados.push(nivelEnsino);
                 }
             } else {
-                const responses = await Promise.all(
-                    formData.niveisEnsino.map((nivelEnsino) =>
-                        apiPost(url, {
-                            nome,
-                            nivelEnsino,
-                        })
-                    )
-                );
-
-                const failedResponse = responses.find(
-                    (response) => !response.ok
-                );
-                if (failedResponse) {
-                    const payload = await failedResponse.json();
-                    throw new Error(
-                        payload.message ||
-                            'Não foi possível guardar disciplina.'
-                    );
+                for (const nivelEnsino of formData.niveisEnsino) {
+                    nivelEmProcessamento = nivelEnsino;
+                    const response = await apiPost(url, {
+                        nome,
+                        nivelEnsino,
+                    });
+                    if (!response.ok) {
+                        const payload = await response.json();
+                        throw new Error(
+                            payload.message ||
+                                'Não foi possível guardar disciplina.'
+                        );
+                    }
+                    niveisGuardados.push(nivelEnsino);
                 }
             }
 
             await carregar();
             fecharFormulario();
         } catch (submitError) {
-            setFormError(submitError.message || 'Erro ao guardar disciplina.');
+            const isPartialFailure = niveisGuardados.length > 0;
+            setFormError(
+                isPartialFailure
+                    ? `${submitError.message || 'Erro ao guardar disciplina.'} (níveis já guardados: ${niveisGuardados.join(', ')})`
+                    : submitError.message || 'Erro ao guardar disciplina.'
+            );
+            if (isPartialFailure) {
+                apiPost(`${API_URL}/api/gestor/notificar-falha-parcial`, {
+                    entidade: 'disciplinas',
+                    detalhes: {
+                        nome,
+                        niveisGuardados,
+                        nivelFalhou: nivelEmProcessamento,
+                    },
+                }).catch(() => {});
+            }
+            // Recarrega mesmo em falha parcial, para refletir os níveis que
+            // já foram persistidos antes do erro (evita a UI mostrar uma
+            // lista desatualizada em relação ao que já está na BD).
+            await carregar();
         } finally {
             setSubmitting(false);
         }
@@ -666,21 +701,29 @@ export default function DisciplinasPage() {
                         <table className="min-w-full divide-y divide-slate-200 text-base">
                             <thead className="bg-slate-50 text-slate-700">
                                 <tr>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Nome
-                                    </th>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Nível de Ensino
-                                    </th>
+                                    <SortableTh
+                                        column="nome"
+                                        label="Nome"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
+                                    <SortableTh
+                                        column="nivelEnsino"
+                                        label="Nível de Ensino"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
                                     <th className="px-5 py-3.5 text-right font-semibold">
                                         Ações
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredRows.map((row, index) => (
+                                {sortedRows.map((row, index) => (
                                     <tr
-                                        key={`disciplina-${index}`}
+                                        key={`disciplina-${row.id ?? index}`}
                                         className="hover:bg-slate-50"
                                     >
                                         <td className="px-5 py-4 text-slate-700">

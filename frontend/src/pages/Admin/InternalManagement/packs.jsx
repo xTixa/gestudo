@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
 import GestaoInternaTabs from './internalManagementTabs';
 import GestaoInternaFilters from './internalManagementFilters';
+import { SortableTh } from './sortableTableHeader';
+import { useSortedRows } from './useSortedRows';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -45,9 +47,7 @@ export default function PacotesPage() {
         return map;
     }, [modalidades]);
 
-    const getRowId = useCallback((row) => {
-        return row?.id_pacote ?? row?.id ?? null;
-    }, []);
+    const getRowId = useCallback((row) => row?.id ?? null, []);
 
     const carregar = useCallback(async () => {
         setLoading(true);
@@ -131,6 +131,9 @@ export default function PacotesPage() {
             )
         );
     }, [searchTerm, visibleRows]);
+
+    const { sortedRows, sortColumn, sortDirection, toggleSort } =
+        useSortedRows(filteredRows);
 
     function abrirCriacao() {
         setEditingId(null);
@@ -492,25 +495,41 @@ export default function PacotesPage() {
                         <table className="min-w-full divide-y divide-slate-200 text-base">
                             <thead className="bg-slate-50 text-slate-700">
                                 <tr>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Nome
-                                    </th>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Preço
-                                    </th>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Modalidade
-                                    </th>
-                                    <th className="px-5 py-3.5 text-left font-semibold">
-                                        Horas
-                                    </th>
+                                    <SortableTh
+                                        column="nome"
+                                        label="Nome"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
+                                    <SortableTh
+                                        column="preco"
+                                        label="Preço"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
+                                    <SortableTh
+                                        column="modalidade"
+                                        label="Modalidade"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
+                                    <SortableTh
+                                        column="horas"
+                                        label="Horas"
+                                        sortColumn={sortColumn}
+                                        sortDirection={sortDirection}
+                                        onSort={toggleSort}
+                                    />
                                     <th className="px-5 py-3.5 text-right font-semibold">
                                         Ações
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredRows.map((row, index) => {
+                                {sortedRows.map((row, index) => {
                                     const rowId = getRowId(row.raw);
                                     return (
                                         <tr

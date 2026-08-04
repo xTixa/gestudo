@@ -116,6 +116,8 @@ export async function buscarGlobal(req, res) {
                     professores: [],
                     servicosCurriculares: [],
                     servicosExtraCurriculares: [],
+                    encarregados: [],
+                    inscricoesPublicas: [],
                 },
             });
         }
@@ -140,6 +142,29 @@ export async function buscarGlobal(req, res) {
             FROM professores p
             LEFT JOIN pessoas pe ON pe.id_pessoa = p.id_pessoa
             WHERE LOWER(COALESCE(pe.nome, '')) LIKE LOWER($1)
+            LIMIT 10
+        `;
+
+        // DISTINCT ON evita duplicar linha quando o encarregado tem 2+
+        // educandos; navega sempre para o id_aluno mais baixo de forma
+        // determinística (ver handleSearchResultClick no navbar.jsx).
+        const encarregadosQuery = `
+            SELECT DISTINCT ON (e.id_encarregado)
+                e.id_encarregado AS id, pe.nome, 'encarregado' AS tipo, a.id_aluno
+            FROM encarregados e
+            LEFT JOIN pessoas pe ON pe.id_pessoa = e.id_pessoa
+            LEFT JOIN alunos a ON a.id_encarregado = e.id_encarregado
+            WHERE LOWER(COALESCE(pe.nome, '')) LIKE LOWER($1)
+            ORDER BY e.id_encarregado, a.id_aluno
+            LIMIT 10
+        `;
+
+        const inscricoesPublicasQuery = `
+            SELECT id_inscricao_publica AS id, nome_completo AS nome, 'inscricao_publica' AS tipo, estado
+            FROM inscricoes_publicas
+            WHERE LOWER(COALESCE(nome_completo, '')) LIKE LOWER($1)
+               OR LOWER(COALESCE(ee_nome, '')) LIKE LOWER($1)
+               OR LOWER(COALESCE(email, '')) LIKE LOWER($1)
             LIMIT 10
         `;
 
@@ -176,6 +201,8 @@ export async function buscarGlobal(req, res) {
             professoresRes,
             servicosCurricularesRes,
             servicosExtraRes,
+            encarregadosRes,
+            inscricoesPublicasRes,
         ] = await Promise.all([
             canSeePeople
                 ? db.query(alunosQuery, [searchTerm])
@@ -189,6 +216,12 @@ export async function buscarGlobal(req, res) {
             canSeeServices && extraQuery
                 ? db.query(extraQuery, [searchTerm])
                 : Promise.resolve({ rows: [] }),
+            canSeePeople
+                ? db.query(encarregadosQuery, [searchTerm])
+                : Promise.resolve({ rows: [] }),
+            canSeePeople
+                ? db.query(inscricoesPublicasQuery, [searchTerm])
+                : Promise.resolve({ rows: [] }),
         ]);
 
         return res.json({
@@ -198,6 +231,8 @@ export async function buscarGlobal(req, res) {
                 professores: professoresRes.rows,
                 servicosCurriculares: servicosCurricularesRes.rows,
                 servicosExtraCurriculares: servicosExtraRes.rows,
+                encarregados: encarregadosRes.rows,
+                inscricoesPublicas: inscricoesPublicasRes.rows,
             },
         });
     } catch (err) {

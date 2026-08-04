@@ -49,6 +49,14 @@ import {
     criarPacoteCatalogo,
     atualizarPacoteCatalogo,
     eliminarPacoteCatalogo,
+    listarTiposServicoCatalogo,
+    criarTipoServicoCatalogo,
+    atualizarTipoServicoCatalogo,
+    eliminarTipoServicoCatalogo,
+    listarTiposServicoExtraCatalogo,
+    criarTipoServicoExtraCatalogo,
+    atualizarTipoServicoExtraCatalogo,
+    eliminarTipoServicoExtraCatalogo,
 } from '../controllers/gestaoInternaController.js';
 import {
     criarAvisoManutencao,
@@ -109,6 +117,7 @@ import {
     removerGestor,
 } from '../controllers/gestorManagementController.js';
 import { limparDadosEmMassa } from '../controllers/limpezaDadosController.js';
+import { notificarFalhaParcialLote } from '../controllers/notificacoesGestorController.js';
 import { obterAnoLetivo, encerrarAnoLetivo } from '../controllers/anoLetivoController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
@@ -493,6 +502,92 @@ router.delete(
 );
 
 /**
+ * GET /api/gestor/tipos-servico
+ * Lista todos os tipos de serviço
+ */
+router.get('/tipos-servico', listarTiposServicoCatalogo);
+
+/**
+ * POST /api/gestor/tipos-servico
+ * Cria novo tipo de serviço
+ */
+router.post(
+    '/tipos-servico',
+    validateBody({
+        nome: { type: 'string', required: true, min: 2 },
+        descricao: { type: 'string', required: false },
+    }),
+    criarTipoServicoCatalogo
+);
+
+/**
+ * PATCH /api/gestor/tipos-servico/:id
+ * Atualiza tipo de serviço existente
+ */
+router.patch(
+    '/tipos-servico/:id',
+    validateParams({ id: 'number' }),
+    validateBody({
+        nome: { type: 'string', required: false, min: 2 },
+        descricao: { type: 'string', required: false },
+    }),
+    atualizarTipoServicoCatalogo
+);
+
+/**
+ * DELETE /api/gestor/tipos-servico/:id
+ * Remove tipo de serviço existente
+ */
+router.delete(
+    '/tipos-servico/:id',
+    validateParams({ id: 'number' }),
+    eliminarTipoServicoCatalogo
+);
+
+/**
+ * GET /api/gestor/tipos-servico-extra
+ * Lista todos os tipos de serviço extra-curriculares
+ */
+router.get('/tipos-servico-extra', listarTiposServicoExtraCatalogo);
+
+/**
+ * POST /api/gestor/tipos-servico-extra
+ * Cria novo tipo de serviço extra-curricular
+ */
+router.post(
+    '/tipos-servico-extra',
+    validateBody({
+        nome: { type: 'string', required: true, min: 2 },
+        descricao: { type: 'string', required: false },
+    }),
+    criarTipoServicoExtraCatalogo
+);
+
+/**
+ * PATCH /api/gestor/tipos-servico-extra/:id
+ * Atualiza tipo de serviço extra-curricular existente
+ */
+router.patch(
+    '/tipos-servico-extra/:id',
+    validateParams({ id: 'number' }),
+    validateBody({
+        nome: { type: 'string', required: false, min: 2 },
+        descricao: { type: 'string', required: false },
+    }),
+    atualizarTipoServicoExtraCatalogo
+);
+
+/**
+ * DELETE /api/gestor/tipos-servico-extra/:id
+ * Remove tipo de serviço extra-curricular existente
+ */
+router.delete(
+    '/tipos-servico-extra/:id',
+    validateParams({ id: 'number' }),
+    eliminarTipoServicoExtraCatalogo
+);
+
+/**
  * GET /api/gestor/salas
  * Lista todas as salas
  */
@@ -776,6 +871,21 @@ router.patch(
 );
 
 // =============== MANUTENÇÃO & NOTIFICAÇÕES ===============
+
+/**
+ * POST /api/gestor/notificar-falha-parcial
+ * Notifica os gestores de que uma operação em lote (várias chamadas HTTP
+ * independentes representando uma única ação) ficou parcialmente
+ * concluída. Chamada pelo frontend quando deteta esse cenário.
+ */
+router.post(
+    '/notificar-falha-parcial',
+    validateBody({
+        entidade: { type: 'string', required: true, min: 1 },
+        detalhes: { type: 'object', required: true },
+    }),
+    notificarFalhaParcialLote
+);
 
 router.get('/email-templates', listarEmailTemplates);
 router.get(

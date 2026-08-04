@@ -6,7 +6,27 @@ import { SortableTh } from './sortableTableHeader';
 import { useSortedRows } from './useSortedRows';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
 
-export default function ModalidadePage() {
+const MODES = {
+    curricular: {
+        label: 'Curricular',
+        endpoint: '/api/gestor/tipos-servico',
+        listKey: 'tiposServico',
+        entityLabel: 'tipo de serviço',
+        placeholder: 'Ex: Preparação para Exames',
+    },
+    extra: {
+        label: 'Extra-curricular',
+        endpoint: '/api/gestor/tipos-servico-extra',
+        listKey: 'tiposServicoExtra',
+        entityLabel: 'tipo de serviço extra-curricular',
+        placeholder: 'Ex: Workshop',
+    },
+};
+
+export default function TipoServicoPage() {
+    const [mode, setMode] = useState('curricular');
+    const config = MODES[mode];
+
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -26,24 +46,29 @@ export default function ModalidadePage() {
         setError('');
 
         try {
-            const response = await apiGet('/api/gestor/modalidades');
+            const response = await apiGet(config.endpoint);
             const data = await response.json();
 
             if (!response.ok) {
                 throw new Error(
-                    data.message || 'Erro ao carregar modalidades.'
+                    data.message || `Erro ao carregar ${config.entityLabel}s.`
                 );
             }
 
-            setRows(Array.isArray(data?.modalidades) ? data.modalidades : []);
+            setRows(Array.isArray(data?.[config.listKey]) ? data[config.listKey] : []);
         } catch (fetchError) {
-            setError(fetchError.message || 'Erro ao carregar modalidades.');
+            setError(fetchError.message || `Erro ao carregar ${config.entityLabel}s.`);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [config.endpoint, config.entityLabel, config.listKey]);
 
     useEffect(() => {
+        setSearchTerm('');
+        setIsFormOpen(false);
+        setEditingId(null);
+        setFormData({ nome: '', descricao: '' });
+        setFormError('');
         carregar();
     }, [carregar]);
 
@@ -82,7 +107,7 @@ export default function ModalidadePage() {
     function abrirEdicao(row) {
         const id = getRowId(row);
         if (id == null) {
-            setError('Não foi possível identificar o ID desta modalidade.');
+            setError(`Não foi possível identificar o ID deste ${config.entityLabel}.`);
             return;
         }
 
@@ -107,7 +132,7 @@ export default function ModalidadePage() {
 
         const nome = formData.nome.trim();
         if (!nome) {
-            setFormError('O nome da modalidade é obrigatório.');
+            setFormError(`O nome do ${config.entityLabel} é obrigatório.`);
             return;
         }
 
@@ -122,62 +147,77 @@ export default function ModalidadePage() {
             };
 
             const response = isEditing
-                ? await apiPatch(
-                      `/api/gestor/modalidades/${editingId}`,
-                      requestBody
-                  )
-                : await apiPost('/api/gestor/modalidades', requestBody);
+                ? await apiPatch(`${config.endpoint}/${editingId}`, requestBody)
+                : await apiPost(config.endpoint, requestBody);
 
             const payload = await response.json();
 
             if (!response.ok) {
                 throw new Error(
-                    payload.message || 'Não foi possível guardar a modalidade.'
+                    payload.message || `Não foi possível guardar o ${config.entityLabel}.`
                 );
             }
 
             await carregar();
             fecharFormulario();
         } catch (submitError) {
-            setFormError(submitError.message || 'Erro ao guardar modalidade.');
+            setFormError(submitError.message || `Erro ao guardar ${config.entityLabel}.`);
         } finally {
             setSubmitting(false);
         }
     }
 
-    async function eliminarModalidade(row) {
+    async function eliminarTipoServico(row) {
         const id = getRowId(row);
         if (id == null) {
-            setError('Não foi possível identificar o ID desta modalidade.');
+            setError(`Não foi possível identificar o ID deste ${config.entityLabel}.`);
             return;
         }
 
         const confirmed = window.confirm(
-            'Tem a certeza que pretende eliminar esta modalidade?'
+            `Tem a certeza que pretende eliminar este ${config.entityLabel}?`
         );
         if (!confirmed) {
             return;
         }
 
         try {
-            const response = await apiDelete(`/api/gestor/modalidades/${id}`);
+            const response = await apiDelete(`${config.endpoint}/${id}`);
             const payload = await response.json();
 
             if (!response.ok) {
                 throw new Error(
-                    payload.message || 'Não foi possível eliminar a modalidade.'
+                    payload.message || `Não foi possível eliminar o ${config.entityLabel}.`
                 );
             }
 
             await carregar();
         } catch (deleteError) {
-            setError(deleteError.message || 'Erro ao eliminar modalidade.');
+            setError(deleteError.message || `Erro ao eliminar ${config.entityLabel}.`);
         }
     }
 
     return (
         <section className="space-y-7">
             <GestaoInternaTabs />
+
+            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                {Object.entries(MODES).map(([key, value]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        onClick={() => setMode(key)}
+                        className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                            mode === key
+                                ? 'bg-[#14ad81] text-white shadow-sm'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                        }`}
+                    >
+                        {value.label}
+                    </button>
+                ))}
+            </div>
+
             <GestaoInternaFilters
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
@@ -193,7 +233,7 @@ export default function ModalidadePage() {
                     className="inline-flex items-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#0f8d69]"
                 >
                     <Plus size={16} />
-                    Inserir Modalidade
+                    Inserir Tipo de Serviço {config.label}
                 </button>
             </div>
 
@@ -214,13 +254,13 @@ export default function ModalidadePage() {
                             <div>
                                 <h3 className="text-2xl font-semibold text-slate-800 sm:text-3xl">
                                     {editingId != null
-                                        ? 'Editar Modalidade'
-                                        : 'Nova Modalidade'}
+                                        ? `Editar Tipo de Serviço ${config.label}`
+                                        : `Novo Tipo de Serviço ${config.label}`}
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
                                     {editingId != null
-                                        ? 'Atualize os campos da modalidade'
-                                        : 'Preencha os campos para criar uma nova modalidade'}
+                                        ? 'Atualize os campos do tipo de serviço'
+                                        : 'Preencha os campos para criar um novo tipo de serviço'}
                                 </p>
                             </div>
                             <button
@@ -236,7 +276,7 @@ export default function ModalidadePage() {
                         <div className="space-y-5">
                             <label className="block space-y-1.5">
                                 <span className="text-sm font-medium text-slate-700">
-                                    Modalidade *
+                                    Tipo de Serviço *
                                 </span>
                                 <input
                                     type="text"
@@ -248,7 +288,7 @@ export default function ModalidadePage() {
                                         }))
                                     }
                                     className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#14ad81] focus:ring-2 focus:ring-[#d1f3ea]"
-                                    placeholder="Ex: Individual"
+                                    placeholder={config.placeholder}
                                 />
                             </label>
 
@@ -266,7 +306,7 @@ export default function ModalidadePage() {
                                     }
                                     rows={5}
                                     className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#14ad81] focus:ring-2 focus:ring-[#d1f3ea] resize-none"
-                                    placeholder="Breve descrição da modalidade"
+                                    placeholder="Breve descrição do tipo de serviço"
                                 />
                             </label>
                         </div>
@@ -305,18 +345,18 @@ export default function ModalidadePage() {
                 <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
                     <ListChecks size={17} className="text-slate-600" />
                     <h2 className="text-base font-semibold text-slate-700">
-                        Lista de Modalidades
+                        Lista de Tipos de Serviço — {config.label}
                     </h2>
                 </div>
                 {loading ? (
                     <p className="p-5 text-base text-slate-500">
-                        A carregar modalidades...
+                        A carregar tipos de serviço...
                     </p>
                 ) : error ? (
                     <p className="p-5 text-base text-red-600">{error}</p>
                 ) : rows.length === 0 ? (
                     <p className="p-5 text-base text-slate-500">
-                        Sem modalidades registadas.
+                        Sem tipos de serviço registados.
                     </p>
                 ) : filteredRows.length === 0 ? (
                     <p className="p-5 text-base text-slate-500">
@@ -355,7 +395,7 @@ export default function ModalidadePage() {
                             <tbody className="divide-y divide-slate-100">
                                 {sortedRows.map((row, index) => (
                                     <tr
-                                        key={`modalidade-${getRowId(row) ?? index}`}
+                                        key={`tipo-servico-${mode}-${getRowId(row) ?? index}`}
                                         className="hover:bg-slate-50"
                                     >
                                         {columns.map((column) => {
@@ -379,7 +419,7 @@ export default function ModalidadePage() {
                                                                     null
                                                                 }
                                                                 className="rounded-md p-1.5 text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                                                title="Editar modalidade"
+                                                                title="Editar tipo de serviço"
                                                             >
                                                                 <Pencil
                                                                     size={16}
@@ -388,7 +428,7 @@ export default function ModalidadePage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() =>
-                                                                    eliminarModalidade(
+                                                                    eliminarTipoServico(
                                                                         row
                                                                     )
                                                                 }
@@ -397,7 +437,7 @@ export default function ModalidadePage() {
                                                                     null
                                                                 }
                                                                 className="rounded-md p-1.5 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                                                title="Eliminar modalidade"
+                                                                title="Eliminar tipo de serviço"
                                                             >
                                                                 <Trash2
                                                                     size={16}

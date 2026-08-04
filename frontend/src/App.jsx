@@ -28,6 +28,7 @@ import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
 import SalasPage from './pages/Admin/InternalManagement/rooms';
 import ModalidadePage from './pages/Admin/InternalManagement/modality';
 import PacotesPage from './pages/Admin/InternalManagement/packs';
+import TipoServicoPage from './pages/Admin/InternalManagement/serviceTypes';
 import GestaoCurricularPage from './pages/Admin/ServicesManagement/Curricular/managementCurricular';
 import GestaoExtraPage from './pages/Admin/ServicesManagement/ExtraCurricular/managementExtra';
 import GestaoAlunosPage from './pages/Admin/StudentManagement/managementStudent';
@@ -148,6 +149,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<ModalidadePage />}
                     />
                     <Route path="/gestor/pacotes" element={<PacotesPage />} />
+                    <Route
+                        path="/gestor/tipos-servico"
+                        element={<TipoServicoPage />}
+                    />
                     <Route
                         path="/gestor/alunos"
                         element={<GestaoAlunosPage />}

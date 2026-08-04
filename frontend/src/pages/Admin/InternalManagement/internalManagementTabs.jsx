@@ -7,6 +7,7 @@ const tabs = [
     { label: 'Salas', path: '/gestor/salas' },
     { label: 'Disciplinas', path: '/gestor/disciplinas' },
     { label: 'Pacotes', path: '/gestor/pacotes' },
+    { label: 'Tipos de Serviço', path: '/gestor/tipos-servico' },
 ];
 
 export default function GestaoInternaTabs() {
@@ -17,9 +18,19 @@ export default function GestaoInternaTabs() {
                 title="Gestão Interna"
                 subtitle="Gerir modalidades, salas e disciplinas"
                 icon={Settings}
+                actions={
+                    <a
+                        href="/inscricao"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+                    >
+                        Ver formulário público
+                    </a>
+                }
             />
 
-            <nav className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm sm:grid-cols-4">
+            <nav className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm sm:grid-cols-5">
                 {tabs.map((tab) => (
                     <NavLink
                         key={tab.path}

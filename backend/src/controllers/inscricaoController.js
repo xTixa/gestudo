@@ -316,6 +316,69 @@ function isHorasPretendidasValido(value) {
     );
 }
 
+const INSCRICAO_PUBLICA_CAMPOS_OBRIGATORIOS = [
+    'data_inicio',
+    'nome_completo',
+    'data_nascimento',
+    'email',
+    'telemovel',
+    'cartao_cidadao',
+    'nif',
+    'morada',
+    'localidade',
+    'codigo_postal',
+    'escola',
+    'nivel_ensino',
+    'ee_nome',
+    'ee_email',
+    'ee_telemovel',
+    'ee_morada',
+    'ee_localidade',
+    'ee_codigo_postal',
+    'ee_parentesco',
+];
+
+const CODIGO_POSTAL_REGEX = /^\d{4}-\d{3}$/;
+const TELEFONE_REGEX = /^\d{9}$/;
+const NIF_REGEX = /^\d{9}$/;
+
+/**
+ * Valida os campos obrigatorios e formatos da inscricao publica, espelhando
+ * as mesmas regras aplicadas no frontend (enrollment.jsx, validarFormulario)
+ * para que a rota nao dependa exclusivamente da validacao do cliente.
+ */
+function validarInscricaoPublica(body) {
+    for (const campo of INSCRICAO_PUBLICA_CAMPOS_OBRIGATORIOS) {
+        if (!getBodyValue(body, campo)) {
+            return 'Preencha todos os campos obrigatórios.';
+        }
+    }
+
+    const codAluno = getBodyValue(body, 'codigo_postal');
+    const codEe = getBodyValue(body, 'ee_codigo_postal');
+    if (!CODIGO_POSTAL_REGEX.test(codAluno) || !CODIGO_POSTAL_REGEX.test(codEe)) {
+        return 'Código postal inválido. Use o formato 0000-000.';
+    }
+
+    const telemovelAluno = getBodyValue(body, 'telemovel');
+    const telemovelEe = getBodyValue(body, 'ee_telemovel');
+    if (![telemovelAluno, telemovelEe].every((v) => TELEFONE_REGEX.test(v))) {
+        return 'Telefone/telemóvel inválido. Deve conter 9 dígitos.';
+    }
+
+    const telefone = getBodyValue(body, 'telefone');
+    if (telefone && !TELEFONE_REGEX.test(telefone)) {
+        return 'Telefone inválido. Deve conter 9 dígitos.';
+    }
+
+    const nif = getBodyValue(body, 'nif');
+    if (!NIF_REGEX.test(nif)) {
+        return 'NIF inválido. Deve conter 9 dígitos.';
+    }
+
+    return '';
+}
+
 function toNullableText(value) {
     const normalized = String(value ?? '').trim();
     return normalized || null;
@@ -584,18 +647,57 @@ async function integrarInscricaoAprovada(inscricao) {
         );
 
         if (existingAlunoResult.rows.length > 0) {
+            const idAlunoExistente = existingAlunoResult.rows[0].id_aluno;
+
+            const planoDisciplinasExistente = Array.isArray(inscricao?.dados?.plano)
+                ? inscricao.dados.plano
+                      .map((item) => String(item?.disciplina ?? '').trim())
+                      .filter((nome, index, all) => nome && all.indexOf(nome) === index)
+                : [];
+
+            if (planoDisciplinasExistente.length > 0) {
+                const disciplinasAtuaisResult = await client.query(
+                    `
+                        SELECT COALESCE(disciplinas_pretendidas, '[]'::jsonb) AS disciplinas_pretendidas
+                        FROM alunos
+                        WHERE id_aluno = $1
+                        LIMIT 1
+                    `,
+                    [idAlunoExistente]
+                );
+
+                const disciplinasAtuais = Array.isArray(
+                    disciplinasAtuaisResult.rows[0]?.disciplinas_pretendidas
+                )
+                    ? disciplinasAtuaisResult.rows[0].disciplinas_pretendidas
+                    : [];
+
+                const disciplinasMescladas = [
+                    ...disciplinasAtuais,
+                    ...planoDisciplinasExistente,
+                ].filter((nome, index, all) => nome && all.indexOf(nome) === index);
+
+                await client.query(
+                    `
+                        UPDATE alunos
+                        SET disciplinas_pretendidas = $2::jsonb
+                        WHERE id_aluno = $1
+                    `,
+                    [idAlunoExistente, JSON.stringify(disciplinasMescladas)]
+                );
+            }
+
             await client.query('COMMIT');
 
             let matriculaRenovada = false;
             if (inscricao?.dados?.origem === 'reinscricao_aluno') {
-                const idAluno = existingAlunoResult.rows[0].id_aluno;
                 const anoLetivoAtual = getAnoLetivo(new Date());
                 const resultadoRenovacao = await renovarMatricula(
-                    idAluno,
+                    idAlunoExistente,
                     anoLetivoAtual
                 );
                 if (resultadoRenovacao) {
-                    await ativarContaAluno(idAluno);
+                    await ativarContaAluno(idAlunoExistente);
                     matriculaRenovada = true;
                 }
             }
@@ -913,10 +1015,15 @@ export async function criarInscricaoPublica(req, res) {
         const telemovel = getBodyValue(body, 'telemovel');
         const eeNome = getBodyValue(body, 'ee_nome');
 
-        if (!nomeCompleto || !email || !telemovel || !eeNome) {
+        const erroValidacao = validarInscricaoPublica(body);
+        if (erroValidacao) {
+            return res.status(400).json({ message: erroValidacao });
+        }
+
+        if (body.consentimento_dados !== true || body.aceite_termos !== true) {
             return res.status(400).json({
                 message:
-                    'Campos obrigatórios em falta (nome completo, email, telemóvel e nome do encarregado).',
+                    'É necessário aceitar o consentimento de utilização de dados e as condições de prestação de serviços.',
             });
         }
 
@@ -1584,6 +1691,17 @@ async function sincronizarAlunoComInscricaoPublica(emailAntesDaEdicao, inscricao
         `UPDATE alunos SET escola = COALESCE($1, escola), turma = COALESCE($2, turma) WHERE id_aluno = $3`,
         [inscricao.escola || null, inscricao.turma || null, aluno.id_aluno]
     );
+
+    if (Array.isArray(inscricao?.dados?.plano)) {
+        const planoDisciplinas = inscricao.dados.plano
+            .map((item) => String(item?.disciplina ?? '').trim())
+            .filter((nome, index, all) => nome && all.indexOf(nome) === index);
+
+        await db.query(
+            `UPDATE alunos SET disciplinas_pretendidas = $1::jsonb WHERE id_aluno = $2`,
+            [JSON.stringify(planoDisciplinas), aluno.id_aluno]
+        );
+    }
 
     if (inscricao.ee_nome && aluno.id_encarregado) {
         await db.query(

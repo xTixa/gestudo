@@ -87,6 +87,8 @@ export default function InfosInscricaoPage() {
     const [erroOpcoes, setErroOpcoes] = useState('');
     const [liveErrors, setLiveErrors] = useState({});
     const [textos, setTextos] = useState({});
+    const [consentDados, setConsentDados] = useState(false);
+    const [consentTermos, setConsentTermos] = useState(false);
 
     // Multi-discipline plan
     const [planoItems, setPlanoItems] = useState([newPlanoItem(1)]);
@@ -189,13 +191,6 @@ export default function InfosInscricaoPage() {
 
     // ── Plan helpers ─────────────────────────────────────────────────────────
 
-    function isModalidadeIndividual(modalidadeId) {
-        if (!modalidadeId) return false;
-        const m = modalidadesOptions.find((opt) => String(opt.id) === modalidadeId);
-        const n = normalizeText(m?.label || m?.value);
-        return n.includes('individu') || n.includes('explicacao_individual');
-    }
-
     function getHorasDisponiveis(item) {
         const disciplinaOption = disciplinasOptions.find(
             (opt) => opt.value === item.disciplina
@@ -242,7 +237,7 @@ export default function InfosInscricaoPage() {
             const n = i + 1;
             if (!item.disciplina) return `Selecione a disciplina no plano ${n}.`;
             if (!item.tipoServico) return `Selecione o tipo de serviço no plano ${n}.`;
-            if (!isModalidadeIndividual(item.modalidade) && !item.pacote) {
+            if (getHorasDisponiveis(item).length > 0 && !item.pacote) {
                 return `Selecione as horas pretendidas no plano ${n}.`;
             }
         }
@@ -296,6 +291,10 @@ export default function InfosInscricaoPage() {
             return 'NIF inválido. Deve conter 9 dígitos.';
         }
 
+        if (!consentDados || !consentTermos) {
+            return 'Tem de aceitar os termos de consentimento de dados e as condições de prestação de serviços para submeter a inscrição.';
+        }
+
         return '';
     }
 
@@ -315,6 +314,8 @@ export default function InfosInscricaoPage() {
 
         try {
             const payload = Object.fromEntries(formData.entries());
+            payload.consentimento_dados = consentDados;
+            payload.aceite_termos = consentTermos;
 
             // Attach multi-plan array
             payload.plano = planoItems.map((item) => ({
@@ -354,6 +355,8 @@ export default function InfosInscricaoPage() {
             setPlanoItems([newPlanoItem(1)]);
             setPlanoNextId(2);
             setLiveErrors({});
+            setConsentDados(false);
+            setConsentTermos(false);
         } catch (error) {
             setSubmitError(error?.message || 'Não foi possível enviar a inscrição.');
         }
@@ -677,8 +680,7 @@ export default function InfosInscricaoPage() {
                             <div className="mt-5 space-y-4">
                                 {planoItems.map((item, index) => {
                                     const podeModalidade = Boolean(item.tipoServico) && !loadingOpcoes;
-                                    const isIndividual = isModalidadeIndividual(item.modalidade);
-                                    const podePacote = Boolean(item.tipoServico) && !isIndividual;
+                                    const podePacote = Boolean(item.tipoServico);
                                     const horasDisponiveis = podePacote ? getHorasDisponiveis(item) : [];
 
                                     return (
@@ -756,41 +758,35 @@ export default function InfosInscricaoPage() {
                                                     </select>
                                                 </label>
 
-                                                {!isIndividual ? (
-                                                    <fieldset className="sm:col-span-2" disabled={!podePacote}>
-                                                        <legend className={LABEL_CLS}>
-                                                            {t('label_pacote', 'Horas Pretendidas')} {podePacote && <Req />}
-                                                        </legend>
-                                                        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                                                            {horasDisponiveis.map((horas) => (
-                                                                <label
-                                                                    key={horas}
-                                                                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
-                                                                >
-                                                                    <input
-                                                                        type="radio"
-                                                                        name={`pacote_${item.id}`}
-                                                                        value={horas}
-                                                                        checked={Number(item.pacote) === horas}
-                                                                        onChange={() => updatePlanoItem(item.id, 'pacote', String(horas))}
-                                                                        disabled={!podePacote}
-                                                                        className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
-                                                                    />
-                                                                    <span>{horas}h</span>
-                                                                </label>
-                                                            ))}
-                                                        </div>
-                                                        {podePacote && horasDisponiveis.length === 0 ? (
-                                                            <p className="mt-2 text-xs text-amber-600">
-                                                                Sem pacotes de horas disponíveis para esta disciplina/modalidade.
-                                                            </p>
-                                                        ) : null}
-                                                    </fieldset>
-                                                ) : (
-                                                    <p className="text-xs text-slate-500 sm:col-span-2">
-                                                        {t('text_pacotes_individual', 'Horas pretendidas não aplicáveis para explicação individual.')}
-                                                    </p>
-                                                )}
+                                                <fieldset className="sm:col-span-2" disabled={!podePacote}>
+                                                    <legend className={LABEL_CLS}>
+                                                        {t('label_pacote', 'Horas Pretendidas')} {podePacote && <Req />}
+                                                    </legend>
+                                                    <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                                                        {horasDisponiveis.map((horas) => (
+                                                            <label
+                                                                key={horas}
+                                                                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${!podePacote ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name={`pacote_${item.id}`}
+                                                                    value={horas}
+                                                                    checked={Number(item.pacote) === horas}
+                                                                    onChange={() => updatePlanoItem(item.id, 'pacote', String(horas))}
+                                                                    disabled={!podePacote}
+                                                                    className="h-4 w-4 border-slate-300 text-slate-700 focus:ring-slate-500"
+                                                                />
+                                                                <span>{horas}h</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    {podePacote && horasDisponiveis.length === 0 ? (
+                                                        <p className="mt-2 text-xs text-amber-600">
+                                                            Sem pacotes de horas disponíveis para esta disciplina/modalidade.
+                                                        </p>
+                                                    ) : null}
+                                                </fieldset>
                                             </div>
                                         </div>
                                     );
@@ -846,7 +842,11 @@ export default function InfosInscricaoPage() {
                             <div className="mt-5 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                                 <label className="flex items-start gap-3 text-sm text-slate-700">
                                     <input
-                                        type="checkbox" required
+                                        type="checkbox"
+                                        name="consentimento_dados"
+                                        required
+                                        checked={consentDados}
+                                        onChange={(e) => setConsentDados(e.target.checked)}
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
@@ -855,7 +855,11 @@ export default function InfosInscricaoPage() {
                                 </label>
                                 <label className="flex items-start gap-3 text-sm text-slate-700">
                                     <input
-                                        type="checkbox" required
+                                        type="checkbox"
+                                        name="aceite_termos"
+                                        required
+                                        checked={consentTermos}
+                                        onChange={(e) => setConsentTermos(e.target.checked)}
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                     />
                                     <span>
@@ -875,7 +879,8 @@ export default function InfosInscricaoPage() {
 
                             <button
                                 type="submit"
-                                className="mt-5 w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                                disabled={!consentDados || !consentTermos}
+                                className="mt-5 w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                             >
                                 {t('button_enviar', 'Enviar Inscrição')}
                             </button>

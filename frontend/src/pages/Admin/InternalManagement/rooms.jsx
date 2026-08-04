@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListChecks, Pencil, Plus, Trash2, X } from 'lucide-react';
 import GestaoInternaTabs from './internalManagementTabs.jsx';
 import GestaoInternaFilters from './internalManagementFilters.jsx';
+import { SortableTh } from './sortableTableHeader.jsx';
+import { useSortedRows } from './useSortedRows.js';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -19,9 +21,7 @@ export default function SalasPage() {
 
     const columns = useMemo(() => ['nome', 'capacidade', 'acoes'], []);
 
-    const getRowId = useCallback((row) => {
-        return row?.id ?? row?.id_sala ?? row?.sala_id ?? null;
-    }, []);
+    const getRowId = useCallback((row) => row?.id ?? null, []);
 
     const carregar = useCallback(async () => {
         setLoading(true);
@@ -62,6 +62,9 @@ export default function SalasPage() {
             )
         );
     }, [columns, rows, searchTerm]);
+
+    const { sortedRows, sortColumn, sortDirection, toggleSort } =
+        useSortedRows(filteredRows);
 
     function formatHeader(key) {
         return key
@@ -345,18 +348,20 @@ export default function SalasPage() {
                                         }
 
                                         return (
-                                            <th
+                                            <SortableTh
                                                 key={column}
-                                                className="px-5 py-3.5 text-left font-semibold"
-                                            >
-                                                {formatHeader(column)}
-                                            </th>
+                                                column={column}
+                                                label={formatHeader(column)}
+                                                sortColumn={sortColumn}
+                                                sortDirection={sortDirection}
+                                                onSort={toggleSort}
+                                            />
                                         );
                                     })}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredRows.map((row, index) => (
+                                {sortedRows.map((row, index) => (
                                     <tr
                                         key={`sala-${getRowId(row) ?? index}`}
                                         className="hover:bg-slate-50"

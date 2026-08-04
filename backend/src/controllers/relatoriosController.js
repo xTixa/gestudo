@@ -56,7 +56,7 @@ const REPORTS = {
     },
     'interesse-disciplinas': {
         view: 'vw_interesse_disciplinas',
-        orderBy: 'disciplina ASC, created_at DESC',
+        orderBy: 'disciplinas ASC, created_at DESC',
         filters: {
             estado: 'estado',
         },

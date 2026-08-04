@@ -697,6 +697,78 @@ export async function notificarGestoresLimpezaDados({
     }
 }
 
+async function ensureFalhaParcialAlertDefinition() {
+    const codigo = 'falha-parcial-lote';
+    const existing = await db.query(
+        `SELECT id_alerta_definicao FROM alertas_definicoes WHERE codigo = $1 LIMIT 1`,
+        [codigo]
+    );
+    if (existing.rows[0]?.id_alerta_definicao) {
+        return existing.rows[0].id_alerta_definicao;
+    }
+
+    const inserted = await db.query(
+        `INSERT INTO alertas_definicoes (grupo, codigo, titulo, descricao, icone, canal_app_default, canal_email_default, ativo, ordenacao)
+         VALUES ($1, $2, $3, $4, $5, true, true, true, $6) RETURNING id_alerta_definicao`,
+        [
+            'sistema',
+            codigo,
+            'Falha parcial em operação em lote',
+            'Quando uma operação em lote (ex: criação de disciplina em múltiplos níveis) fica parcialmente concluída.',
+            'AlertTriangle',
+            96,
+        ]
+    );
+    return inserted.rows[0]?.id_alerta_definicao || null;
+}
+
+/**
+ * Notifica todos os gestores quando uma operação em lote (ex: criação de
+ * uma disciplina em múltiplos níveis de ensino, um POST por nível) falha a
+ * meio, deixando parte dos dados já persistidos sem que o gestor tenha
+ * visibilidade disso na UI.
+ *
+ * @param {Object} params
+ * @param {number} params.actorUserId - Gestor que executou a operação
+ * @param {string} params.entidade - Entidade afetada (ex: 'disciplinas')
+ * @param {Object} params.detalhes - Resumo da falha (nome, níveis guardados, nível que falhou)
+ * @returns {Promise<Object>} resultado do dispatch
+ */
+export async function notificarGestoresFalhaParcial({
+    actorUserId,
+    entidade,
+    detalhes,
+}) {
+    try {
+        await ensureFalhaParcialAlertDefinition();
+        const gestorIds = await obterTodosOsGestores();
+        if (!gestorIds.length) {
+            return { success: true, eventos_criados: 0 };
+        }
+
+        const { nome, niveisGuardados, nivelFalhou } = detalhes || {};
+        const descricao =
+            nome && Array.isArray(niveisGuardados) && nivelFalhou
+                ? `Ao guardar "${nome}", os níveis [${niveisGuardados.join(', ')}] foram guardados com sucesso, mas falhou ao guardar "${nivelFalhou}".`
+                : `Uma operação em lote sobre "${entidade}" ficou parcialmente concluída.`;
+
+        return await dispatchAlert({
+            codigo: 'falha-parcial-lote',
+            for_user_ids: gestorIds,
+            titulo: 'Operação em lote parcialmente concluída',
+            descricao,
+            nivel: 'warning',
+            payload: { actorUserId, entidade, detalhes },
+        });
+    } catch (err) {
+        console.error(
+            '[alertasDispatchService] notificarGestoresFalhaParcial error:',
+            err.message
+        );
+        return { success: false, eventos_criados: 0, erro: err.message };
+    }
+}
+
 /**
  * Notifica todos os gestores quando é detetada atividade suspeita de login
  * (várias tentativas falhadas consecutivas para a mesma conta/IP).

@@ -44,6 +44,51 @@ function respondIfRestrictedDelete(error, res, entidadeLabel) {
 }
 
 /**
+ * Conta registos numa tabela relacionada que referenciam um id específico.
+ * tabela/coluna são sempre strings constantes internas (nunca vindas de
+ * input do utilizador), mas passam por quoteIdent por defesa em profundidade.
+ */
+async function contarImpactoEliminar(tabela, coluna, id) {
+    const query = `SELECT COUNT(*)::int AS total FROM ${quoteIdent(tabela)} WHERE ${quoteIdent(coluna)} = $1`;
+    const { rows } = await db.query(query, [id]);
+    return Number(rows[0]?.total || 0);
+}
+
+const IMPACT_LABELS = {
+    pacotes: (n) => `${n} pacote${n === 1 ? '' : 's'}`,
+    alunosInscritos: (n) => `${n} aluno${n === 1 ? '' : 's'} inscrito${n === 1 ? '' : 's'}`,
+    servicosCurriculares: (n) =>
+        `${n} serviço${n === 1 ? '' : 's'} curricular${n === 1 ? '' : 'es'}`,
+    servicosExtraCurriculares: (n) =>
+        `${n} serviço${n === 1 ? '' : 's'} extra-curricular${n === 1 ? '' : 'es'}`,
+};
+
+/**
+ * Compõe a mensagem de erro 409 a partir de um objeto de contagens
+ * { categoria: total }, filtrando categorias sem impacto e formatando a
+ * frase final com "e" antes do último elemento.
+ */
+function formatarMensagemImpacto(entidadeLabel, contagens) {
+    const partes = Object.entries(contagens || {})
+        .filter(([, total]) => Number(total) > 0)
+        .map(([categoria, total]) => {
+            const formatter = IMPACT_LABELS[categoria];
+            return formatter ? formatter(total) : `${total} ${categoria}`;
+        });
+
+    if (partes.length === 0) {
+        return `Não é possível eliminar ${entidadeLabel}: há registos associados (serviços ou pacotes).`;
+    }
+
+    const lista =
+        partes.length === 1
+            ? partes[0]
+            : `${partes.slice(0, -1).join(', ')} e ${partes[partes.length - 1]}`;
+
+    return `Não é possível eliminar ${entidadeLabel}: ${lista}.`;
+}
+
+/**
  * Procura tabela em base de dados usando lista de nomes candidatos
  * Tenta match exato primeiro, depois match parcial da string
  *
@@ -99,8 +144,13 @@ async function listarCatalogo(candidates, entityKey, res) {
             return res.status(200).json({ [entityKey]: [] });
         }
 
+        const primaryKeyColumn = await getPrimaryKeyColumn(table);
+        const idAlias = primaryKeyColumn
+            ? `, ${quoteIdent(primaryKeyColumn)} AS id`
+            : '';
+
         const query = `
-      SELECT *
+      SELECT *${idAlias}
       FROM ${quoteIdent(table.table_schema)}.${quoteIdent(table.table_name)}
       ORDER BY 1
     `;
@@ -170,6 +220,83 @@ async function getPrimaryKeyColumn(table) {
  */
 async function getModalidadesTableInfo() {
     const table = await findTableByCandidates(['modalidades', 'modalidade']);
+
+    if (!table) {
+        return null;
+    }
+
+    const columns = await getTableColumns(table);
+    const primaryKeyColumn = await getPrimaryKeyColumn(table);
+
+    const nomeColumn = ['nome', 'designacao', 'designação', 'titulo'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const descricaoColumn = [
+        'descricao',
+        'descrição',
+        'detalhe',
+        'detalhes',
+    ].find((candidate) => columns.includes(candidate));
+
+    return {
+        table,
+        columns,
+        primaryKeyColumn,
+        nomeColumn,
+        descricaoColumn,
+    };
+}
+
+/**
+ * Obtém informações sobre a tabela de tipos de serviço (naming flexíbel)
+ * Localiza nomes de colunas: nome, descrição, chave primária
+ *
+ * @returns {Object|null} Objecto com {table, columns, primaryKeyColumn, nomeColumn, descricaoColumn} ou null
+ */
+async function getTiposServicoTableInfo() {
+    const table = await findTableByCandidates([
+        'tipo_servico',
+        'tipos_servico',
+        'tiposervico',
+    ]);
+
+    if (!table) {
+        return null;
+    }
+
+    const columns = await getTableColumns(table);
+    const primaryKeyColumn = await getPrimaryKeyColumn(table);
+
+    const nomeColumn = ['nome', 'designacao', 'designação', 'titulo'].find(
+        (candidate) => columns.includes(candidate)
+    );
+    const descricaoColumn = [
+        'descricao',
+        'descrição',
+        'detalhe',
+        'detalhes',
+    ].find((candidate) => columns.includes(candidate));
+
+    return {
+        table,
+        columns,
+        primaryKeyColumn,
+        nomeColumn,
+        descricaoColumn,
+    };
+}
+
+/**
+ * Obtém informações sobre a tabela de tipos de serviço extra-curriculares (naming flexíbel)
+ * Localiza nomes de colunas: nome, descrição, chave primária
+ *
+ * @returns {Object|null} Objecto com {table, columns, primaryKeyColumn, nomeColumn, descricaoColumn} ou null
+ */
+async function getTiposServicoExtraTableInfo() {
+    const table = await findTableByCandidates([
+        'tipo_servico_extracurricular',
+        'tipos_servico_extracurricular',
+    ]);
 
     if (!table) {
         return null;
@@ -284,6 +411,22 @@ export async function listarModalidadesCatalogo(req, res) {
 
 export async function listarPacotesCatalogo(req, res) {
     return listarCatalogo(['pacotes', 'pacote'], 'pacotes', res);
+}
+
+export async function listarTiposServicoCatalogo(req, res) {
+    return listarCatalogo(
+        ['tipo_servico', 'tipos_servico', 'tiposervico'],
+        'tiposServico',
+        res
+    );
+}
+
+export async function listarTiposServicoExtraCatalogo(req, res) {
+    return listarCatalogo(
+        ['tipo_servico_extracurricular', 'tipos_servico_extracurricular'],
+        'tiposServicoExtra',
+        res
+    );
 }
 
 /**
@@ -584,6 +727,17 @@ export async function eliminarPacoteCatalogo(req, res) {
             return res.status(404).json({ message: 'Pacote não encontrado.' });
         }
 
+        const alunosInscritos = await contarImpactoEliminar(
+            'inscricoes',
+            'id_pacote',
+            id
+        );
+        if (alunosInscritos > 0) {
+            return res
+                .status(409)
+                .json({ message: formatarMensagemImpacto('este pacote', { alunosInscritos }) });
+        }
+
         const query = `
       DELETE FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
       WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
@@ -780,6 +934,28 @@ export async function eliminarDisciplinaCatalogo(req, res) {
             return res
                 .status(404)
                 .json({ message: 'Disciplina não encontrada.' });
+        }
+
+        const [pacotes, servicosCurriculares, alunosInscritos] = await Promise.all([
+            contarImpactoEliminar('pacotes', 'id_disciplina', id),
+            contarImpactoEliminar('servicos_curriculares', 'id_disciplina', id),
+            db
+                .query(
+                    `SELECT COUNT(*)::int AS total FROM inscricoes i
+                     JOIN servicos_curriculares sc ON sc.id_servico = i.id_servico_curricular
+                     WHERE sc.id_disciplina = $1`,
+                    [id]
+                )
+                .then((r) => Number(r.rows[0]?.total || 0)),
+        ]);
+        if (pacotes > 0 || servicosCurriculares > 0 || alunosInscritos > 0) {
+            return res.status(409).json({
+                message: formatarMensagemImpacto('esta disciplina', {
+                    pacotes,
+                    servicosCurriculares,
+                    alunosInscritos,
+                }),
+            });
         }
 
         const query = `
@@ -985,6 +1161,50 @@ export async function eliminarModalidadeCatalogo(req, res) {
                 .json({ message: 'Modalidade não encontrada.' });
         }
 
+        const [
+            pacotes,
+            servicosCurriculares,
+            servicosExtraCurriculares,
+            alunosInscritosCurricular,
+            alunosInscritosExtra,
+        ] = await Promise.all([
+            contarImpactoEliminar('pacotes', 'id_modalidade', id),
+            contarImpactoEliminar('servicos_curriculares', 'id_modalidade', id),
+            contarImpactoEliminar('servicos_extracurriculares', 'id_modalidade', id),
+            db
+                .query(
+                    `SELECT COUNT(*)::int AS total FROM inscricoes i
+                     JOIN servicos_curriculares sc ON sc.id_servico = i.id_servico_curricular
+                     WHERE sc.id_modalidade = $1`,
+                    [id]
+                )
+                .then((r) => Number(r.rows[0]?.total || 0)),
+            db
+                .query(
+                    `SELECT COUNT(*)::int AS total FROM inscricoes i
+                     JOIN servicos_extracurriculares se ON se.id_servico = i.id_servico_extracurricular
+                     WHERE se.id_modalidade = $1`,
+                    [id]
+                )
+                .then((r) => Number(r.rows[0]?.total || 0)),
+        ]);
+        const alunosInscritos = alunosInscritosCurricular + alunosInscritosExtra;
+        if (
+            pacotes > 0 ||
+            servicosCurriculares > 0 ||
+            servicosExtraCurriculares > 0 ||
+            alunosInscritos > 0
+        ) {
+            return res.status(409).json({
+                message: formatarMensagemImpacto('esta modalidade', {
+                    pacotes,
+                    servicosCurriculares,
+                    servicosExtraCurriculares,
+                    alunosInscritos,
+                }),
+            });
+        }
+
         const query = `
       DELETE FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
       WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
@@ -1011,6 +1231,491 @@ export async function eliminarModalidadeCatalogo(req, res) {
         return res
             .status(500)
             .json({ message: 'Erro ao eliminar modalidade.' });
+    }
+}
+
+export async function criarTipoServicoCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de tipos de serviço não encontrada.' });
+        }
+
+        if (!info.nomeColumn) {
+            return res.status(400).json({
+                message: 'A tabela de tipos de serviço não possui coluna de nome.',
+            });
+        }
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const descricao = String(req.body?.descricao ?? '').trim();
+
+        if (!nome) {
+            return res
+                .status(400)
+                .json({ message: 'Nome do tipo de serviço é obrigatório.' });
+        }
+
+        const insertColumns = [info.nomeColumn];
+        const insertValues = [nome];
+
+        if (info.descricaoColumn) {
+            insertColumns.push(info.descricaoColumn);
+            insertValues.push(descricao || null);
+        }
+
+        if (info.columns.includes('ativo')) {
+            insertColumns.push('ativo');
+            insertValues.push(true);
+        }
+
+        const placeholders = insertValues.map((_, index) => `$${index + 1}`);
+        const query = `
+      INSERT INTO ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      (${insertColumns.map((column) => quoteIdent(column)).join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, insertValues);
+        const novoRegisto = rows[0];
+
+        // Registar a ação no log
+        await registarInsert(
+            req.userId,
+            'tipos_servico',
+            novoRegisto,
+            novoRegisto[info.primaryKeyColumn]
+        );
+
+        return res.status(201).json(novoRegisto);
+    } catch (error) {
+        console.error('Erro ao criar tipo de serviço:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao criar tipo de serviço.' });
+    }
+}
+
+export async function atualizarTipoServicoCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de tipos de serviço não encontrada.' });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message:
+                    'Não foi possível identificar a chave primária de tipos de serviço.',
+            });
+        }
+
+        const id = req.params.id;
+
+        // Buscar o registo antigo para logging
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Tipo de serviço não encontrado.' });
+        }
+        const dadosAntigos = oldRows[0];
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const descricao = String(req.body?.descricao ?? '').trim();
+
+        const setClauses = [];
+        const values = [];
+
+        if (info.nomeColumn && nome) {
+            values.push(nome);
+            setClauses.push(
+                `${quoteIdent(info.nomeColumn)} = $${values.length}`
+            );
+        }
+
+        if (info.descricaoColumn) {
+            values.push(descricao || null);
+            setClauses.push(
+                `${quoteIdent(info.descricaoColumn)} = $${values.length}`
+            );
+        }
+
+        if (setClauses.length === 0) {
+            return res
+                .status(400)
+                .json({ message: 'Sem campos válidos para atualizar.' });
+        }
+
+        values.push(id);
+
+        const query = `
+      UPDATE ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      SET ${setClauses.join(', ')}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $${values.length}
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, values);
+
+        // Registar a ação no log
+        await registarUpdate(
+            req.userId,
+            'tipos_servico',
+            id,
+            dadosAntigos,
+            rows[0]
+        );
+
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao atualizar tipo de serviço:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao atualizar tipo de serviço.' });
+    }
+}
+
+export async function eliminarTipoServicoCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoTableInfo();
+        if (!info) {
+            return res
+                .status(404)
+                .json({ message: 'Tabela de tipos de serviço não encontrada.' });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message:
+                    'Não foi possível identificar a chave primária de tipos de serviço.',
+            });
+        }
+
+        const id = req.params.id;
+
+        // Buscar o registo antigo para logging
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res
+                .status(404)
+                .json({ message: 'Tipo de serviço não encontrado.' });
+        }
+
+        const [pacotes, servicosCurriculares, servicosExtraCurriculares] =
+            await Promise.all([
+                contarImpactoEliminar('pacotes', 'id_tiposervico', id),
+                contarImpactoEliminar(
+                    'servicos_curriculares',
+                    'id_tiposervico',
+                    id
+                ),
+                contarImpactoEliminar(
+                    'servicos_extracurriculares',
+                    'id_tiposervico',
+                    id
+                ),
+            ]);
+        if (
+            pacotes > 0 ||
+            servicosCurriculares > 0 ||
+            servicosExtraCurriculares > 0
+        ) {
+            return res.status(409).json({
+                message: formatarMensagemImpacto('este tipo de serviço', {
+                    pacotes,
+                    servicosCurriculares,
+                    servicosExtraCurriculares,
+                }),
+            });
+        }
+
+        const query = `
+      DELETE FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, [id]);
+
+        // Registar a ação no log
+        await registarDelete(
+            req.userId,
+            'tipos_servico',
+            id,
+            oldRows[0],
+            'alert'
+        );
+
+        return res
+            .status(200)
+            .json({ message: 'Tipo de serviço eliminado com sucesso.' });
+    } catch (error) {
+        if (respondIfRestrictedDelete(error, res, 'o tipo de serviço')) return;
+        console.error('Erro ao eliminar tipo de serviço:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Erro ao eliminar tipo de serviço.' });
+    }
+}
+
+export async function criarTipoServicoExtraCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoExtraTableInfo();
+        if (!info) {
+            return res.status(404).json({
+                message:
+                    'Tabela de tipos de serviço extra-curriculares não encontrada.',
+            });
+        }
+
+        if (!info.nomeColumn) {
+            return res.status(400).json({
+                message:
+                    'A tabela de tipos de serviço extra-curriculares não possui coluna de nome.',
+            });
+        }
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const descricao = String(req.body?.descricao ?? '').trim();
+
+        if (!nome) {
+            return res.status(400).json({
+                message: 'Nome do tipo de serviço extra-curricular é obrigatório.',
+            });
+        }
+
+        const insertColumns = [info.nomeColumn];
+        const insertValues = [nome];
+
+        if (info.descricaoColumn) {
+            insertColumns.push(info.descricaoColumn);
+            insertValues.push(descricao || null);
+        }
+
+        if (info.columns.includes('ativo')) {
+            insertColumns.push('ativo');
+            insertValues.push(true);
+        }
+
+        const placeholders = insertValues.map((_, index) => `$${index + 1}`);
+        const query = `
+      INSERT INTO ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      (${insertColumns.map((column) => quoteIdent(column)).join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, insertValues);
+        const novoRegisto = rows[0];
+
+        // Registar a ação no log
+        await registarInsert(
+            req.userId,
+            'tipos_servico_extracurricular',
+            novoRegisto,
+            novoRegisto[info.primaryKeyColumn]
+        );
+
+        return res.status(201).json(novoRegisto);
+    } catch (error) {
+        console.error('Erro ao criar tipo de serviço extra-curricular:', error.message);
+        return res.status(500).json({
+            message: 'Erro ao criar tipo de serviço extra-curricular.',
+        });
+    }
+}
+
+export async function atualizarTipoServicoExtraCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoExtraTableInfo();
+        if (!info) {
+            return res.status(404).json({
+                message:
+                    'Tabela de tipos de serviço extra-curriculares não encontrada.',
+            });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message:
+                    'Não foi possível identificar a chave primária de tipos de serviço extra-curriculares.',
+            });
+        }
+
+        const id = req.params.id;
+
+        // Buscar o registo antigo para logging
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res.status(404).json({
+                message: 'Tipo de serviço extra-curricular não encontrado.',
+            });
+        }
+        const dadosAntigos = oldRows[0];
+
+        const nome = String(req.body?.nome ?? '').trim();
+        const descricao = String(req.body?.descricao ?? '').trim();
+
+        const setClauses = [];
+        const values = [];
+
+        if (info.nomeColumn && nome) {
+            values.push(nome);
+            setClauses.push(
+                `${quoteIdent(info.nomeColumn)} = $${values.length}`
+            );
+        }
+
+        if (info.descricaoColumn) {
+            values.push(descricao || null);
+            setClauses.push(
+                `${quoteIdent(info.descricaoColumn)} = $${values.length}`
+            );
+        }
+
+        if (setClauses.length === 0) {
+            return res
+                .status(400)
+                .json({ message: 'Sem campos válidos para atualizar.' });
+        }
+
+        values.push(id);
+
+        const query = `
+      UPDATE ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      SET ${setClauses.join(', ')}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $${values.length}
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, values);
+
+        // Registar a ação no log
+        await registarUpdate(
+            req.userId,
+            'tipos_servico_extracurricular',
+            id,
+            dadosAntigos,
+            rows[0]
+        );
+
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao atualizar tipo de serviço extra-curricular:', error.message);
+        return res.status(500).json({
+            message: 'Erro ao atualizar tipo de serviço extra-curricular.',
+        });
+    }
+}
+
+export async function eliminarTipoServicoExtraCatalogo(req, res) {
+    try {
+        const info = await getTiposServicoExtraTableInfo();
+        if (!info) {
+            return res.status(404).json({
+                message:
+                    'Tabela de tipos de serviço extra-curriculares não encontrada.',
+            });
+        }
+
+        if (!info.primaryKeyColumn) {
+            return res.status(400).json({
+                message:
+                    'Não foi possível identificar a chave primária de tipos de serviço extra-curriculares.',
+            });
+        }
+
+        const id = req.params.id;
+
+        // Buscar o registo antigo para logging
+        const selectQuery = `
+      SELECT * FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+    `;
+        const { rows: oldRows } = await db.query(selectQuery, [id]);
+        if (!oldRows.length) {
+            return res.status(404).json({
+                message: 'Tipo de serviço extra-curricular não encontrado.',
+            });
+        }
+
+        const [servicosExtraCurriculares, alunosInscritos] = await Promise.all([
+            contarImpactoEliminar(
+                'servicos_extracurriculares',
+                'id_tipo_servico_extra',
+                id
+            ),
+            db
+                .query(
+                    `SELECT COUNT(*)::int AS total FROM inscricoes
+                     WHERE id_servico_extracurricular IN (
+                         SELECT id_servico FROM servicos_extracurriculares
+                         WHERE id_tipo_servico_extra = $1
+                     )`,
+                    [id]
+                )
+                .then((r) => Number(r.rows[0]?.total || 0)),
+        ]);
+        if (servicosExtraCurriculares > 0 || alunosInscritos > 0) {
+            return res.status(409).json({
+                message: formatarMensagemImpacto(
+                    'este tipo de serviço extra-curricular',
+                    { servicosExtraCurriculares, alunosInscritos }
+                ),
+            });
+        }
+
+        const query = `
+      DELETE FROM ${quoteIdent(info.table.table_schema)}.${quoteIdent(info.table.table_name)}
+      WHERE ${quoteIdent(info.primaryKeyColumn)} = $1
+      RETURNING *
+    `;
+
+        const { rows } = await db.query(query, [id]);
+
+        // Registar a ação no log
+        await registarDelete(
+            req.userId,
+            'tipos_servico_extracurricular',
+            id,
+            oldRows[0],
+            'alert'
+        );
+
+        return res.status(200).json({
+            message: 'Tipo de serviço extra-curricular eliminado com sucesso.',
+        });
+    } catch (error) {
+        if (
+            respondIfRestrictedDelete(
+                error,
+                res,
+                'o tipo de serviço extra-curricular'
+            )
+        )
+            return;
+        console.error('Erro ao eliminar tipo de serviço extra-curricular:', error.message);
+        return res.status(500).json({
+            message: 'Erro ao eliminar tipo de serviço extra-curricular.',
+        });
     }
 }
 
@@ -1194,6 +1899,24 @@ export async function eliminarSalaCatalogo(req, res) {
         const { rows: oldRows } = await db.query(selectQuery, [id]);
         if (!oldRows.length) {
             return res.status(404).json({ message: 'Sala não encontrada.' });
+        }
+
+        const [servicosCurriculares, servicosExtraCurriculares] =
+            await Promise.all([
+                contarImpactoEliminar('servicos_curriculares', 'id_sala', id),
+                contarImpactoEliminar(
+                    'servicos_extracurriculares',
+                    'id_sala',
+                    id
+                ),
+            ]);
+        if (servicosCurriculares > 0 || servicosExtraCurriculares > 0) {
+            return res.status(409).json({
+                message: formatarMensagemImpacto('esta sala', {
+                    servicosCurriculares,
+                    servicosExtraCurriculares,
+                }),
+            });
         }
 
         const query = `
