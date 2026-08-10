@@ -178,7 +178,13 @@
       "Bash(awk -F: '{sum+=$2} END {print \"total console calls in controllers:\", sum}')",
       "Bash(grep -viE \"paramIndex|safe[A-Z]|LIMIT \\\\$\\\\{|OFFSET \\\\$\\\\{\")",
       "Bash(jobs)",
-      "Bash(node --check src/middlewares/securityMiddleware.js)"
+      "Bash(node --check src/middlewares/securityMiddleware.js)",
+      "Bash(grep -v \"SECURITY WARNING\\\\|next major\\\\|prepare for\\\\|current behavior\\\\|libpq compat\\\\|postgresql.org\\\\|trace-warnings\\\\|^$\")",
+      "Bash(grep -v \"SECURITY WARNING\\\\|next major\\\\|prepare for\\\\|current behavior\\\\|libpq compat\\\\|postgresql.org\\\\|trace-warnings\\\\|injected env\\\\|^$\")",
+      "Bash(node _migrar-disciplinas-pretendidas.mjs)",
+      "Bash(grep -v \"SECURITY WARNING\\\\|next major\\\\|prepare for\\\\|current behavior\\\\|libpq compat\\\\|postgresql.org\\\\|trace-warnings\\\\|injected env\\\\|DeprecationWarning\\\\|^$\")",
+      "Bash(node _migrar-disciplinas-pretendidas.mjs --apply)",
+      "Bash(node --check src/controllers/gestorManagementController.js)"
     ],
     "additionalDirectories": [
       "E:\\MEDIACENTER\\mediacenter-main\\mediacenter-main\\backend\\scripts"

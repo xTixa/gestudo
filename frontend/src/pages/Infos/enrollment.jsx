@@ -87,6 +87,7 @@ export default function InfosInscricaoPage() {
     const [erroOpcoes, setErroOpcoes] = useState('');
     const [liveErrors, setLiveErrors] = useState({});
     const [textos, setTextos] = useState({});
+    const [textosCarregados, setTextosCarregados] = useState(false);
     const [consentDados, setConsentDados] = useState(false);
     const [consentTermos, setConsentTermos] = useState(false);
 
@@ -158,6 +159,8 @@ export default function InfosInscricaoPage() {
                 setTextos(data?.textos && typeof data.textos === 'object' ? data.textos : {});
             } catch {
                 // Falha silenciosa: mantém os textos por omissão hardcoded no JSX.
+            } finally {
+                if (isMounted) setTextosCarregados(true);
             }
         }
         carregarTextos();
@@ -422,14 +425,22 @@ export default function InfosInscricaoPage() {
                 <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
                     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
-                            {t('hero_eyebrow', 'Inscrições')}
+                            {textosCarregados ? t('hero_eyebrow', 'Inscrições') : ' '}
                         </p>
-                        <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
-                            {t('hero_title', 'Formulário de Inscrição 2025/2026')}
-                        </h1>
-                        <p className="mt-4 max-w-2xl text-sm text-slate-200 sm:text-base">
-                            {t('hero_subtitle', 'Preencha os dados do aluno e do encarregado de educação.')}
-                        </p>
+                        {textosCarregados ? (
+                            <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
+                                {t('hero_title', 'Formulário de Inscrição')}
+                            </h1>
+                        ) : (
+                            <div className="mt-3 h-9 w-72 max-w-full animate-pulse rounded bg-white/20 sm:h-10" />
+                        )}
+                        {textosCarregados ? (
+                            <p className="mt-4 max-w-2xl text-sm text-slate-200 sm:text-base">
+                                {t('hero_subtitle', 'Preencha os dados do aluno e do encarregado de educação.')}
+                            </p>
+                        ) : (
+                            <div className="mt-4 h-5 w-96 max-w-full animate-pulse rounded bg-white/10" />
+                        )}
                     </div>
                 </section>
 

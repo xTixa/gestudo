@@ -49,6 +49,66 @@ function normalizeText(value) {
 }
 
 /**
+ * Carrega os mapas id -> nome de modalidades e tipos de servi\u00e7o, usados para
+ * converter os IDs submetidos no formul\u00e1rio de inscri\u00e7\u00e3o em r\u00f3tulos leg\u00edveis
+ * (ex: "3" -> "Grupo", "1" -> "Explica\u00e7\u00e3o").
+ */
+async function carregarMapasModalidadeTipoServico() {
+    const [modalidadesResult, tiposServicoResult] = await Promise.all([
+        db.query('SELECT id_modalidade, nome FROM modalidades'),
+        db.query('SELECT id_tiposervico, nome FROM tipo_servico'),
+    ]);
+
+    const modalidades = new Map(
+        modalidadesResult.rows.map((row) => [String(row.id_modalidade), row.nome])
+    );
+    const tiposServico = new Map(
+        tiposServicoResult.rows.map((row) => [String(row.id_tiposervico), row.nome])
+    );
+
+    return { modalidades, tiposServico };
+}
+
+/**
+ * Converte o plano de disciplinas submetido no formul\u00e1rio de inscri\u00e7\u00e3o
+ * (disciplina, tipo de servi\u00e7o, modalidade, horas pretendidas) em registos
+ * ricos para gravar em `disciplinas_pretendidas`, preservando toda a
+ * informa\u00e7\u00e3o em vez de reduzir cada disciplina ao seu nome. Resolve os IDs
+ * de modalidade/tipo de servi\u00e7o para os respetivos nomes leg\u00edveis.
+ */
+async function normalizarPlanoDisciplinasPretendidas(plano) {
+    if (!Array.isArray(plano) || plano.length === 0) return [];
+
+    const { modalidades, tiposServico } = await carregarMapasModalidadeTipoServico();
+
+    const vistos = new Set();
+    const resultado = [];
+
+    for (const item of plano) {
+        const disciplina = String(item?.disciplina ?? '').trim();
+        if (!disciplina) continue;
+
+        const chave = disciplina.toLowerCase();
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+
+        const tipoServicoRaw = String(item?.tipo_servico ?? item?.tipoServico ?? '').trim();
+        const modalidadeRaw = String(item?.modalidade ?? '').trim();
+
+        resultado.push({
+            disciplina,
+            tipoServico: tiposServico.get(tipoServicoRaw) || tipoServicoRaw || null,
+            modalidade: modalidades.get(modalidadeRaw) || modalidadeRaw || null,
+            horas: item?.pacote != null && String(item.pacote).trim() !== ''
+                ? Number(item.pacote)
+                : null,
+        });
+    }
+
+    return resultado;
+}
+
+/**
  * Formata rótulo de nivel de ensino para exibição
  * Converte valores como '1_ciclo' para '1º Ciclo'
  *
@@ -649,11 +709,9 @@ async function integrarInscricaoAprovada(inscricao) {
         if (existingAlunoResult.rows.length > 0) {
             const idAlunoExistente = existingAlunoResult.rows[0].id_aluno;
 
-            const planoDisciplinasExistente = Array.isArray(inscricao?.dados?.plano)
-                ? inscricao.dados.plano
-                      .map((item) => String(item?.disciplina ?? '').trim())
-                      .filter((nome, index, all) => nome && all.indexOf(nome) === index)
-                : [];
+            const planoDisciplinasExistente = await normalizarPlanoDisciplinasPretendidas(
+                inscricao?.dados?.plano
+            );
 
             if (planoDisciplinasExistente.length > 0) {
                 const disciplinasAtuaisResult = await client.query(
@@ -672,10 +730,16 @@ async function integrarInscricaoAprovada(inscricao) {
                     ? disciplinasAtuaisResult.rows[0].disciplinas_pretendidas
                     : [];
 
-                const disciplinasMescladas = [
-                    ...disciplinasAtuais,
-                    ...planoDisciplinasExistente,
-                ].filter((nome, index, all) => nome && all.indexOf(nome) === index);
+                const vistos = new Set();
+                const disciplinasMescladas = [];
+
+                for (const item of [...disciplinasAtuais, ...planoDisciplinasExistente]) {
+                    const nome = typeof item === 'string' ? item : item?.disciplina;
+                    const chave = String(nome ?? '').trim().toLowerCase();
+                    if (!chave || vistos.has(chave)) continue;
+                    vistos.add(chave);
+                    disciplinasMescladas.push(item);
+                }
 
                 await client.query(
                     `
@@ -903,11 +967,9 @@ async function integrarInscricaoAprovada(inscricao) {
 
         const anoEscolar = Number.parseInt(inscricao?.ano_escolar, 10);
 
-        const planoDisciplinas = Array.isArray(inscricao?.dados?.plano)
-            ? inscricao.dados.plano
-                  .map((item) => String(item?.disciplina ?? '').trim())
-                  .filter((nome, index, all) => nome && all.indexOf(nome) === index)
-            : [];
+        const planoDisciplinas = await normalizarPlanoDisciplinasPretendidas(
+            inscricao?.dados?.plano
+        );
 
         await client.query(
             `
@@ -1693,9 +1755,9 @@ async function sincronizarAlunoComInscricaoPublica(emailAntesDaEdicao, inscricao
     );
 
     if (Array.isArray(inscricao?.dados?.plano)) {
-        const planoDisciplinas = inscricao.dados.plano
-            .map((item) => String(item?.disciplina ?? '').trim())
-            .filter((nome, index, all) => nome && all.indexOf(nome) === index);
+        const planoDisciplinas = await normalizarPlanoDisciplinasPretendidas(
+            inscricao.dados.plano
+        );
 
         await db.query(
             `UPDATE alunos SET disciplinas_pretendidas = $1::jsonb WHERE id_aluno = $2`,

@@ -2463,9 +2463,29 @@ export async function atualizarDisciplinasPretendidasAluno(req, res) {
             .json({ message: 'Lista de disciplinas inválida.' });
     }
 
-    const disciplinas = req.body.disciplinas
-        .map((nome) => String(nome ?? '').trim())
-        .filter((nome, index, all) => nome && all.indexOf(nome) === index);
+    const vistos = new Set();
+    const disciplinas = [];
+
+    for (const item of req.body.disciplinas) {
+        const isObjeto = item && typeof item === 'object';
+        const nome = String(isObjeto ? item.disciplina : item ?? '').trim();
+        const chave = nome.toLowerCase();
+        if (!nome || vistos.has(chave)) continue;
+        vistos.add(chave);
+
+        disciplinas.push(
+            isObjeto
+                ? {
+                      disciplina: nome,
+                      tipoServico: item.tipoServico ? String(item.tipoServico).trim() : null,
+                      modalidade: item.modalidade ? String(item.modalidade).trim() : null,
+                      horas: item.horas != null && String(item.horas).trim() !== ''
+                          ? Number(item.horas)
+                          : null,
+                  }
+                : nome
+        );
+    }
 
     try {
         const { rows } = await db.query(

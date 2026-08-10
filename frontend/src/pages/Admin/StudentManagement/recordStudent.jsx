@@ -9,6 +9,8 @@ import {
     UserRound,
     RefreshCw,
     X,
+    BookOpen,
+    Clock3,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
@@ -439,7 +441,9 @@ export default function FichaAlunoPage() {
             .filter(Boolean)
     );
     const disciplinasPretendidasLower = new Set(
-        disciplinasPretendidas.map((nome) => nome.toLowerCase())
+        disciplinasPretendidas.map((item) =>
+            String(typeof item === 'string' ? item : item?.disciplina || '').toLowerCase()
+        )
     );
     const disciplinasDisponiveisParaAdicionar = disciplinasCatalogo.filter(
         (disciplina) =>
@@ -631,7 +635,10 @@ export default function FichaAlunoPage() {
 
     async function handleRemoverDisciplinaPretendida(nome) {
         await salvarDisciplinasPretendidas(
-            disciplinasPretendidas.filter((item) => item !== nome)
+            disciplinasPretendidas.filter((item) => {
+                const itemNome = typeof item === 'string' ? item : item?.disciplina;
+                return itemNome !== nome;
+            })
         );
     }
 
@@ -880,55 +887,90 @@ export default function FichaAlunoPage() {
                 </div>
             </div>
 
-            {/* Disciplinas Pretendidas */}
+            {/* Serviços Pretendidos */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
                     <div className="h-5 w-1 rounded bg-blue-500" />
                     <h2 className="text-base font-semibold text-slate-800">
-                        Disciplinas Pretendidas
+                        Serviços Pretendidos
                     </h2>
                 </div>
 
                 {disciplinasPretendidas.length === 0 ? (
                     <p className="mb-4 text-sm text-slate-500">
-                        Não existem disciplinas pretendidas registadas para
+                        Não existem serviços pretendidos registados para
                         este aluno.
                     </p>
                 ) : (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                        {disciplinasPretendidas.map((disciplina) => {
+                    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {disciplinasPretendidas.map((item) => {
+                            const isObjeto = item && typeof item === 'object';
+                            const nome = isObjeto ? item.disciplina : item;
+                            const tipoServico = isObjeto ? item.tipoServico : null;
+                            const modalidade = isObjeto ? item.modalidade : null;
+                            const horas = isObjeto ? item.horas : null;
                             const temServico = disciplinasComServico.has(
-                                disciplina.toLowerCase()
+                                String(nome || '').toLowerCase()
                             );
                             return (
-                                <span
-                                    key={disciplina}
-                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                                <div
+                                    key={nome}
+                                    className={`rounded-lg border p-4 ${
                                         temServico
-                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                            : 'border-amber-200 bg-amber-50 text-amber-700'
+                                            ? 'border-emerald-200 bg-emerald-50'
+                                            : 'border-amber-200 bg-amber-50'
                                     }`}
                                 >
-                                    {disciplina}
-                                    <span className="text-[10px] uppercase opacity-75">
-                                        {temServico
-                                            ? 'com serviço'
-                                            : 'sem serviço'}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleRemoverDisciplinaPretendida(
-                                                disciplina
-                                            )
-                                        }
-                                        disabled={disciplinasPretendidasSaving}
-                                        title="Remover"
-                                        className="text-current hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </span>
+                                    <div className="mb-2 flex items-start justify-between gap-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <BookOpen
+                                                size={15}
+                                                className={
+                                                    temServico
+                                                        ? 'text-emerald-600 shrink-0'
+                                                        : 'text-amber-600 shrink-0'
+                                                }
+                                            />
+                                            <p className="truncate text-sm font-semibold text-slate-800">
+                                                {nome}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleRemoverDisciplinaPretendida(
+                                                    nome
+                                                )
+                                            }
+                                            disabled={disciplinasPretendidasSaving}
+                                            title="Remover"
+                                            className="shrink-0 text-slate-400 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                                        <span
+                                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                                                temServico
+                                                    ? 'bg-emerald-100 text-emerald-700'
+                                                    : 'bg-amber-100 text-amber-700'
+                                            }`}
+                                        >
+                                            {temServico ? 'Com serviço' : 'Sem serviço'}
+                                        </span>
+                                        <span>
+                                            {tipoServico || modalidade
+                                                ? [tipoServico, modalidade].filter(Boolean).join(' · ')
+                                                : 'Modalidade não indicada'}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1">
+                                            <Clock3 size={12} />
+                                            {horas ? `${horas}h/mês pretendidas` : 'Horas não indicadas'}
+                                        </span>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>

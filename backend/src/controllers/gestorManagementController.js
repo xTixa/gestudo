@@ -134,17 +134,29 @@ export async function removerGestor(req, res) {
         return res.status(400).json({ message: 'Não pode remover a sua própria conta.' });
     }
 
+    const client = await db.connect();
+
     try {
-        const { rows } = await db.query(
-            `UPDATE users SET status = false
-             WHERE id_user = $1 AND role = 'gestor'
-             RETURNING id_user, email`,
+        await client.query('BEGIN');
+
+        const { rows } = await client.query(
+            `SELECT id_user, email FROM users WHERE id_user = $1 AND role = 'gestor'`,
             [idUser]
         );
 
         if (!rows.length) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ message: 'Administrador não encontrado.' });
         }
+
+        await client.query(
+            `UPDATE alteracoes_pendentes_perfil SET revisto_por = NULL WHERE revisto_por = $1`,
+            [idUser]
+        );
+
+        await client.query(`DELETE FROM users WHERE id_user = $1`, [idUser]);
+
+        await client.query('COMMIT');
 
         try {
             await registarDelete(req.userId, 'users', idUser, { email: rows[0].email, role: 'gestor' });
@@ -155,7 +167,10 @@ export async function removerGestor(req, res) {
             gestor: rows[0],
         });
     } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
         console.error('Erro ao remover gestor:', error.message);
         return res.status(500).json({ message: 'Erro ao remover administrador.' });
+    } finally {
+        client.release();
     }
 }

@@ -138,14 +138,21 @@ export function gerarFichaAlunoPdf(aluno) {
         y = addSectionTable(
             doc,
             y,
-            'Disciplinas Pretendidas',
-            disciplinasPretendidas.map((disciplina) => [
-                disciplina,
-                disciplinasComServico.has(disciplina.toLowerCase())
+            'Serviços Pretendidos',
+            disciplinasPretendidas.map((item) => {
+                const isObjeto = item && typeof item === 'object';
+                const nome = isObjeto ? item.disciplina : item;
+                const detalhe = isObjeto
+                    ? [item.tipoServico, item.modalidade, item.horas ? `${item.horas}h/mês` : null]
+                          .filter(Boolean)
+                          .join(' · ') || '-'
+                    : '-';
+                const estado = disciplinasComServico.has(String(nome || '').toLowerCase())
                     ? 'Com serviço associado'
-                    : 'Sem serviço associado',
-            ]),
-            ['Disciplina', 'Estado']
+                    : 'Sem serviço associado';
+                return [nome, detalhe, estado];
+            }),
+            ['Disciplina', 'Detalhes', 'Estado']
         );
     }
 
