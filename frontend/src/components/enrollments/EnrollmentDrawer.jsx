@@ -76,6 +76,54 @@ function EditField({ label, value, onChange }) {
     );
 }
 
+function EditDisciplina({ value, onChange, opcoes }) {
+    return (
+        <label className="block">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Disciplina
+            </p>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            >
+                <option value="">
+                    {opcoes.length === 0 ? 'Sem disciplinas disponíveis' : 'Selecionar'}
+                </option>
+                {opcoes.map((d) => (
+                    <option key={d.nome} value={d.nome}>
+                        {d.nome}
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
+}
+
+function EditModalidade({ value, onChange, opcoes }) {
+    return (
+        <label className="block">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Modalidade
+            </p>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            >
+                <option value="">
+                    {opcoes.length === 0 ? 'Sem modalidades disponíveis' : 'Selecionar'}
+                </option>
+                {opcoes.map((m) => (
+                    <option key={m.id} value={m.id}>
+                        {m.nome}
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
+}
+
 function EditHorasPretendidas({ value, onChange, opcoes }) {
     return (
         <label className="block">
@@ -197,13 +245,28 @@ export default function EnrollmentDrawer({
         };
     }, []);
 
+    function getDisciplinasDisponiveis() {
+        const idNivel = item?.nivel_ensino ? String(item.nivel_ensino) : '';
+        if (!idNivel) return disciplinasCatalogo;
+
+        return disciplinasCatalogo.filter((d) => {
+            const idNivelDisciplina =
+                d?.id_nivel != null ? String(d.id_nivel) : '';
+            return !idNivelDisciplina || idNivelDisciplina === idNivel;
+        });
+    }
+
     function getHorasDisponiveis(planoItem) {
         const disciplina = disciplinasCatalogo.find(
             (d) => normalizeNome(d.nome) === normalizeNome(planoItem.disciplina)
         );
-        const modalidade = modalidadesCatalogo.find(
-            (m) => normalizeNome(m.nome) === normalizeNome(planoItem.modalidade)
-        );
+        const modalidade = modalidadesCatalogo.find((m) => {
+            const idModalidadeCatalogo = String(m.id_modalidade ?? m.id);
+            return (
+                idModalidadeCatalogo === String(planoItem.modalidade) ||
+                normalizeNome(m.nome) === normalizeNome(planoItem.modalidade)
+            );
+        });
         const idDisciplina = disciplina
             ? String(disciplina.id_disciplina ?? disciplina.id)
             : '';
@@ -244,9 +307,25 @@ export default function EnrollmentDrawer({
             turma: item?.turma || '',
             ee_nome: item?.ee_nome || '',
         });
-        setPlano(getPlanoFromItem(item));
+        setPlano(
+            getPlanoFromItem(item).map((p) => ({
+                ...p,
+                modalidade: resolveModalidadeId(p.modalidade),
+            }))
+        );
         setSaveError('');
         setIsEditing(true);
+    }
+
+    function resolveModalidadeId(modalidade) {
+        const match = modalidadesCatalogo.find((m) => {
+            const idModalidadeCatalogo = String(m.id_modalidade ?? m.id);
+            return (
+                idModalidadeCatalogo === String(modalidade) ||
+                normalizeNome(m.nome) === normalizeNome(modalidade)
+            );
+        });
+        return match ? String(match.id_modalidade ?? match.id) : modalidade;
     }
 
     function cancelEditing() {
@@ -282,7 +361,12 @@ export default function EnrollmentDrawer({
             Object.entries(form).map(([key, value]) => [key, String(value || '').trim()])
         );
 
-        if (Object.values(trimmedForm).some((value) => !value)) {
+        const camposOpcionais = ['turma'];
+        const camposObrigatorios = Object.entries(trimmedForm).filter(
+            ([key]) => !camposOpcionais.includes(key)
+        );
+
+        if (camposObrigatorios.some(([, value]) => !value)) {
             setSaveError('Nenhum campo pode ficar vazio.');
             return;
         }
@@ -410,7 +494,7 @@ export default function EnrollmentDrawer({
                                     onChange={(v) => updateField('escola', v)}
                                 />
                                 <EditField
-                                    label="Turma"
+                                    label="Turma (opcional)"
                                     value={form.turma}
                                     onChange={(v) => updateField('turma', v)}
                                 />
@@ -451,15 +535,20 @@ export default function EnrollmentDrawer({
                                                 </button>
                                             ) : null}
                                         </div>
-                                        <EditField
-                                            label="Disciplina"
+                                        <EditDisciplina
                                             value={p.disciplina}
                                             onChange={(v) => updatePlanoField(index, 'disciplina', v)}
+                                            opcoes={getDisciplinasDisponiveis().map((d) => ({
+                                                nome: d.nome,
+                                            }))}
                                         />
-                                        <EditField
-                                            label="Modalidade"
+                                        <EditModalidade
                                             value={p.modalidade}
                                             onChange={(v) => updatePlanoField(index, 'modalidade', v)}
+                                            opcoes={modalidadesCatalogo.map((m) => ({
+                                                id: String(m.id_modalidade ?? m.id),
+                                                nome: m.nome,
+                                            }))}
                                         />
                                         <EditHorasPretendidas
                                             value={p.pacote}

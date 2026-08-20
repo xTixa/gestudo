@@ -76,6 +76,7 @@ function newPlanoItem(id) {
 export default function InfosInscricaoPage() {
     const [sent, setSent] = useState(false);
     const [submitError, setSubmitError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [disciplinasOptions, setDisciplinasOptions] = useState([]);
     const [niveisEnsinoOptions, setNiveisEnsinoOptions] = useState([]);
     const [modalidadesOptions, setModalidadesOptions] = useState([]);
@@ -303,6 +304,7 @@ export default function InfosInscricaoPage() {
 
     async function handleSubmit(event) {
         event.preventDefault();
+        if (isSubmitting) return;
         setSubmitError('');
         setSent(false);
 
@@ -315,6 +317,7 @@ export default function InfosInscricaoPage() {
         const planoError = validarPlano();
         if (planoError) { setSubmitError(planoError); return; }
 
+        setIsSubmitting(true);
         try {
             const payload = Object.fromEntries(formData.entries());
             payload.consentimento_dados = consentDados;
@@ -362,6 +365,8 @@ export default function InfosInscricaoPage() {
             setConsentTermos(false);
         } catch (error) {
             setSubmitError(error?.message || 'Não foi possível enviar a inscrição.');
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -890,10 +895,12 @@ export default function InfosInscricaoPage() {
 
                             <button
                                 type="submit"
-                                disabled={!consentDados || !consentTermos}
+                                disabled={!consentDados || !consentTermos || isSubmitting}
                                 className="mt-5 w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                             >
-                                {t('button_enviar', 'Enviar Inscrição')}
+                                {isSubmitting
+                                    ? t('button_enviar_loading', 'A enviar...')
+                                    : t('button_enviar', 'Enviar Inscrição')}
                             </button>
 
                             {sent ? (

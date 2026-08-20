@@ -1102,6 +1102,26 @@ export async function criarInscricaoPublica(req, res) {
             });
         }
 
+        // Evita duplicados por duplo clique/retry: bloqueia o mesmo pedido
+        // (nome + email + telemóvel) se foi submetido há poucos segundos.
+        const { rows: duplicados } = await db.query(
+            `SELECT id_inscricao_publica
+             FROM public.inscricoes_publicas
+             WHERE nome_completo = $1
+               AND email = $2
+               AND telemovel = $3
+               AND created_at > NOW() - INTERVAL '30 seconds'
+             LIMIT 1`,
+            [nomeCompleto, email, telemovel]
+        );
+
+        if (duplicados.length > 0) {
+            return res.status(200).json({
+                message: 'Inscrição recebida com sucesso.',
+                inscricao: { id_inscricao_publica: duplicados[0].id_inscricao_publica },
+            });
+        }
+
         const insertQuery = `
             INSERT INTO public.inscricoes_publicas (
                 data_inicio,
@@ -1841,14 +1861,14 @@ export async function atualizarCamposInscricaoPublica(req, res) {
             }
 
             const value = String(body[field] ?? '').trim();
-            if (!value) {
+            if (!value && field !== 'turma') {
                 return res.status(400).json({
                     message: `Campo '${field}' não pode ficar vazio.`,
                 });
             }
 
             setClauses.push(`${field} = $${paramIndex}`);
-            values.push(value);
+            values.push(value || null);
             paramIndex++;
             dadosPatch[field] = value;
         }
