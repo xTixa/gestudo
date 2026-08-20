@@ -325,7 +325,13 @@ export default function EnrollmentDrawer({
         }
     }
 
-    const displayPlano = getPlanoFromItem(item);
+    const displayPlano = getPlanoFromItem(item).map((p) => ({
+        ...p,
+        modalidade:
+            modalidadesCatalogo.find(
+                (m) => String(m.id_modalidade ?? m.id) === String(p.modalidade)
+            )?.nome || p.modalidade,
+    }));
 
     return (
         <>

@@ -15,20 +15,19 @@ function formatDate(value) {
     return date.toLocaleDateString('pt-PT');
 }
 
+const weekDayLabels = {
+    segunda: 'Segunda-feira',
+    terca: 'Terca-feira',
+    quarta: 'Quarta-feira',
+    quinta: 'Quinta-feira',
+    sexta: 'Sexta-feira',
+    sabado: 'Sabado',
+    domingo: 'Domingo',
+};
+
 function formatWeekDays(days) {
     if (!Array.isArray(days) || !days.length) return '-';
-
-    const labels = {
-        segunda: 'Segunda-feira',
-        terca: 'Terca-feira',
-        quarta: 'Quarta-feira',
-        quinta: 'Quinta-feira',
-        sexta: 'Sexta-feira',
-        sabado: 'Sabado',
-        domingo: 'Domingo',
-    };
-
-    return days.map((day) => labels[day] || day).join(', ');
+    return days.map((day) => weekDayLabels[day] || day).join(', ');
 }
 
 function DetailRow({ label, value }) {
@@ -155,22 +154,54 @@ export default function ServicePreviewDrawer({ service, kind, onClose }) {
                                     value={formatDate(service.dataFim)}
                                 />
                             ) : null}
-                            <DetailRow
-                                label="Dias da semana"
-                                value={formatWeekDays(service.diasSemana)}
-                            />
-                            <DetailRow
-                                label="Hora de inicio"
-                                value={service.horaInicio}
-                            />
-                            <DetailRow
-                                label="Duracao"
-                                value={
-                                    service.duracao
-                                        ? `${service.duracao} min`
-                                        : '-'
-                                }
-                            />
+                            {Array.isArray(service.sessoes) &&
+                            service.sessoes.length > 1 ? (
+                                <div>
+                                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        Sessoes
+                                    </p>
+                                    <ul className="space-y-1.5">
+                                        {service.sessoes.map(
+                                            (sessao, index) => (
+                                                <li
+                                                    key={`${sessao.dia}-${index}`}
+                                                    className="text-sm font-medium text-slate-900"
+                                                >
+                                                    {weekDayLabels[
+                                                        sessao.dia
+                                                    ] || sessao.dia}
+                                                    {': '}
+                                                    {sessao.horaInicio || '-'}
+                                                    {sessao.horaFim
+                                                        ? ` - ${sessao.horaFim}`
+                                                        : ''}
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                </div>
+                            ) : (
+                                <>
+                                    <DetailRow
+                                        label="Dias da semana"
+                                        value={formatWeekDays(
+                                            service.diasSemana
+                                        )}
+                                    />
+                                    <DetailRow
+                                        label="Hora de inicio"
+                                        value={service.horaInicio}
+                                    />
+                                    <DetailRow
+                                        label="Duracao"
+                                        value={
+                                            service.duracao
+                                                ? `${service.duracao} min`
+                                                : '-'
+                                        }
+                                    />
+                                </>
+                            )}
                         </Section>
 
                         <Section title="Recursos" icon={MapPin}>
@@ -182,10 +213,30 @@ export default function ServicePreviewDrawer({ service, kind, onClose }) {
                         </Section>
 
                         <Section title="Alunos" icon={Users}>
-                            <DetailRow
-                                label="Alunos associados"
-                                value={String(service.nAlunos || 0)}
-                            />
+                            {Array.isArray(service.alunosNomes) &&
+                            service.alunosNomes.length > 0 ? (
+                                <div>
+                                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        Alunos associados (
+                                        {service.alunosNomes.length})
+                                    </p>
+                                    <ul className="space-y-1">
+                                        {service.alunosNomes.map((nome, index) => (
+                                            <li
+                                                key={`${nome}-${index}`}
+                                                className="text-sm font-medium text-slate-900"
+                                            >
+                                                {nome}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : (
+                                <DetailRow
+                                    label="Alunos associados"
+                                    value={String(service.nAlunos || 0)}
+                                />
+                            )}
                         </Section>
                     </div>
                 </div>

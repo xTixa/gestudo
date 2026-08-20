@@ -30,6 +30,54 @@ function friendlyErrorMessage(error, fallback) {
     return error?.message || fallback;
 }
 
+// monta uma mensagem específica a partir do status HTTP e do corpo devolvido pela API,
+// já que a mesma mensagem genérica (data.message) não distingue causas com ações diferentes
+// (ex: CSRF expirado vs. permissão insuficiente, ambos 403)
+function describeServiceSaveError(status, data) {
+    if (status === 403) {
+        const raw = String(data?.message || '').toLowerCase();
+        if (raw.includes('csrf')) {
+            return 'A sua sessão expirou. Atualize a página e tente novamente.';
+        }
+        return 'Não tem permissão para criar ou editar serviços curriculares.';
+    }
+
+    if (status === 409) {
+        if (data?.code === 'SALA_CONFLICT') {
+            const conflito = data.conflicts?.[0];
+            const detalhe = conflito
+                ? ` (já ocupada por "${conflito.nome_servico || conflito.disciplina || 'outro serviço'}" das ${conflito.hora_inicio || conflito.horaInicio || ''} às ${conflito.hora_fim || conflito.horaFim || ''})`
+                : '';
+            return `A sala escolhida já tem outro serviço nesse horário${detalhe}. Escolha outra sala ou horário.`;
+        }
+        if (data?.code === 'PROFESSOR_CONFLICT') {
+            const conflito = data.conflicts?.[0];
+            const detalhe = conflito
+                ? ` (já tem "${conflito.disciplina || 'outra aula'}" das ${conflito.horaInicio} às ${conflito.horaFim})`
+                : '';
+            return `O professor já tem outra aula marcada nesse horário${detalhe}. Escolha outro horário ou professor.`;
+        }
+        if (data?.code === 'ALUNOS_CONFLICT') {
+            const alunos = Object.values(data.conflictsByAluno || {});
+            const nomes = alunos.map((a) => a.alunoNome).filter(Boolean).join(', ');
+            return nomes
+                ? `Os seguintes alunos já têm aulas nesse horário: ${nomes}. Escolha outro horário ou remova-os.`
+                : 'Um ou mais alunos selecionados já têm aulas marcadas nesse horário.';
+        }
+        return data?.message || 'Este serviço entra em conflito com um serviço já existente.';
+    }
+
+    if (status === 400 && data?.code === 'PACOTE_NAO_ENCONTRADO') {
+        return data.message;
+    }
+
+    if (status >= 500) {
+        return 'Ocorreu um erro no servidor ao guardar o serviço. Tente novamente; se o problema persistir, verifique se o serviço já não foi criado antes de repetir.';
+    }
+
+    return data?.message || null;
+}
+
 // opções fixas para os dias da semana, com chaves que correspondem ao formato esperado pela API e rótulos legíveis para exibição no formulário
 const weekDayOptions = [
     { key: 'segunda', label: 'Segunda-feira' },
@@ -313,6 +361,20 @@ export default function GestaoCurricularPage() {
             alunoMatchesNivel(aluno, nivelSelecionado?.nome)
         );
     }, [formData.nivelEnsino, opcoes.alunos, opcoes.niveisEnsino]);
+
+    const previewServiceWithNames = useMemo(() => {
+        if (!previewService) return null;
+        if (!Array.isArray(previewService.alunosIds)) return previewService;
+
+        const alunosMap = new Map(
+            opcoes.alunos.map((aluno) => [String(aluno.id), aluno.nome])
+        );
+        const alunosNomes = previewService.alunosIds.map(
+            (id) => alunosMap.get(String(id)) || `Aluno #${id}`
+        );
+
+        return { ...previewService, alunosNomes };
+    }, [previewService, opcoes.alunos]);
 
     const salasParaSelecionar = useMemo(() => {
         if (!salasDisponiveisReady) {
@@ -791,7 +853,9 @@ export default function GestaoCurricularPage() {
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(
-                    data.message || 'Não foi possível guardar o serviço.'
+                    describeServiceSaveError(response.status, data) ||
+                        data.message ||
+                        'Não foi possível guardar o serviço.'
                 );
             }
 
@@ -1466,9 +1530,9 @@ export default function GestaoCurricularPage() {
                 </div>
             ) : null}
 
-            {previewService ? (
+            {previewServiceWithNames ? (
                 <ServicePreviewDrawer
-                    service={previewService}
+                    service={previewServiceWithNames}
                     kind="curricular"
                     onClose={() => setPreviewService(null)}
                 />

@@ -1197,17 +1197,23 @@ export async function inserirInscricoesServicoCurricular(
         Number(modalidadeId)
     );
     if (!pacote) {
-        throw new Error(
-            'Não existe pacote ativo para associar inscrições dos alunos.'
+        const error = new Error(
+            'Não existe nenhum pacote ativo configurado para associar alunos a este serviço. Contacte o administrador para criar um pacote para esta disciplina/modalidade.'
         );
+        error.code = 'PACOTE_NAO_ENCONTRADO';
+        error.statusCode = 400;
+        throw error;
     }
 
     const inscricoesServicoColumn =
         await resolveInscricoesServicoColumn(client);
     if (!inscricoesServicoColumn) {
-        throw new Error(
+        const error = new Error(
             'Tabela inscricoes sem coluna de ligação ao serviço curricular.'
         );
+        error.code = 'INSCRICOES_COLUNA_EM_FALTA';
+        error.statusCode = 500;
+        throw error;
     }
 
     const insertInscricaoQuery = `

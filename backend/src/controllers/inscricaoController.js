@@ -1470,8 +1470,9 @@ export async function listarInscricoesPublicas(req, res) {
             'modalidade',
         ]);
 
-        // Descobrir qual a coluna de nome existe na tabela de modalidades.
+        // Descobrir quais as colunas de id e nome existem na tabela de modalidades.
         let modalidadeNameCol = null;
+        let modalidadeIdCol = null;
         if (modalidadesTable) {
             const { rows: cols } = await db.query(
                 `SELECT column_name
@@ -1484,9 +1485,15 @@ export async function listarInscricoesPublicas(req, res) {
                 ['nome', 'designacao', 'descricao', 'titulo', 'label'].find(
                     (c) => colNames.includes(c)
                 ) || null;
+            modalidadeIdCol =
+                ['id_modalidade', 'id'].find((c) => colNames.includes(c)) ||
+                colNames.find((c) => /(^id$|^id_|_id$)/.test(c)) ||
+                null;
         }
 
-        const canJoin = Boolean(modalidadesTable && modalidadeNameCol);
+        const canJoin = Boolean(
+            modalidadesTable && modalidadeNameCol && modalidadeIdCol
+        );
         const modalidadeExpr = canJoin
             ? `COALESCE(m.${quoteIdent(modalidadeNameCol)}, ip.modalidade)`
             : 'ip.modalidade';
@@ -1530,8 +1537,8 @@ export async function listarInscricoesPublicas(req, res) {
         const fromClause = canJoin
             ? `FROM public.inscricoes_publicas ip
                LEFT JOIN ${quoteIdent(modalidadesTable.table_schema)}.${quoteIdent(modalidadesTable.table_name)} m
-                 ON m.id_modalidade::text = ip.modalidade
-                 OR LOWER(m.${quoteIdent(modalidadeNameCol)}) = LOWER(ip.modalidade)`
+                 ON m.${quoteIdent(modalidadeIdCol)}::text = TRIM(ip.modalidade)
+                 OR LOWER(m.${quoteIdent(modalidadeNameCol)}) = LOWER(TRIM(ip.modalidade))`
             : `FROM public.inscricoes_publicas`;
 
         const queryBase = `SELECT ${selectCols} ${fromClause}`;

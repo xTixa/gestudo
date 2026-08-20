@@ -572,6 +572,11 @@ export async function criarServicoCurricular(req, res) {
             // noop
         }
         console.error('Erro ao criar serviço curricular:', error.message);
+        if (error.statusCode) {
+            return res
+                .status(error.statusCode)
+                .json({ code: error.code, message: error.message });
+        }
         return res
             .status(500)
             .json({ message: 'Erro ao criar serviço curricular.' });
@@ -938,6 +943,11 @@ export async function atualizarServicoCurricular(req, res) {
             // noop
         }
         console.error('Erro ao atualizar serviço curricular:', error.message);
+        if (error.statusCode) {
+            return res
+                .status(error.statusCode)
+                .json({ code: error.code, message: error.message });
+        }
         return res
             .status(500)
             .json({ message: 'Erro ao atualizar serviço curricular.' });
