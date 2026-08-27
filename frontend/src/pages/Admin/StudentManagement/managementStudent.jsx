@@ -41,6 +41,71 @@ function uniqueValues(array, field) {
     return ['Todos', ...values];
 }
 
+// Siglas conhecidas de escolas -> nome completo, para agrupar variações que
+// os encarregados escrevem de formas diferentes no formulário público de
+// inscrição (ex: "ESAM", "Esam", "Alves Martins", "Secundária Alves Martins").
+const ESCOLA_SIGLAS = {
+    esam: 'Escola Secundária Alves Martins',
+    esem: 'Escola Secundária Emídio Navarro',
+};
+
+// Normaliza o nome de uma escola para uma chave de agrupamento: remove
+// acentos, pontuação e palavras genéricas ("escola", "secundária", "eb",
+// "básica"), para que grafias diferentes do mesmo estabelecimento colidam
+// na mesma chave (ex: "ESAM", "Alves Martins" e "Secundária Alves Martins"
+// resolvem todas para "alves martins").
+function removeAcentos(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
+}
+
+function normalizeEscolaKey(value) {
+    const semAcentos = removeAcentos(value).trim().toLowerCase();
+
+    const sigla = ESCOLA_SIGLAS[semAcentos.replace(/[^a-z0-9]/g, '')];
+    const base = sigla ? removeAcentos(sigla).toLowerCase() : semAcentos;
+
+    return base
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\b(escola|secundaria|basica|eb|e\.?b\.?|de|do|da|dos|das)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Agrupa os nomes de escola (tal como escritos pelos encarregados) por
+// chave normalizada e escolhe, para cada grupo, a grafia mais frequente
+// (e mais longa como desempate) como rótulo a apresentar no filtro.
+function uniqueEscolas(array) {
+    const grupos = new Map();
+
+    array.forEach((item) => {
+        const original = String(item?.escola || '').trim();
+        if (!original) return;
+
+        const key = normalizeEscolaKey(original);
+        if (!key) return;
+
+        if (!grupos.has(key)) {
+            grupos.set(key, new Map());
+        }
+        const contagens = grupos.get(key);
+        contagens.set(original, (contagens.get(original) || 0) + 1);
+    });
+
+    const labels = Array.from(grupos.entries()).map(([key, contagens]) => {
+        const [label] = Array.from(contagens.entries()).sort((a, b) => {
+            if (b[1] !== a[1]) return b[1] - a[1];
+            return b[0].length - a[0].length;
+        })[0];
+        return { key, label };
+    });
+
+    labels.sort((a, b) => a.label.localeCompare(b.label, 'pt-PT'));
+
+    return ['Todos', ...labels];
+}
+
 // função para formatar uma data em formato ISO para o formato de data local em português, usando o método toLocaleDateString com a localidade 'pt-PT', e retornando uma string vazia caso a data seja inválida ou não fornecida
 function formatDate(date) {
     if (!date) return '';
@@ -591,7 +656,7 @@ export default function GestaoAlunos() {
     const filterOptions = useMemo(
         () => ({
             ano: uniqueValues(alunos, 'ano'),
-            escola: uniqueValues(alunos, 'escola'),
+            escola: uniqueEscolas(alunos),
         }),
         [alunos]
     );
@@ -656,7 +721,8 @@ export default function GestaoAlunos() {
                 filters.ano === 'Todos' ||
                 String(aluno.ano) === String(filters.ano);
             const matchesEscola =
-                filters.escola === 'Todos' || aluno.escola === filters.escola;
+                filters.escola === 'Todos' ||
+                normalizeEscolaKey(aluno.escola) === filters.escola;
 
             return matchesSearch && matchesAno && matchesEscola;
         });
@@ -1266,11 +1332,17 @@ export default function GestaoAlunos() {
                             }
                             className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-spindle"
                         >
-                            {filterOptions.escola.map((option) => (
-                                <option key={option} value={option}>
-                                    {option}
-                                </option>
-                            ))}
+                            {filterOptions.escola.map((option) =>
+                                option === 'Todos' ? (
+                                    <option key="Todos" value="Todos">
+                                        Todos
+                                    </option>
+                                ) : (
+                                    <option key={option.key} value={option.key}>
+                                        {option.label}
+                                    </option>
+                                )
+                            )}
                         </select>
                     </label>
                 </div>
