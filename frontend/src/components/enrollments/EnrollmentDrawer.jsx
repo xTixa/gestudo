@@ -28,6 +28,51 @@ function formatDateTime(value) {
     });
 }
 
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+}
+
+function formatAnoEscolar(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    return /^\d+$/.test(raw) ? `${raw}º ano` : raw;
+}
+
+const NIVEL_ENSINO_LABELS = {
+    1: '1º Ciclo',
+    2: '2º Ciclo',
+    3: '3º Ciclo',
+    4: 'Secundário',
+    5: 'Superior',
+};
+
+function formatNivelEnsino(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    return NIVEL_ENSINO_LABELS[raw] || raw;
+}
+
+function formatMorada(item) {
+    const partes = [item?.morada, item?.codigo_postal, item?.localidade]
+        .map((v) => String(v || '').trim())
+        .filter(Boolean);
+    return partes.join(', ');
+}
+
+function formatMoradaEe(item) {
+    const partes = [item?.ee_morada, item?.ee_codigo_postal, item?.ee_localidade]
+        .map((v) => String(v || '').trim())
+        .filter(Boolean);
+    return partes.join(', ');
+}
+
 function getPlanoFromItem(item) {
     const plano = item?.dados?.plano;
     if (Array.isArray(plano) && plano.length > 0) {
@@ -576,11 +621,34 @@ export default function EnrollmentDrawer({
                                 />
                                 <DetailRow label="Email" value={item.email} />
                                 <DetailRow label="Telemóvel" value={item.telemovel} />
+                                <DetailRow label="Telefone" value={item.telefone} />
+                                <DetailRow
+                                    label="Data de nascimento"
+                                    value={formatDate(item.data_nascimento)}
+                                />
+                                <DetailRow
+                                    label="Cartão de cidadão"
+                                    value={item.cartao_cidadao}
+                                />
+                                <DetailRow label="NIF" value={item.nif} />
+                                <DetailRow label="Morada" value={formatMorada(item)} />
                             </Section>
 
                             <Section title="Escola" icon={School}>
                                 <DetailRow label="Escola" value={item.escola} />
+                                <DetailRow
+                                    label="Nível de ensino"
+                                    value={formatNivelEnsino(item.nivel_ensino)}
+                                />
+                                <DetailRow
+                                    label="Ano de escolaridade"
+                                    value={formatAnoEscolar(item.ano_escolar)}
+                                />
                                 <DetailRow label="Turma" value={item.turma} />
+                                <DetailRow
+                                    label="Data de início pretendida"
+                                    value={formatDate(item.data_inicio)}
+                                />
                             </Section>
 
                             <Section title="Plano de estudo" icon={Book}>
@@ -608,9 +676,48 @@ export default function EnrollmentDrawer({
                                 ))}
                             </Section>
 
+                            {item.obs ? (
+                                <Section title="Observações" icon={Info}>
+                                    <p className="whitespace-pre-wrap text-sm font-medium text-slate-900">
+                                        {item.obs}
+                                    </p>
+                                </Section>
+                            ) : null}
+
                             <Section title="Encarregado de educação" icon={Users}>
                                 <DetailRow label="Nome" value={item.ee_nome} />
+                                <DetailRow label="Parentesco" value={item.ee_parentesco} />
+                                <DetailRow label="Email" value={item.ee_email} />
+                                <DetailRow label="Telemóvel" value={item.ee_telemovel} />
+                                <DetailRow label="Telefone" value={item.ee_telefone} />
+                                <DetailRow label="NIF" value={item.ee_nif} />
+                                <DetailRow label="Morada" value={formatMoradaEe(item)} />
                             </Section>
+
+                            {(item.aut_saida_nome_1 || item.aut_saida_nome_2) && (
+                                <Section title="Autorização de saída" icon={Users}>
+                                    {item.aut_saida_nome_1 ? (
+                                        <DetailRow
+                                            label="Pessoa autorizada 1"
+                                            value={`${item.aut_saida_nome_1}${
+                                                item.aut_saida_parentesco_1
+                                                    ? ` (${item.aut_saida_parentesco_1})`
+                                                    : ''
+                                            }`}
+                                        />
+                                    ) : null}
+                                    {item.aut_saida_nome_2 ? (
+                                        <DetailRow
+                                            label="Pessoa autorizada 2"
+                                            value={`${item.aut_saida_nome_2}${
+                                                item.aut_saida_parentesco_2
+                                                    ? ` (${item.aut_saida_parentesco_2})`
+                                                    : ''
+                                            }`}
+                                        />
+                                    ) : null}
+                                </Section>
+                            )}
 
                             <Section title="Informação" icon={Info}>
                                 <DetailRow

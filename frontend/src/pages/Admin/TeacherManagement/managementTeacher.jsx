@@ -1662,9 +1662,9 @@ export default function GestaoProfessores() {
             ) : null}
 
             {showExportModal ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-lg">
-                        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+                    <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-800">
                                     Exportar professores
@@ -1686,7 +1686,7 @@ export default function GestaoProfessores() {
 
                         <form
                             onSubmit={handleExportSubmit}
-                            className="space-y-4 px-5 py-5"
+                            className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5"
                         >
                             <div className="space-y-2">
                                 <p className="text-sm font-medium text-slate-700">
@@ -1758,9 +1758,9 @@ export default function GestaoProfessores() {
             ) : null}
 
             {showImportModal ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-lg">
-                        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+                    <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-800">
                                     Importar professores
@@ -1785,7 +1785,7 @@ export default function GestaoProfessores() {
 
                         <form
                             onSubmit={handleImportSubmit}
-                            className="space-y-4 px-5 py-5"
+                            className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5"
                         >
                             <div className="space-y-2">
                                 <p className="text-sm font-medium text-slate-700">
