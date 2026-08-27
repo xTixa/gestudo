@@ -1984,27 +1984,47 @@ export async function atualizarCamposInscricaoPublica(req, res) {
     }
 }
 
-export async function apagarInscricoesPublicasAntigas(req, res) {
+export async function apagarInscricoesPublicasPorEstado(req, res) {
     try {
         await ensureInscricoesPublicasTable();
 
-        const dias = Number.parseInt(req.query?.dias, 10);
-        const retentionDays = Number.isInteger(dias) ? dias : 90;
+        const estado = String(req.query?.estado || '')
+            .trim()
+            .toLowerCase();
 
-        if (retentionDays < 1 || retentionDays > 3650) {
+        const allowed = new Set(['pendente', 'aprovada', 'rejeitada']);
+        if (!allowed.has(estado)) {
             return res.status(400).json({
                 message:
-                    'Parâmetro dias inválido. Use um valor entre 1 e 3650.',
+                    'Estado inválido. Use: pendente, aprovada ou rejeitada.',
             });
         }
 
+        const diasRaw = req.query?.dias;
+        let dias = null;
+        if (diasRaw !== undefined && diasRaw !== null && diasRaw !== '') {
+            const parsed = Number.parseInt(diasRaw, 10);
+            if (!Number.isInteger(parsed) || parsed < 1 || parsed > 3650) {
+                return res.status(400).json({
+                    message:
+                        'Parâmetro dias inválido. Use um valor entre 1 e 3650.',
+                });
+            }
+            dias = parsed;
+        }
+
         const { rowCount } = await db.query(
-            `
-                DELETE FROM public.inscricoes_publicas
-                WHERE created_at < NOW() - make_interval(days => $1::int)
-                  AND LOWER(COALESCE(estado, 'pendente')) <> 'pendente'
-            `,
-            [retentionDays]
+            dias
+                ? `
+                    DELETE FROM public.inscricoes_publicas
+                    WHERE LOWER(COALESCE(estado, 'pendente')) = $1
+                      AND created_at < NOW() - make_interval(days => $2::int)
+                `
+                : `
+                    DELETE FROM public.inscricoes_publicas
+                    WHERE LOWER(COALESCE(estado, 'pendente')) = $1
+                `,
+            dias ? [estado, dias] : [estado]
         );
 
         await registarDelete(
@@ -2013,24 +2033,76 @@ export async function apagarInscricoesPublicasAntigas(req, res) {
             null,
             {
                 removidas: rowCount || 0,
-                dias: retentionDays,
-                criterio: 'estado != pendente e created_at antigo',
+                criterio: dias
+                    ? `estado = ${estado} e mais de ${dias} dias`
+                    : `estado = ${estado}`,
             },
             'alert'
         );
 
         return res.status(200).json({
-            message: 'Inscrições antigas removidas com sucesso.',
+            message: 'Inscrições removidas com sucesso.',
             removidas: rowCount || 0,
-            dias: retentionDays,
+            estado,
+            dias,
         });
     } catch (error) {
         console.error(
-            'Erro ao apagar inscrições públicas antigas:',
+            'Erro ao apagar inscrições públicas por estado:',
             error.message
         );
         return res.status(500).json({
-            message: 'Erro ao apagar inscrições públicas antigas.',
+            message: 'Erro ao apagar inscrições públicas.',
+        });
+    }
+}
+
+export async function apagarInscricoesPublicasEmLote(req, res) {
+    try {
+        await ensureInscricoesPublicasTable();
+
+        const ids = Array.isArray(req.body?.ids)
+            ? req.body.ids
+                  .map((id) => Number.parseInt(id, 10))
+                  .filter((id) => Number.isInteger(id) && id > 0)
+            : [];
+
+        if (ids.length === 0) {
+            return res.status(400).json({
+                message: 'Indique pelo menos um ID válido para eliminar.',
+            });
+        }
+
+        const { rowCount } = await db.query(
+            `
+                DELETE FROM public.inscricoes_publicas
+                WHERE id_inscricao_publica = ANY($1::int[])
+            `,
+            [ids]
+        );
+
+        await registarDelete(
+            req.userId ?? null,
+            'inscricoes_publicas',
+            null,
+            {
+                removidas: rowCount || 0,
+                criterio: `seleção manual (${ids.length} ids)`,
+            },
+            'alert'
+        );
+
+        return res.status(200).json({
+            message: 'Inscrições removidas com sucesso.',
+            removidas: rowCount || 0,
+        });
+    } catch (error) {
+        console.error(
+            'Erro ao apagar inscrições públicas em lote:',
+            error.message
+        );
+        return res.status(500).json({
+            message: 'Erro ao apagar inscrições públicas.',
         });
     }
 }

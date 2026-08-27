@@ -108,7 +108,8 @@ import {
     listarInscricoesPublicas,
     atualizarEstadoInscricaoPublica,
     atualizarCamposInscricaoPublica,
-    apagarInscricoesPublicasAntigas,
+    apagarInscricoesPublicasPorEstado,
+    apagarInscricoesPublicasEmLote,
 } from '../controllers/inscricaoController.js';
 import {
     listarGestores,
@@ -835,12 +836,14 @@ router.patch(
     atualizarCamposInscricaoPublica
 );
 router.delete(
-    '/inscricoes-publicas/antigas',
+    '/inscricoes-publicas/por-estado',
     validateQuery({
+        estado: { type: 'string', required: true },
         dias: { type: 'number', required: false },
     }),
-    apagarInscricoesPublicasAntigas
+    apagarInscricoesPublicasPorEstado
 );
+router.delete('/inscricoes-publicas/lote', apagarInscricoesPublicasEmLote);
 
 router.get(
     '/reagendamentos/pedidos',

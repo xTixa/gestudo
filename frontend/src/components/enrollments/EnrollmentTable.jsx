@@ -20,6 +20,10 @@ EnrollmentTable.propTypes = {
     loading: PropTypes.bool,
     selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onRowClick: PropTypes.func.isRequired,
+    selectable: PropTypes.bool,
+    checkedIds: PropTypes.instanceOf(Set),
+    onToggleChecked: PropTypes.func,
+    onToggleAllChecked: PropTypes.func,
 };
 
 export default function EnrollmentTable({
@@ -27,13 +31,42 @@ export default function EnrollmentTable({
     loading,
     selectedId,
     onRowClick,
+    selectable = false,
+    checkedIds,
+    onToggleChecked,
+    onToggleAllChecked,
 }) {
+    const allChecked =
+        selectable && items.length > 0 && items.every((item) =>
+            checkedIds?.has(item.id_inscricao_publica)
+        );
+    const colSpan = selectable ? 8 : 7;
+
     return (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                     <thead>
                         <tr className="bg-slate-50">
+                            {selectable ? (
+                                <th className="whitespace-nowrap border-b border-slate-100 px-4 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        checked={allChecked}
+                                        onChange={(e) =>
+                                            onToggleAllChecked?.(
+                                                items.map(
+                                                    (item) =>
+                                                        item.id_inscricao_publica
+                                                ),
+                                                e.target.checked
+                                            )
+                                        }
+                                        aria-label="Selecionar todas"
+                                        className="h-4 w-4 rounded border-slate-300"
+                                    />
+                                </th>
+                            ) : null}
                             {[
                                 'Data',
                                 'Aluno',
@@ -56,7 +89,7 @@ export default function EnrollmentTable({
                         {loading && (
                             <tr>
                                 <td
-                                    colSpan={7}
+                                    colSpan={colSpan}
                                     className="px-4 py-10 text-center"
                                 >
                                     <div className="inline-flex gap-1">
@@ -76,7 +109,7 @@ export default function EnrollmentTable({
 
                         {!loading && items.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="px-4 py-12 text-center">
+                                <td colSpan={colSpan} className="px-4 py-12 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                                             <FileSearch size={22} className="text-slate-400" />
@@ -96,6 +129,9 @@ export default function EnrollmentTable({
                             items.map((item) => {
                                 const isSelected =
                                     selectedId === item.id_inscricao_publica;
+                                const isChecked = Boolean(
+                                    checkedIds?.has(item.id_inscricao_publica)
+                                );
                                 return (
                                     <tr
                                         key={item.id_inscricao_publica}
@@ -116,6 +152,25 @@ export default function EnrollmentTable({
                                                 : 'hover:bg-slate-50'
                                         }`}
                                     >
+                                        {selectable ? (
+                                            <td
+                                                className="px-4 py-3"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={(e) =>
+                                                        onToggleChecked?.(
+                                                            item.id_inscricao_publica,
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                    aria-label={`Selecionar inscrição de ${item.nome_completo || 'aluno'}`}
+                                                    className="h-4 w-4 rounded border-slate-300"
+                                                />
+                                            </td>
+                                        ) : null}
                                         <td className="whitespace-nowrap px-4 py-3 text-slate-600">
                                             {formatDateTime(item.created_at)}
                                         </td>
