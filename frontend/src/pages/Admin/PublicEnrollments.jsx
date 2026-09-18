@@ -44,6 +44,15 @@ export default function PublicEnrollmentsPage() {
     const [diasParaEliminar, setDiasParaEliminar] = useState('');
     const [checkedIds, setCheckedIds] = useState(() => new Set());
     const [deletingSelecionadas, setDeletingSelecionadas] = useState(false);
+    const [sort, setSort] = useState({ field: null, dir: 'asc' });
+
+    function handleSort(field) {
+        setSort((prev) =>
+            prev.field === field
+                ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                : { field, dir: 'asc' }
+        );
+    }
 
     function resetMessages() {
         setError('');
@@ -296,18 +305,32 @@ export default function PublicEnrollmentsPage() {
     }
 
     const filteredItems = useMemo(() => {
-        if (!search) return items;
+        const filtered = !search
+            ? items
+            : items.filter((item) => {
+                  const text = `${item.nome || ''} ${
+                      item.nome_completo || ''
+                  } ${item.email || ''} ${item.telemovel || ''} ${
+                      item.ee_nome || ''
+                  } ${item.escola || ''}`.toLowerCase();
 
-        return items.filter((item) => {
-            const text = `${item.nome || ''} ${item.nome_completo || ''} ${
-                item.email || ''
-            } ${item.telemovel || ''} ${item.ee_nome || ''} ${
-                item.escola || ''
-            }`.toLowerCase();
+                  return text.includes(search.toLowerCase());
+              });
 
-            return text.includes(search.toLowerCase());
+        if (!sort.field) return filtered;
+
+        const mod = sort.dir === 'asc' ? 1 : -1;
+        return [...filtered].sort((a, b) => {
+            const av = a[sort.field];
+            const bv = b[sort.field];
+            if (av == null && bv == null) return 0;
+            if (av == null) return mod;
+            if (bv == null) return -mod;
+            if (sort.field === 'created_at')
+                return (new Date(av) - new Date(bv)) * mod;
+            return String(av).localeCompare(String(bv), 'pt') * mod;
         });
-    }, [items, search]);
+    }, [items, search, sort]);
 
     const summary = useMemo(() => {
         return items.reduce(
@@ -539,6 +562,8 @@ export default function PublicEnrollmentsPage() {
                     checkedIds={checkedIds}
                     onToggleChecked={handleToggleChecked}
                     onToggleAllChecked={handleToggleAllChecked}
+                    sort={sort}
+                    onSort={handleSort}
                 />
             )}
 

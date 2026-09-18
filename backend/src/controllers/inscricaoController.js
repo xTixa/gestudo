@@ -151,6 +151,19 @@ function gerarNifPlaceholder() {
     return `EE${timestamp}${random}`;
 }
 
+// users.email é UNIQUE, mas é comum um encarregado preencher o próprio email
+// no campo "email do aluno" para mais do que um educando (o filho não tem
+// email próprio). Como alunos.id_user também é UNIQUE (1 conta = 1 aluno),
+// o email sozinho não pode ser usado para decidir se dois pedidos são a
+// mesma pessoa — usa-se o NIF para isso (validarInscricaoParaAprovacao /
+// integrarInscricaoAprovada). Quando o email já pertence à conta de um
+// irmão, gera-se um email de login exclusivo para esta nova conta.
+function gerarEmailPlaceholderAluno(idInscricao) {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `aluno.inscricao.${idInscricao || `${timestamp}${random}`}.${random}@placeholder.local`;
+}
+
 /**
  * Procura tabela em base de dados usando lista de nomes candidatos
  *
@@ -658,9 +671,30 @@ async function integrarInscricaoAprovada(inscricao) {
         const ccEncarregado =
             toNullableText(inscricao?.dados?.ee_cartao_cidadao) ||
             gerarCartaoCidadaoPlaceholder('EE');
+        const alunoNif = toNullableText(inscricao?.nif);
 
         if (!email) {
             throw new Error('A inscrição aprovada não contém email do aluno.');
+        }
+
+        // O NIF (obrigatório no formulário) identifica a pessoa de forma
+        // fiável entre pedidos; o email do campo "aluno" não pode ser usado
+        // para isso porque é comum o encarregado repeti-lo para vários
+        // educandos (ver gerarEmailPlaceholderAluno acima).
+        let idAlunoExistentePorNif = null;
+        if (alunoNif) {
+            const alunoPorNifResult = await client.query(
+                `
+                    SELECT a.id_aluno
+                    FROM alunos a
+                    INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                    WHERE p.nif = $1
+                    LIMIT 1
+                `,
+                [alunoNif]
+            );
+            idAlunoExistentePorNif =
+                alunoPorNifResult.rows[0]?.id_aluno || null;
         }
 
         let idUser = null;
@@ -677,9 +711,42 @@ async function integrarInscricaoAprovada(inscricao) {
             [email]
         );
 
+        let emailParaConta = email;
+        let contaEmailPartilhado = false;
+
         if (existingUserResult.rows.length > 0) {
-            idUser = existingUserResult.rows[0].id_user;
-        } else {
+            const idUserDoEmail = existingUserResult.rows[0].id_user;
+
+            const alunoDoEmailResult = await client.query(
+                `SELECT id_aluno FROM alunos WHERE id_user = $1 LIMIT 1`,
+                [idUserDoEmail]
+            );
+            const idAlunoDoEmail = alunoDoEmailResult.rows[0]?.id_aluno || null;
+
+            const mesmaPessoa =
+                idAlunoDoEmail != null &&
+                idAlunoDoEmail === idAlunoExistentePorNif;
+
+            if (idAlunoDoEmail == null || mesmaPessoa) {
+                // Conta sem aluno associado (ainda livre) ou é mesmo a
+                // mesma pessoa (mesmo NIF) — pode reutilizar-se a conta.
+                idUser = idUserDoEmail;
+            } else {
+                // O email já pertence à conta de outra pessoa (ex: um
+                // irmão). alunos.id_user é UNIQUE, por isso não se pode
+                // reaproveitar esta conta — cria-se uma conta nova com um
+                // email de login exclusivo para este aluno. Este aluno não
+                // recebe o email automático de credenciais (o placeholder
+                // não existe) — o gestor terá de definir/comunicar o acesso
+                // manualmente (ver `contaEmailPartilhado` no retorno).
+                emailParaConta = gerarEmailPlaceholderAluno(
+                    inscricao?.id_inscricao_publica
+                );
+                contaEmailPartilhado = true;
+            }
+        }
+
+        if (idUser == null) {
             temporaryPassword = gerarPasswordAleatoria();
             const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
@@ -689,7 +756,7 @@ async function integrarInscricaoAprovada(inscricao) {
                     VALUES ($1, $2, 'aluno', true, true)
                     RETURNING id_user
                 `,
-                [email, hashedPassword]
+                [emailParaConta, hashedPassword]
             );
 
             idUser = createdUserResult.rows[0].id_user;
@@ -753,17 +820,20 @@ async function integrarInscricaoAprovada(inscricao) {
 
             await client.query('COMMIT');
 
+            // Qualquer aprovação (reinscrição ou novo pedido para um aluno já
+            // existente) representa uma confirmação de matrícula para o ano
+            // letivo atual — sem isto, o aluno fica com `ano_letivo_renovacao`
+            // desatualizado e a plataforma trata-o como matrícula expirada
+            // (sem horários visíveis), mesmo tendo sido aprovado.
             let matriculaRenovada = false;
-            if (inscricao?.dados?.origem === 'reinscricao_aluno') {
-                const anoLetivoAtual = getAnoLetivo(new Date());
-                const resultadoRenovacao = await renovarMatricula(
-                    idAlunoExistente,
-                    anoLetivoAtual
-                );
-                if (resultadoRenovacao) {
-                    await ativarContaAluno(idAlunoExistente);
-                    matriculaRenovada = true;
-                }
+            const anoLetivoAtual = getAnoLetivo(new Date());
+            const resultadoRenovacao = await renovarMatricula(
+                idAlunoExistente,
+                anoLetivoAtual
+            );
+            if (resultadoRenovacao) {
+                await ativarContaAluno(idAlunoExistente);
+                matriculaRenovada = true;
             }
 
             return {
@@ -772,6 +842,7 @@ async function integrarInscricaoAprovada(inscricao) {
                 createdEncarregado: false,
                 temporaryPassword,
                 email,
+                contaEmailPartilhado: false,
                 nomeAluno,
                 guardianUserRole: null,
                 encarregadoEmail: null,
@@ -924,7 +995,6 @@ async function integrarInscricaoAprovada(inscricao) {
         }
 
         let idPessoaAluno = null;
-        const alunoNif = toNullableText(inscricao?.nif);
 
         if (alunoNif) {
             const pessoaAlunoExistente = await client.query(
@@ -971,7 +1041,7 @@ async function integrarInscricaoAprovada(inscricao) {
             inscricao?.dados?.plano
         );
 
-        await client.query(
+        const novoAlunoResult = await client.query(
             `
                 INSERT INTO alunos (
                     id_user, id_pessoa, id_encarregado, ano, turma, escola,
@@ -981,6 +1051,7 @@ async function integrarInscricaoAprovada(inscricao) {
                     disciplinas_pretendidas
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)
+                RETURNING id_aluno
             `,
             [
                 idUser,
@@ -1000,19 +1071,38 @@ async function integrarInscricaoAprovada(inscricao) {
             ]
         );
 
+        const idAlunoNovo = novoAlunoResult.rows[0]?.id_aluno;
+
         await client.query('COMMIT');
+
+        // renovarMatricula usa o pool (fora desta transação), por isso só
+        // pode correr depois do COMMIT — antes disso a linha do aluno ainda
+        // não está visível para essa conexão e o UPDATE não afetaria nada.
+        // A aprovação em si é a confirmação da matrícula: sem isto o aluno
+        // fica com `ano_letivo_renovacao` em falta e a plataforma trata-o
+        // como matrícula expirada (sem horários visíveis) desde o primeiro dia.
+        const anoLetivoAtual = getAnoLetivo(new Date());
+        if (idAlunoNovo) {
+            await renovarMatricula(idAlunoNovo, anoLetivoAtual);
+        }
 
         return {
             createdUser,
             createdAluno: true,
             createdEncarregado,
             temporaryPassword,
-            email,
+            // Quando a conta usa um email placeholder (irmão com o mesmo
+            // email de formulário), devolve-se o email de LOGIN real da
+            // conta, não o email submetido — para não se tentar enviar
+            // credenciais para um endereço que não pertence a esta conta.
+            email: contaEmailPartilhado ? emailParaConta : email,
+            contaEmailPartilhado,
             nomeAluno,
             guardianUserRole: guardianUserRoleUsed,
             encarregadoEmail: encarregadoEmailFinal,
             encarregadoTemporaryPassword,
             encarregadoUserCreated,
+            matriculaRenovada: Boolean(idAlunoNovo),
         };
     } catch (error) {
         await client.query('ROLLBACK');
@@ -1671,7 +1761,11 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
             validarInscricaoParaAprovacao(inscricao);
             integracao = await integrarInscricaoAprovada(inscricao);
 
-            if (integracao.createdUser && integracao.temporaryPassword) {
+            if (
+                integracao.createdUser &&
+                integracao.temporaryPassword &&
+                !integracao.contaEmailPartilhado
+            ) {
                 await enviarEmailCredenciaisIniciais(
                     integracao.nomeAluno,
                     integracao.email,
@@ -1730,10 +1824,19 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
             'alert'
         );
 
+        let message = integracao?.matriculaRenovada
+            ? 'Estado atualizado com sucesso. Matrícula renovada para o novo ano letivo.'
+            : 'Estado atualizado com sucesso.';
+
+        if (integracao?.contaEmailPartilhado) {
+            message +=
+                ' Atenção: o email indicado já pertence à conta de outro aluno (provavelmente um irmão), ' +
+                'por isso foi criada uma conta de acesso própria para este aluno, sem email de login definido. ' +
+                'Defina/comunique o acesso manualmente na ficha do aluno.';
+        }
+
         return res.status(200).json({
-            message: integracao?.matriculaRenovada
-                ? 'Estado atualizado com sucesso. Matrícula renovada para o novo ano letivo.'
-                : 'Estado atualizado com sucesso.',
+            message,
             inscricao: rows[0],
         });
     } catch (error) {
@@ -1789,24 +1892,27 @@ const CAMPOS_EDITAVEIS_INSCRICAO = [
  * Quando o gestor corrige um campo de uma inscrição pública que já foi aprovada
  * (já existe um aluno criado), propaga a correção para os registos reais do
  * aluno/encarregado, em vez de a correção ficar presa apenas na inscrição.
+ *
+ * A localização do aluno é feita por NIF, nunca por email: é comum o mesmo
+ * email (do encarregado) aparecer em inscrições de irmãos diferentes, e usar
+ * o email como chave já fez a edição de uma inscrição sobrescrever a ficha
+ * do aluno errado (ex: nome de um irmão gravado por cima do outro).
  */
-async function sincronizarAlunoComInscricaoPublica(emailAntesDaEdicao, inscricao) {
-    if (!emailAntesDaEdicao) {
-        return { synced: false };
-    }
-
-    const userResult = await db.query(
-        `SELECT id_user FROM users WHERE LOWER(email) = LOWER($1) AND role = 'aluno' LIMIT 1`,
-        [emailAntesDaEdicao]
-    );
-    const idUser = userResult.rows[0]?.id_user;
-    if (!idUser) {
+async function sincronizarAlunoComInscricaoPublica(nifAntesDaEdicao, inscricao) {
+    const nif = toNullableText(nifAntesDaEdicao);
+    if (!nif) {
         return { synced: false };
     }
 
     const alunoResult = await db.query(
-        `SELECT id_aluno, id_pessoa, id_encarregado FROM alunos WHERE id_user = $1 LIMIT 1`,
-        [idUser]
+        `
+            SELECT a.id_aluno, a.id_pessoa, a.id_encarregado, a.id_user
+            FROM alunos a
+            INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+            WHERE p.nif = $1
+            LIMIT 1
+        `,
+        [nif]
     );
     const aluno = alunoResult.rows[0];
     if (!aluno) {
@@ -1841,26 +1947,13 @@ async function sincronizarAlunoComInscricaoPublica(emailAntesDaEdicao, inscricao
         );
     }
 
-    let emailSincronizado = true;
-    if (
-        inscricao.email &&
-        inscricao.email.toLowerCase() !== String(emailAntesDaEdicao).toLowerCase()
-    ) {
-        try {
-            await db.query(`UPDATE users SET email = $1 WHERE id_user = $2`, [
-                inscricao.email,
-                idUser,
-            ]);
-        } catch (err) {
-            if (err?.code === '23505') {
-                emailSincronizado = false;
-            } else {
-                throw err;
-            }
-        }
-    }
+    // O email da conta não é sincronizado a partir daqui: se este aluno tem
+    // um email placeholder porque o email do formulário já pertence à conta
+    // de um irmão, sobrescrever traria de volta o mesmo conflito que gerou
+    // o placeholder. A gestão do email de login fica só a cargo do gestor,
+    // manualmente, na ficha do aluno.
 
-    return { synced: true, idUser, idAluno: aluno.id_aluno, emailSincronizado };
+    return { synced: true, idUser: aluno.id_user, idAluno: aluno.id_aluno };
 }
 
 /**
@@ -1878,10 +1971,14 @@ export async function atualizarCamposInscricaoPublica(req, res) {
             return res.status(400).json({ message: 'ID inválido.' });
         }
 
-        // Capturar o email atual antes de editar: é a chave usada para encontrar
+        // Capturar o NIF atual antes de editar: é a chave usada para encontrar
         // o aluno já criado (se a inscrição já tiver sido aprovada anteriormente).
+        // Não pode ser o email — é comum o mesmo email (do encarregado) estar
+        // em inscrições de irmãos diferentes, e usá-lo para localizar "o aluno
+        // deste pedido" já causou a ficha de um irmão ser sobrescrita com o
+        // nome/dados do outro.
         const existingResult = await db.query(
-            `SELECT email FROM public.inscricoes_publicas WHERE id_inscricao_publica = $1`,
+            `SELECT email, nif FROM public.inscricoes_publicas WHERE id_inscricao_publica = $1`,
             [id]
         );
         if (!existingResult.rows.length) {
@@ -1889,7 +1986,7 @@ export async function atualizarCamposInscricaoPublica(req, res) {
                 .status(404)
                 .json({ message: 'Inscrição não encontrada.' });
         }
-        const emailAntesDaEdicao = existingResult.rows[0].email;
+        const nifAntesDaEdicao = existingResult.rows[0].nif;
 
         const body = req.body || {};
         const setClauses = [];
@@ -1998,7 +2095,7 @@ export async function atualizarCamposInscricaoPublica(req, res) {
         let alunoSincronizado = null;
         try {
             alunoSincronizado = await sincronizarAlunoComInscricaoPublica(
-                emailAntesDaEdicao,
+                nifAntesDaEdicao,
                 rows[0]
             );
         } catch (syncError) {

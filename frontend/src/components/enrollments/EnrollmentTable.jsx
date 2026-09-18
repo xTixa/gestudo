@@ -1,6 +1,22 @@
 import PropTypes from 'prop-types';
-import { ChevronRight, FileSearch } from 'lucide-react';
+import {
+    ChevronDown,
+    ChevronRight,
+    ChevronsUpDown,
+    ChevronUp,
+    FileSearch,
+} from 'lucide-react';
 import EnrollmentStatusBadge from './EnrollmentStatusBadge';
+
+const SORTABLE_COLUMNS = [
+    { label: 'Data', field: 'created_at' },
+    { label: 'Aluno', field: 'nome_completo' },
+    { label: 'Contacto', field: 'email' },
+    { label: 'Plano', field: 'disciplina' },
+    { label: 'Encarregado', field: 'ee_nome' },
+    { label: 'Estado', field: 'estado' },
+    { label: '', field: null },
+];
 
 function formatDateTime(value) {
     if (!value) return '-';
@@ -24,6 +40,11 @@ EnrollmentTable.propTypes = {
     checkedIds: PropTypes.instanceOf(Set),
     onToggleChecked: PropTypes.func,
     onToggleAllChecked: PropTypes.func,
+    sort: PropTypes.shape({
+        field: PropTypes.string,
+        dir: PropTypes.oneOf(['asc', 'desc']),
+    }),
+    onSort: PropTypes.func,
 };
 
 export default function EnrollmentTable({
@@ -35,6 +56,8 @@ export default function EnrollmentTable({
     checkedIds,
     onToggleChecked,
     onToggleAllChecked,
+    sort,
+    onSort,
 }) {
     const allChecked =
         selectable && items.length > 0 && items.every((item) =>
@@ -67,20 +90,43 @@ export default function EnrollmentTable({
                                     />
                                 </th>
                             ) : null}
-                            {[
-                                'Data',
-                                'Aluno',
-                                'Contacto',
-                                'Plano',
-                                'Encarregado',
-                                'Estado',
-                                '',
-                            ].map((header) => (
+                            {SORTABLE_COLUMNS.map(({ label, field }) => (
                                 <th
-                                    key={header}
-                                    className="whitespace-nowrap border-b border-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600"
+                                    key={label || 'actions'}
+                                    className={`whitespace-nowrap border-b border-slate-100 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 ${
+                                        field
+                                            ? 'cursor-pointer select-none hover:text-slate-800'
+                                            : ''
+                                    }`}
+                                    onClick={
+                                        field ? () => onSort?.(field) : undefined
+                                    }
                                 >
-                                    {header}
+                                    {field ? (
+                                        <span className="flex items-center gap-1">
+                                            {label}
+                                            {sort?.field === field ? (
+                                                sort.dir === 'asc' ? (
+                                                    <ChevronUp
+                                                        size={13}
+                                                        className="shrink-0 text-indigo-500"
+                                                    />
+                                                ) : (
+                                                    <ChevronDown
+                                                        size={13}
+                                                        className="shrink-0 text-indigo-500"
+                                                    />
+                                                )
+                                            ) : (
+                                                <ChevronsUpDown
+                                                    size={13}
+                                                    className="shrink-0 opacity-30"
+                                                />
+                                            )}
+                                        </span>
+                                    ) : (
+                                        label
+                                    )}
                                 </th>
                             ))}
                         </tr>
