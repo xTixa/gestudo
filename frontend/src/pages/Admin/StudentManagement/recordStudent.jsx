@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
+import ContaCorrenteAluno from '../../../components/finance/ContaCorrenteAluno';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
 import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
 
@@ -1145,6 +1146,9 @@ export default function FichaAlunoPage() {
                     </div>
                 )}
             </div>
+
+            {/* Conta corrente (financeiro) */}
+            {alunoId ? <ContaCorrenteAluno idAluno={alunoId} /> : null}
 
             {/* Encarregado de Educação */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

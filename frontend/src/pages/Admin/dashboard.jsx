@@ -16,11 +16,13 @@ import {
     CheckCircle2,
     ChevronRight,
     MapPin,
+    Receipt,
 } from 'lucide-react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import KpiCard from '../../components/dashboard/KpiCard';
 import BarSeriesChart from '../../components/dashboard/BarSeriesChart';
 import { apiGet } from '../../utils/api';
+import { formatMoney } from '../../components/finance/financeFormat';
 
 const WEEKLY_SERIES = [
     { key: 'alunos', label: 'Inscrições ativas' },
@@ -235,6 +237,7 @@ export default function DashboardGestor() {
     const [sessions, setSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(true);
     const [sessionsError, setSessionsError] = useState('');
+    const [financeiro, setFinanceiro] = useState(null);
     const [expandedChart, setExpandedChart] = useState(null);
     const dialogRef = useRef(null);
     const userName = getStoredUserName();
@@ -339,7 +342,19 @@ export default function DashboardGestor() {
             }
         }
 
+        async function carregarFinanceiro() {
+            try {
+                const response = await apiGet('/api/gestor/financeiro/resumo');
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                if (isMounted) setFinanceiro(data);
+            } catch {
+                if (isMounted) setFinanceiro({});
+            }
+        }
+
         carregarResumo();
+        carregarFinanceiro();
         carregarGraficos();
         carregarSessoesHoje();
 
@@ -382,6 +397,18 @@ export default function DashboardGestor() {
             count: toCount(r.faltasPorResolver),
             tone: 'critical',
             path: '/gestor/presencas',
+        },
+        {
+            key: 'mensalidades',
+            icon: Receipt,
+            label: 'Mensalidades em atraso',
+            description:
+                financeiro?.vencido > 0
+                    ? `${formatMoney(financeiro.vencido)} por receber`
+                    : 'Mensalidades vencidas e não pagas',
+            count: financeiro ? toCount(financeiro.vencidas) : null,
+            tone: 'critical',
+            path: '/gestor/financeiro/mensalidades?mes=&estado=vencida',
         },
     ];
     const pendingTotal = attention.reduce((sum, item) => sum + (item.count || 0), 0);

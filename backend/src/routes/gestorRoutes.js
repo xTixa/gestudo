@@ -108,6 +108,7 @@ import { limparDadosEmMassa } from '../controllers/limpezaDadosController.js';
 import { notificarFalhaParcialLote } from '../controllers/notificacoesGestorController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
+import financeiroRoutes from './financeiroRoutes.js';
 import {
     validateBody,
     validateParams,
@@ -137,6 +138,9 @@ const router = express.Router();
 // Aplicar middlewares de autenticação e autorização a TODAS as rotas
 router.use(authMiddleware);
 router.use(roleMiddleware('gestor'));
+
+// Gestão financeira: mensalidades, pagamentos e conta corrente dos alunos.
+router.use('/financeiro', financeiroRoutes);
 
 // =============== DASHBOARD & AUDITORIA ===============
 

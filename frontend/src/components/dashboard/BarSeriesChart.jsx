@@ -12,7 +12,7 @@ import {
 // daltonismo em modo claro e escuro. A ordem é fixa: série 1, série 2.
 const SERIES_COLORS = ['var(--chart-series-1)', 'var(--chart-series-2)'];
 
-function ChartTooltip({ active, payload, label, series }) {
+function ChartTooltip({ active, payload, label, series, valueFormatter }) {
     if (!active || !payload?.length) {
         return null;
     }
@@ -32,7 +32,7 @@ function ChartTooltip({ active, payload, label, series }) {
                             />
                             <span>{item.label}</span>
                             <span className="ml-auto pl-4 font-medium tabular-nums text-slate-900">
-                                {entry?.value ?? 0}
+                                {valueFormatter ? valueFormatter(entry?.value ?? 0) : entry?.value ?? 0}
                             </span>
                         </li>
                     );
@@ -72,6 +72,8 @@ export default function BarSeriesChart({
     emptyText = 'Sem dados para mostrar.',
     caption,
     expanded = false,
+    valueFormatter,
+    tickFormatter,
 }) {
     const heightClass = expanded ? 'h-[min(65vh,34rem)]' : 'h-60';
 
@@ -141,7 +143,8 @@ export default function BarSeriesChart({
                             allowDecimals={false}
                             axisLine={false}
                             tickLine={false}
-                            width={48}
+                            width={tickFormatter ? 64 : 48}
+                            tickFormatter={tickFormatter}
                             tick={{
                                 fill: 'var(--chart-axis)',
                                 fontSize: 12,
@@ -150,7 +153,7 @@ export default function BarSeriesChart({
                         />
                         <Tooltip
                             cursor={{ fill: 'rgb(148 163 184 / 0.12)' }}
-                            content={<ChartTooltip series={series} />}
+                            content={<ChartTooltip series={series} valueFormatter={valueFormatter} />}
                         />
                         {series.map((item, index) => (
                             <Bar
@@ -183,7 +186,7 @@ export default function BarSeriesChart({
                         <tr key={row[xKey]}>
                             <th scope="row">{row[xKey]}</th>
                             {series.map((item) => (
-                                <td key={item.key}>{row[item.key] ?? 0}</td>
+                                <td key={item.key}>{valueFormatter ? valueFormatter(row[item.key] ?? 0) : row[item.key] ?? 0}</td>
                             ))}
                         </tr>
                     ))}

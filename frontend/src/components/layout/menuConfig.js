@@ -18,11 +18,18 @@ import {
     BarChart3,
     ClipboardEdit,
     ListChecks,
+    Wallet,
+    Receipt,
+    Banknote,
 } from 'lucide-react';
 
-export function isPathActive(currentPath, itemPath) {
+export function isPathActive(currentPath, itemPath, exact = false) {
     if (!itemPath) {
         return false;
+    }
+
+    if (exact) {
+        return currentPath === itemPath;
     }
 
     return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
@@ -58,6 +65,14 @@ export const menuByRole = {
             items: [
                 { key: 'inscricoes-publicas', label: 'Inscrições públicas', path: '/gestor/inscricoes-publicas', icon: Inbox },
                 { key: 'renovacoes', label: 'Renovações', path: '/gestor/renovacoes', icon: RefreshCcw },
+            ],
+        },
+        {
+            title: 'Financeiro',
+            items: [
+                { key: 'financeiro', label: 'Visão geral', path: '/gestor/financeiro', icon: Wallet, exact: true },
+                { key: 'mensalidades', label: 'Mensalidades', path: '/gestor/financeiro/mensalidades', icon: Receipt },
+                { key: 'pagamentos', label: 'Pagamentos', path: '/gestor/financeiro/pagamentos', icon: Banknote },
             ],
         },
         {
@@ -135,7 +150,7 @@ export function getMenuTrail(role, currentPath) {
     groups.forEach((group) => {
         group.items.forEach((item) => {
             if (
-                isPathActive(currentPath, item.path) &&
+                isPathActive(currentPath, item.path, item.exact) &&
                 (!best || item.path.length > best.item.path.length)
             ) {
                 best = { group: group.title || null, item };

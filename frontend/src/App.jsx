@@ -20,6 +20,9 @@ import NotificationsPage from './pages/Admin/notifications';
 import SettingsPage from './pages/Admin/settings';
 import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
 import RenewalsPage from './pages/Admin/renewals';
+import FinanceOverview from './pages/Admin/Finance/FinanceOverview';
+import MensalidadesPage from './pages/Admin/Finance/Mensalidades';
+import PagamentosPage from './pages/Admin/Finance/Pagamentos';
 import AgendaPage from './pages/Admin/agenda';
 import PresencasGestorPage from './pages/Admin/presences';
 import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
@@ -122,6 +125,15 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/renovacoes"
                         element={<RenewalsPage />}
+                    />
+                    <Route path="/gestor/financeiro" element={<FinanceOverview />} />
+                    <Route
+                        path="/gestor/financeiro/mensalidades"
+                        element={<MensalidadesPage />}
+                    />
+                    <Route
+                        path="/gestor/financeiro/pagamentos"
+                        element={<PagamentosPage />}
                     />
                     <Route path="/gestor/alertas" element={<AlertsPage />} />
                     <Route

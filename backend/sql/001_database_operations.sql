@@ -79,8 +79,14 @@ BEGIN
     END IF;
 
     IF left(v_raw, 1) = '[' THEN
+        -- Aceita ["segunda", ...] e também o formato de sessões gravado pelo
+        -- frontend: [{"dia": "segunda", "horaInicio": ...}, ...].
         FOR v_item IN
-            SELECT jsonb_array_elements_text(v_raw::jsonb)
+            SELECT CASE
+                       WHEN jsonb_typeof(elem) = 'object' THEN elem->>'dia'
+                       ELSE elem #>> '{}'
+                   END
+            FROM jsonb_array_elements(v_raw::jsonb) AS elem
         LOOP
             IF public.fn_normalize_weekday_token(v_item) IS NOT NULL THEN
                 v_output := array_append(v_output, public.fn_normalize_weekday_token(v_item));

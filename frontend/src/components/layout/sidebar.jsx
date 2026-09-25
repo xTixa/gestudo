@@ -147,7 +147,7 @@ export default function Sidebar({
                             <ul className="space-y-0.5">
                                 {group.items.map((item) => {
                                     const Icon = item.icon;
-                                    const active = isPathActive(currentPath, item.path);
+                                    const active = isPathActive(currentPath, item.path, item.exact);
 
                                     return (
                                         <li key={item.key}>

@@ -1089,35 +1089,28 @@ export async function resolveTipoServicoId(
  * @param {number} modalidadeId - ID da modalidade
  * @returns {Object|null} Objecto com {id_pacote, preco}
  */
+/**
+ * Encontra o pacote (e portanto o preço) de uma disciplina/modalidade.
+ * Um pacote sem modalidade aplica-se a todas as modalidades da disciplina;
+ * se existir um pacote para a modalidade exata, esse tem prioridade.
+ * Sem pacote correspondente devolve null — nunca usa o pacote de outra
+ * disciplina, porque o preço seria cobrado nas mensalidades.
+ */
 export async function resolvePacote(client, disciplinaId, modalidadeId) {
-    const byMatch = await client.query(
+    const { rows } = await client.query(
         `
 			SELECT id_pacote, preco
 			FROM pacotes
 			WHERE COALESCE(ativo, true) = true
 			  AND id_disciplina = $1
-			  AND id_modalidade = $2
-			ORDER BY id_pacote
+			  AND (id_modalidade = $2 OR id_modalidade IS NULL)
+			ORDER BY (id_modalidade IS NULL), id_pacote
 			LIMIT 1
 		`,
         [disciplinaId, modalidadeId]
     );
 
-    if (byMatch.rows.length) {
-        return byMatch.rows[0];
-    }
-
-    const fallback = await client.query(
-        `
-			SELECT id_pacote, preco
-			FROM pacotes
-			WHERE COALESCE(ativo, true) = true
-			ORDER BY id_pacote
-			LIMIT 1
-		`
-    );
-
-    return fallback.rows[0] || null;
+    return rows[0] || null;
 }
 
 export async function resolveInscricoesServicoColumn(client) {

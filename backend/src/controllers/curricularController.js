@@ -475,9 +475,12 @@ export async function criarServicoCurricular(req, res) {
                 Number(modalidadeId)
             );
             if (!pacote) {
-                throw new Error(
-                    'Não existe pacote ativo para associar inscrições dos alunos.'
+                const error = new Error(
+                    'Não existe nenhum pacote ativo para esta disciplina/modalidade. Crie o pacote (com o preço) em Catálogo › Pacotes antes de associar alunos.'
                 );
+                error.code = 'PACOTE_NAO_ENCONTRADO';
+                error.statusCode = 400;
+                throw error;
             }
 
             const inscricoesServicoColumn =
