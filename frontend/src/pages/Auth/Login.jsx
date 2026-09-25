@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/img/gestudo-logo.jpg';
 
-const API_URL = import.meta.env.VITE_API_URL; /*|| 'http://localhost:5000'*/
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const LOGIN_EMAIL_KEY = 'mc_login_email';
 
 export default function Login({ onLogin }) {
