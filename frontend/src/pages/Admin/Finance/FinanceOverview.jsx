@@ -128,6 +128,47 @@ export default function FinanceOverview() {
                 />
             </div>
 
+            {/* Resultado do mês: recebido − custos com professores */}
+            <section className={`${cardClass} px-5 py-4`}>
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold text-slate-900">Resultado do mês</h2>
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/gestor/financeiro/professores?mes=${mes}`)}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900"
+                    >
+                        Custos com professores
+                        <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                </div>
+                {loading ? (
+                    <span className="mt-3 block h-7 w-64 animate-pulse rounded bg-slate-100" />
+                ) : (
+                    <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+                        <div>
+                            <dt className="text-xs text-slate-500">Recebido</dt>
+                            <dd className="text-lg font-semibold tabular-nums text-slate-900">{formatMoney(r.recebidoMes)}</dd>
+                        </div>
+                        <span className="hidden text-lg text-slate-300 sm:block" aria-hidden="true">−</span>
+                        <div>
+                            <dt className="text-xs text-slate-500">Custos com professores</dt>
+                            <dd className="text-lg font-semibold tabular-nums text-slate-900">{formatMoney(r.custoProfessores?.total)}</dd>
+                            <dd className="text-xs text-slate-500">
+                                {formatMoney(r.custoProfessores?.pago)} pago
+                                {r.custoProfessores?.emAberto > 0 ? ` · ${formatMoney(r.custoProfessores.emAberto)} estimado (mês por fechar)` : ''}
+                            </dd>
+                        </div>
+                        <span className="hidden text-lg text-slate-300 sm:block" aria-hidden="true">=</span>
+                        <div>
+                            <dt className="text-xs text-slate-500">Resultado</dt>
+                            <dd className={`text-lg font-semibold tabular-nums ${r.resultadoMes < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                                {formatMoney(r.resultadoMes)}
+                            </dd>
+                        </div>
+                    </dl>
+                )}
+            </section>
+
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
                 <section className={`${cardClass} lg:col-span-3`}>
                     <header className="border-b border-slate-100 px-5 py-4">

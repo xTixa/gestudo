@@ -14,6 +14,15 @@ import {
     registarPagamento,
 } from '../controllers/financeiroController.js';
 import {
+    anularFechoProfessor,
+    fecharMes,
+    guardarTarifa,
+    listarCustosProfessores,
+    listarTarifas,
+    marcarPagoProfessor,
+    obterDetalheProfessor,
+} from '../controllers/custosProfessoresController.js';
+import {
     validateBody,
     validateParams,
 } from '../middlewares/validationMiddleware.js';
@@ -68,6 +77,29 @@ router.post(
 
 router.get('/pagamentos', listarPagamentos);
 router.post('/pagamentos/:id/anular', validateParams({ id: 'number' }), validateBody(motivoSchema), anularPagamento);
+
+// Custos com professores (a rota /professores/tarifas tem de vir antes de /professores/:id)
+router.get('/professores/tarifas', listarTarifas);
+router.patch(
+    '/professores/tarifas',
+    validateBody({ id_modalidade: { type: 'number', required: true } }),
+    guardarTarifa
+);
+router.get('/professores', listarCustosProfessores);
+router.post('/professores/fechar', validateBody({ mes: { type: 'string', required: true } }), fecharMes);
+router.post(
+    '/professores/pagamentos/:id/pagar',
+    validateParams({ id: 'number' }),
+    validateBody({
+        data_pagamento: { type: 'string', required: true },
+        metodo: { type: 'string', required: true },
+        referencia: { type: 'string', required: false, max: 120 },
+        observacoes: { type: 'string', required: false, max: 1000 },
+    }),
+    marcarPagoProfessor
+);
+router.post('/professores/pagamentos/:id/anular', validateParams({ id: 'number' }), validateBody(motivoSchema), anularFechoProfessor);
+router.get('/professores/:id', validateParams({ id: 'number' }), obterDetalheProfessor);
 
 router.get('/alunos/:id/conta-corrente', validateParams({ id: 'number' }), obterContaCorrenteAluno);
 

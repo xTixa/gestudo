@@ -1,4 +1,12 @@
 import { db } from '../config/db.js';
+import {
+    METODOS_PAGAMENTO,
+    isISODate,
+    parseMes,
+    toMoney,
+    todayISO,
+} from '../services/financeUtils.js';
+import { calcularCustoProfessoresMes } from './custosProfessoresController.js';
 
 /**
  * ========================================
@@ -12,15 +20,6 @@ import { db } from '../config/db.js';
  * ========================================
  */
 
-const METODOS_PAGAMENTO = new Set([
-    'numerario',
-    'transferencia',
-    'mbway',
-    'multibanco',
-    'cartao',
-    'outro',
-]);
-
 const ESTADOS_MENSALIDADE = new Set([
     'pendente',
     'parcial',
@@ -30,30 +29,6 @@ const ESTADOS_MENSALIDADE = new Set([
 ]);
 
 // ---------- utilitários ----------
-
-function toMoney(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
-}
-
-function parseMes(value) {
-    const match = /^(\d{4})-(\d{2})$/.exec(String(value || '').trim());
-    if (!match) return null;
-    const month = Number(match[2]);
-    if (month < 1 || month > 12) return null;
-    return `${match[1]}-${match[2]}-01`;
-}
-
-function isISODate(value) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false;
-    const date = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
-}
-
-function todayISO() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
 
 function badRequest(res, message) {
     return res.status(400).json({ message });
@@ -886,7 +861,7 @@ export async function obterResumoFinanceiro(req, res) {
     if (!mesReferencia) return badRequest(res, 'Mês inválido (formato AAAA-MM).');
 
     try {
-        const [mesResult, dividaResult, serieResult, atrasoResult] = await Promise.all([
+        const [mesResult, dividaResult, serieResult, atrasoResult, custoProfessores] = await Promise.all([
             db.query(
                 `SELECT
                     COALESCE(SUM(valor_total) FILTER (WHERE NOT anulada), 0) AS faturado,
@@ -930,6 +905,7 @@ export async function obterResumoFinanceiro(req, res) {
                  ORDER BY v.data_vencimento ASC, v.valor_em_divida DESC
                  LIMIT 8`
             ),
+            calcularCustoProfessoresMes(db, mesReferencia),
         ]);
 
         const mes = mesResult.rows[0] || {};
@@ -950,6 +926,8 @@ export async function obterResumoFinanceiro(req, res) {
                 recebido: toMoney(r.recebido),
             })),
             emAtraso: atrasoResult.rows.map(mapMensalidadeRow),
+            custoProfessores,
+            resultadoMes: toMoney(toMoney(mes.recebido) - custoProfessores.total),
         });
     } catch (error) {
         console.error('[financeiro] obterResumoFinanceiro:', error.message);

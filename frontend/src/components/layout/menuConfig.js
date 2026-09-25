@@ -21,6 +21,7 @@ import {
     Wallet,
     Receipt,
     Banknote,
+    HandCoins,
 } from 'lucide-react';
 
 export function isPathActive(currentPath, itemPath, exact = false) {
@@ -73,6 +74,7 @@ export const menuByRole = {
                 { key: 'financeiro', label: 'Visão geral', path: '/gestor/financeiro', icon: Wallet, exact: true },
                 { key: 'mensalidades', label: 'Mensalidades', path: '/gestor/financeiro/mensalidades', icon: Receipt },
                 { key: 'pagamentos', label: 'Pagamentos', path: '/gestor/financeiro/pagamentos', icon: Banknote },
+                { key: 'custos-professores', label: 'Professores', path: '/gestor/financeiro/professores', icon: HandCoins },
             ],
         },
         {

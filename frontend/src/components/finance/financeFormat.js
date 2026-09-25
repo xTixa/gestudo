@@ -71,3 +71,12 @@ export const ESTADO_OPTIONS = [
     { value: 'anulada', label: 'Anuladas' },
 ];
 
+
+/** 90 -> "1h30", 60 -> "1h", 45 -> "45 min" */
+export function formatHoras(minutos) {
+    const total = Math.round(Number(minutos) || 0);
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    if (h === 0) return `${m} min`;
+    return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+}

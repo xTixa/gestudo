@@ -23,6 +23,7 @@ import RenewalsPage from './pages/Admin/renewals';
 import FinanceOverview from './pages/Admin/Finance/FinanceOverview';
 import MensalidadesPage from './pages/Admin/Finance/Mensalidades';
 import PagamentosPage from './pages/Admin/Finance/Pagamentos';
+import CustosProfessoresPage from './pages/Admin/Finance/CustosProfessores';
 import AgendaPage from './pages/Admin/agenda';
 import PresencasGestorPage from './pages/Admin/presences';
 import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
@@ -134,6 +135,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/financeiro/pagamentos"
                         element={<PagamentosPage />}
+                    />
+                    <Route
+                        path="/gestor/financeiro/professores"
+                        element={<CustosProfessoresPage />}
                     />
                     <Route path="/gestor/alertas" element={<AlertsPage />} />
                     <Route
