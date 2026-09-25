@@ -10,7 +10,7 @@ import {
     ExternalLink,
     Loader,
 } from 'lucide-react';
-import logo from '../../assets/img/Asset-31.svg';
+import logo from '../../assets/img/gestudo-logo.jpg';
 import { apiFetch } from '../../utils/api';
 import { listarEventos, marcarAlertalido } from '../../utils/api';
 import defaultAvatar from '../../assets/img/default-avatar.svg';

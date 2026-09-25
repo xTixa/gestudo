@@ -419,7 +419,7 @@ export default function UpdatePerfilAlunoPage() {
 
     const avatarSrc = previewUrl || form.imagem_perfil_url || defaultAvatar;
     const fieldClass =
-        'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#14ad81] focus:ring-4 focus:ring-[#d1f3ea]';
+        'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#06b6d4] focus:ring-4 focus:ring-[#cffafe]';
     const sectionClass =
         'rounded-xl border border-slate-200 bg-white p-4 sm:p-5';
 
@@ -476,7 +476,7 @@ export default function UpdatePerfilAlunoPage() {
                         />
                     </div>
 
-                    <label className="inline-flex w-fit cursor-pointer items-center justify-center rounded-full bg-[#14ad81] px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-[#0f8d69]">
+                    <label className="inline-flex w-fit cursor-pointer items-center justify-center rounded-full bg-[#06b6d4] px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-[#0891b2]">
                         Carregar Foto
                         <input
                             type="file"
@@ -807,7 +807,7 @@ export default function UpdatePerfilAlunoPage() {
                             <button
                                 type="button"
                                 onClick={copyStudentAddressToGuardian}
-                                className="text-sm font-medium text-[#14ad81] hover:text-[#0f8d69]"
+                                className="text-sm font-medium text-[#06b6d4] hover:text-[#0891b2]"
                             >
                                 Copiar morada do aluno
                             </button>
@@ -909,7 +909,7 @@ export default function UpdatePerfilAlunoPage() {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14ad81] px-8 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0f8d69] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#06b6d4] px-8 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0891b2] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Save size={16} />
                             {submitting ? 'A guardar...' : 'Guardar'}

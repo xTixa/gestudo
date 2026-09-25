@@ -889,7 +889,7 @@ export default function GestaoCurricularPage() {
                     <button
                         type="button"
                         onClick={openModal}
-                        className="inline-flex items-center gap-2 rounded-md bg-[#14ad81] px-4 py-2 text-sm font-medium text-white hover:brightness-95"
+                        className="inline-flex items-center gap-2 rounded-md bg-[#06b6d4] px-4 py-2 text-sm font-medium text-white hover:brightness-95"
                     >
                         <Plus size={14} />
                         Novo Serviço
@@ -1043,7 +1043,7 @@ export default function GestaoCurricularPage() {
                     >
                         <div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5 text-white sm:px-8">
                             <div className="pointer-events-none absolute -right-12 -top-10 h-40 w-40 rounded-full bg-cyan-300/20 blur-2xl" />
-                            <div className="pointer-events-none absolute -left-10 -bottom-14 h-40 w-40 rounded-full bg-[#14ad81]/20 blur-2xl" />
+                            <div className="pointer-events-none absolute -left-10 -bottom-14 h-40 w-40 rounded-full bg-[#06b6d4]/20 blur-2xl" />
                             <div className="relative flex items-start justify-between gap-4">
                                 <div>
                                     <h3 className="mt-1 text-2xl font-semibold">
@@ -1472,7 +1472,7 @@ export default function GestaoCurricularPage() {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="rounded-xl bg-[#14ad81] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#14ad81]"
+                                className="rounded-xl bg-[#06b6d4] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#06b6d4]"
                             >
                                 {submitting
                                     ? editingServiceId

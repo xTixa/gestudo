@@ -270,7 +270,7 @@ export default function DashboardAlunoPage() {
                                     className="flex items-center justify-between gap-3 rounded-xl bg-slate-100 px-4 py-3"
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
-                                        <span className="inline-flex rounded-lg bg-[#14ad81] px-2.5 py-1 text-sm font-medium text-emerald-700">
+                                        <span className="inline-flex rounded-lg bg-[#06b6d4] px-2.5 py-1 text-sm font-medium text-emerald-700">
                                             {session.time}
                                         </span>
                                         <div className="min-w-0">

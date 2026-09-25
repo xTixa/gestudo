@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { apiPost } from '../../utils/api';
-import logo from '../../assets/img/Asset-31.svg';
+import logo from '../../assets/img/gestudo-logo.jpg';
 
 export default function AlterarPasswordObrigatorio() {
     const navigate = useNavigate();
@@ -94,10 +94,10 @@ export default function AlterarPasswordObrigatorio() {
     }
 
     return (
-        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#63738c]">
+        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#64748b]">
             <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center">
-                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#1c293d]/15 backdrop-blur md:grid-cols-2">
-                    <div className="hidden bg-[linear-gradient(160deg,#1c293d_0%,#1e3a5f_58%,#14ad81_150%)] p-10 text-white md:flex md:items-center md:justify-center">
+                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#0f172a]/15 backdrop-blur md:grid-cols-2">
+                    <div className="hidden bg-[linear-gradient(160deg,#0f172a_0%,#1e293b_58%,#06b6d4_150%)] p-10 text-white md:flex md:items-center md:justify-center">
                         <div className="max-w-sm">
                             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
                                 Segurança de Conta
@@ -126,13 +126,13 @@ export default function AlterarPasswordObrigatorio() {
                         <div className="mb-8 text-center md:text-left">
                             <img
                                 src={logo}
-                                alt="Bloco de Notas"
+                                alt="Gestudo"
                                 className="mx-auto mb-4 h-16 object-contain md:mx-0"
                             />
-                            <h1 className="text-2xl font-bold text-[#1e3a5f]">
+                            <h1 className="text-2xl font-bold text-[#1e293b]">
                                 Alterar palavra-passe
                             </h1>
-                            <p className="mt-1 text-sm text-[#63738c]">
+                            <p className="mt-1 text-sm text-[#64748b]">
                                 Defina uma nova palavra-passe para concluir o
                                 primeiro acesso
                             </p>
@@ -140,7 +140,7 @@ export default function AlterarPasswordObrigatorio() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
                                     Password Atual
                                 </label>
                                 <div className="relative">
@@ -153,7 +153,7 @@ export default function AlterarPasswordObrigatorio() {
                                             setPasswordAtual(e.target.value)
                                         }
                                         placeholder="Digite a password temporária"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -162,7 +162,7 @@ export default function AlterarPasswordObrigatorio() {
                                         onClick={() =>
                                             setShowPassword(!showPassword)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
                                         aria-label="Mostrar ou ocultar password atual"
                                     >
                                         {showPassword ? (
@@ -175,7 +175,7 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
                                     Nova Password
                                 </label>
                                 <div className="relative">
@@ -190,7 +190,7 @@ export default function AlterarPasswordObrigatorio() {
                                             setPasswordNova(e.target.value)
                                         }
                                         placeholder="Mínimo 8 caracteres"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -201,7 +201,7 @@ export default function AlterarPasswordObrigatorio() {
                                                 !showPasswordNova
                                             )
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
                                         aria-label="Mostrar ou ocultar nova password"
                                     >
                                         {showPasswordNova ? (
@@ -214,7 +214,7 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]">
+                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
                                     Confirmar Nova Password
                                 </label>
                                 <div className="relative">
@@ -231,7 +231,7 @@ export default function AlterarPasswordObrigatorio() {
                                             )
                                         }
                                         placeholder="Repita a nova password"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
                                         disabled={loading}
                                         required
                                     />
@@ -242,7 +242,7 @@ export default function AlterarPasswordObrigatorio() {
                                                 !showPasswordNovaConfirm
                                             )
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#63738c] transition hover:text-[#1e3a5f]"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
                                         aria-label="Mostrar ou ocultar confirmação da nova password"
                                     >
                                         {showPasswordNovaConfirm ? (
@@ -257,7 +257,7 @@ export default function AlterarPasswordObrigatorio() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex w-full items-center justify-center rounded-xl bg-[#1e3a5f] py-3.5 font-bold text-white shadow-lg shadow-[#1c293d]/20 transition hover:bg-[#1c293d] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex w-full items-center justify-center rounded-xl bg-[#1e293b] py-3.5 font-bold text-white shadow-lg shadow-[#0f172a]/20 transition hover:bg-[#0f172a] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {loading
                                     ? 'A processar...'
@@ -282,8 +282,8 @@ export default function AlterarPasswordObrigatorio() {
                             </div>
                         )}
 
-                        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f2f1ef] p-4">
-                            <p className="text-xs text-[#63738c]">
+                        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f8fafc] p-4">
+                            <p className="text-xs text-[#64748b]">
                                 Dica de segurança: evite reutilizar passwords de
                                 outros serviços.
                             </p>

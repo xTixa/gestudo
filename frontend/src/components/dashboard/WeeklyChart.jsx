@@ -45,12 +45,12 @@ export default function WeeklyChart({
                     <Bar
                         dataKey="alunos"
                         name="Inscrições ativas"
-                        fill="#14ad81"
+                        fill="#06b6d4"
                     />
                     <Bar
                         dataKey="sessoes"
                         name="Serviços ativos"
-                        fill="#1e3a5f"
+                        fill="#1e293b"
                     />
                 </BarChart>
             </ResponsiveContainer>

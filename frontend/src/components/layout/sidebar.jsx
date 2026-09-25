@@ -444,7 +444,7 @@ export default function Sidebar({
 													rounded-lg ${itemPaddingClass} text-sm transition
 													${
                                                         isChildCurrent
-                                                            ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
+                                                            ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
                                                             : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
                                                     }
 												`}
@@ -468,7 +468,7 @@ export default function Sidebar({
 										rounded-lg ${itemPaddingClass} text-sm transition
 										${
                                             isActive || isChildActive
-                                                ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
+                                                ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
                                                 : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
                                         }
 									`}
@@ -534,7 +534,7 @@ export default function Sidebar({
                                                         }
                                                         className={`w-full rounded-md ${childPaddingClass} text-left text-sm transition ${
                                                             isChildCurrent
-                                                                ? 'bg-[#14ad81] text-[#1c293d] font-semibold'
+                                                                ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
                                                                 : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
                                                         }`}
                                                     >

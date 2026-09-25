@@ -203,7 +203,7 @@ export default function DashboardGestor() {
             <AdminPageHeader
                 eyebrow="Painel do gestor"
                 title="Dashboard"
-                subtitle="Visão geral do Centro Bloco de Notas"
+                subtitle="Visão geral do Centro Gestudo"
                 icon={BarChart3}
             />
 

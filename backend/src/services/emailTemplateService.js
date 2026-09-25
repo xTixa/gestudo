@@ -6,7 +6,7 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         name: 'Credenciais iniciais',
         description:
             'Email enviado quando uma conta e criada ou quando e gerada uma password temporaria.',
-        subject: 'Bem-vindo ao Bloco de Notas - Password temporaria',
+        subject: 'Bem-vindo ao Gestudo - Password temporaria',
         title: 'Bem-vindo ao portal',
         introText: 'Ola {nome},',
         bodyText:
@@ -28,7 +28,7 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         bodyText: '{descricao}',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
-        buttonLabel: 'Abrir no MediaCenter',
+        buttonLabel: 'Abrir no Gestudo',
         allowedVariables: ['nome', 'titulo', 'descricao', 'link', 'app_url'],
         requiredVariables: ['titulo', 'descricao'],
     },
@@ -96,7 +96,7 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         title: 'Conta criada para o seu educando',
         introText: 'Caro(a) Encarregado(a) de Educacao,',
         bodyText:
-            'Foi criada uma conta no MediaCenter para o seu educando {nome}.\n\nPassword temporaria de primeiro acesso: {password_temporaria}\n\nNo primeiro login, o aluno sera obrigado a definir uma nova password. Sera notificado(a) quando essa alteracao for efetuada.',
+            'Foi criada uma conta no Gestudo para o seu educando {nome}.\n\nPassword temporaria de primeiro acesso: {password_temporaria}\n\nNo primeiro login, o aluno sera obrigado a definir uma nova password. Sera notificado(a) quando essa alteracao for efetuada.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
         buttonLabel: 'Aceder a plataforma',
@@ -108,11 +108,11 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         name: 'Password atualizada - Aluno',
         description:
             'Email enviado ao aluno apos definir a sua nova password no primeiro login.',
-        subject: 'Password atualizada - Acesso ao MediaCenter',
+        subject: 'Password atualizada - Acesso ao Gestudo',
         title: 'A tua password foi definida com sucesso',
         introText: 'Ola {nome},',
         bodyText:
-            'A tua password de acesso ao MediaCenter foi alterada com sucesso.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconheces esta alteracao, contacta o gestor do centro de imediato.',
+            'A tua password de acesso ao Gestudo foi alterada com sucesso.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconheces esta alteracao, contacta o gestor do centro de imediato.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
         buttonLabel: 'Entrar na plataforma',
@@ -128,7 +128,7 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         title: 'O seu educando atualizou a password de acesso',
         introText: 'Caro(a) Encarregado(a) de Educacao,',
         bodyText:
-            'O seu educando {nome} alterou a password de acesso ao MediaCenter.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconhece esta alteracao, contacte o gestor do centro de imediato.',
+            'O seu educando {nome} alterou a password de acesso ao Gestudo.\n\nPor motivos de seguranca, nao enviamos a nova password por email. Se nao reconhece esta alteracao, contacte o gestor do centro de imediato.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
         buttonLabel: 'Aceder a plataforma',
@@ -140,7 +140,7 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         name: 'Recuperacao de password',
         description:
             'Email enviado ao utilizador quando solicita a recuperacao da sua password.',
-        subject: 'Recuperacao de password - Acesso temporario ao MediaCenter',
+        subject: 'Recuperacao de password - Acesso temporario ao Gestudo',
         title: 'Recuperacao de password',
         introText: 'Ola {nome},',
         bodyText:

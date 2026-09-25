@@ -292,7 +292,7 @@ export default function DataCleanupSettings() {
                                     ? 'border-red-300 focus:ring-red-400/40'
                                     : confirmacaoValida
                                     ? 'border-green-400 focus:ring-green-400/40'
-                                    : 'border-slate-300 focus:ring-[#14ad81]/40'
+                                    : 'border-slate-300 focus:ring-[#06b6d4]/40'
                             }`}
                             autoComplete="off"
                             spellCheck={false}

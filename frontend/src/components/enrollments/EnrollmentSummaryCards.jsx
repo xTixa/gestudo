@@ -14,7 +14,7 @@ export default function EnrollmentSummaryCards({ summary }) {
             bg: 'bg-emerald-50',
             border: 'border-emerald-200',
             color: 'text-emerald-900',
-            dotColor: 'bg-[#14ad81]',
+            dotColor: 'bg-[#06b6d4]',
         },
         {
             label: 'Rejeitadas',

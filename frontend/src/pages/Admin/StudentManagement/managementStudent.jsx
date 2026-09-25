@@ -1243,7 +1243,7 @@ export default function GestaoAlunos() {
                         <button
                             type="button"
                             onClick={() => navigate('/gestor/alunos/addAluno')}
-                            className="flex items-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2 text-sm text-white hover:bg-[#0f8d69]"
+                            className="flex items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm text-white hover:bg-[#0891b2]"
                         >
                             <Plus size={16} />
                             Novo Aluno

@@ -11,7 +11,7 @@ const SAMPLE_VARIABLES = {
     email: 'maria@example.com',
     password_temporaria: 'Temp1234!',
     titulo: 'Aviso importante',
-    descricao: 'Existe uma nova informacao disponivel no MediaCenter.',
+    descricao: 'Existe uma nova informacao disponivel no Gestudo.',
     link: 'http://localhost:5173',
     app_url: 'http://localhost:5173',
     titulo_sessao: 'Portugues - Individual',

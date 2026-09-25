@@ -209,7 +209,7 @@ export default function TipoServicoPage() {
                         onClick={() => setMode(key)}
                         className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                             mode === key
-                                ? 'bg-[#14ad81] text-white shadow-sm'
+                                ? 'bg-[#06b6d4] text-white shadow-sm'
                                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                         }`}
                     >
@@ -230,7 +230,7 @@ export default function TipoServicoPage() {
                 <button
                     type="button"
                     onClick={abrirCriacao}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#0f8d69]"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#0891b2]"
                 >
                     <Plus size={16} />
                     Inserir Tipo de Serviço {config.label}
@@ -287,7 +287,7 @@ export default function TipoServicoPage() {
                                             nome: event.target.value,
                                         }))
                                     }
-                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#14ad81] focus:ring-2 focus:ring-[#d1f3ea]"
+                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#06b6d4] focus:ring-2 focus:ring-[#cffafe]"
                                     placeholder={config.placeholder}
                                 />
                             </label>
@@ -305,7 +305,7 @@ export default function TipoServicoPage() {
                                         }))
                                     }
                                     rows={5}
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#14ad81] focus:ring-2 focus:ring-[#d1f3ea] resize-none"
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#06b6d4] focus:ring-2 focus:ring-[#cffafe] resize-none"
                                     placeholder="Breve descrição do tipo de serviço"
                                 />
                             </label>
@@ -328,7 +328,7 @@ export default function TipoServicoPage() {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="rounded-xl bg-[#14ad81] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0f8d69] disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-xl bg-[#06b6d4] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0891b2] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {submitting
                                     ? 'A guardar...'

@@ -48,7 +48,7 @@ app.use(authMiddleware);
 // Rota de teste simples para verificar se a API está online e responder com informações básicas sobre a versão e status. Útil para monitoramento e health checks.
 app.get('/', (req, res) => {
     res.json({
-        message: 'API MediaCenter',
+        message: 'API Gestudo',
         version: '1.0.0',
         status: 'online',
     });

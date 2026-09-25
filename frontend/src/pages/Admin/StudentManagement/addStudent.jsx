@@ -328,7 +328,7 @@ export default function AddAlunoPage() {
                         )}
                     </div>
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#14ad81] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#14ad81]">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#06b6d4]">
                         <Upload size={16} />
                         Carregar Foto
                         <input
@@ -353,7 +353,7 @@ export default function AddAlunoPage() {
                     </div>
                     <div className="mt-2 h-2 w-full rounded-full bg-slate-200">
                         <div
-                            className="h-2 rounded-full bg-[#14ad81] transition-all"
+                            className="h-2 rounded-full bg-[#06b6d4] transition-all"
                             style={{ width: `${completionPercent}%` }}
                         />
                     </div>
@@ -839,7 +839,7 @@ export default function AddAlunoPage() {
                     <button
                         type="submit"
                         disabled={hasValidationErrors || submitting}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-[#14ad81] px-12 py-2.5 text-sm font-medium text-white hover:bg-[#0f8d69] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-[#06b6d4] px-12 py-2.5 text-sm font-medium text-white hover:bg-[#0891b2] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <Save size={16} />
                         {submitting ? 'A guardar...' : 'Guardar'}

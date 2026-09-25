@@ -55,9 +55,9 @@ const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const PROFESSOR_COLORS = [
-    { bg: '#eaf9f5', border: '#14ad81', text: '#0f7056', badge: '#14ad81' },
-    { bg: '#edf4f7', border: '#1e3a5f', text: '#1c293d', badge: '#1e3a5f' },
-    { bg: '#f2f1ef', border: '#63738c', text: '#1c293d', badge: '#63738c' },
+    { bg: '#eaf9f5', border: '#06b6d4', text: '#0e7490', badge: '#06b6d4' },
+    { bg: '#f8fafc', border: '#1e293b', text: '#0f172a', badge: '#1e293b' },
+    { bg: '#f8fafc', border: '#64748b', text: '#0f172a', badge: '#64748b' },
     { bg: '#fff7ed', border: '#f97316', text: '#9a3412', badge: '#f97316' },
     { bg: '#f5f3ff', border: '#8b5cf6', text: '#5b21b6', badge: '#8b5cf6' },
     { bg: '#fefce8', border: '#eab308', text: '#854d0e', badge: '#eab308' },
@@ -87,10 +87,10 @@ function getProfessorColor(atividade) {
     const professor = getProfessorName(atividade);
     if (!professor) {
         return {
-            bg: '#f2f1ef',
-            border: '#63738c',
-            text: '#1c293d',
-            badge: '#63738c',
+            bg: '#f8fafc',
+            border: '#64748b',
+            text: '#0f172a',
+            badge: '#64748b',
         };
     }
 
@@ -698,7 +698,7 @@ function WeekView({
                                     <div
                                         className={`sticky top-0 z-30 h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
                                             isToday
-                                                ? 'bg-[#14ad81] text-white font-semibold'
+                                                ? 'bg-[#06b6d4] text-white font-semibold'
                                                 : 'bg-white hover:bg-slate-50'
                                         }`}
                                         onClick={() => setSelectedDate(date)}
@@ -929,7 +929,7 @@ function MonthView({
                                     goToMonth(year, month - 1);
                                 }
                             }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#14ad81]"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#06b6d4]"
                             aria-label="Escolher mês do histórico"
                         />
 
@@ -989,9 +989,9 @@ function MonthView({
                                 onClick={() => setSelectedDate(date)}
                                 className={`relative rounded-xl h-[74px] p-2 text-sm border transition ${
                                     isSelected
-                                        ? 'border-[#14ad81] bg-[#14ad81] text-white font-semibold'
+                                        ? 'border-[#06b6d4] bg-[#06b6d4] text-white font-semibold'
                                         : isToday
-                                          ? 'border-[#a7e5d6] bg-[#eaf9f5] text-slate-700'
+                                          ? 'border-[#a5f3fc] bg-[#eaf9f5] text-slate-700'
                                           : 'border-slate-200 hover:bg-slate-50'
                                 } ${!isCurrentMonth ? 'text-slate-400 bg-slate-50/40' : 'text-slate-700'}`}
                             >

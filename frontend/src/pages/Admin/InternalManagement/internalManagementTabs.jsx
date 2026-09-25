@@ -38,7 +38,7 @@ export default function GestaoInternaTabs() {
                         className={({ isActive }) =>
                             `rounded-xl px-3 py-2.5 text-center text-sm font-semibold transition ${
                                 isActive
-                                    ? 'bg-[#14ad81] text-[#1c293d] shadow-sm'
+                                    ? 'bg-[#06b6d4] text-[#0f172a] shadow-sm'
                                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                             }`
                         }

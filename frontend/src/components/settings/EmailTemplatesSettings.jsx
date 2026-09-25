@@ -281,7 +281,7 @@ export default function EmailTemplatesSettings() {
                             }
                             className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                                 isActive
-                                    ? 'border-[#14ad81] bg-emerald-50 text-slate-900'
+                                    ? 'border-[#06b6d4] bg-emerald-50 text-slate-900'
                                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                             }`}
                         >
@@ -395,7 +395,7 @@ export default function EmailTemplatesSettings() {
                                 Preview
                             </h3>
                             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                                <div className="bg-[#14ad81] px-5 py-4 text-white">
+                                <div className="bg-[#06b6d4] px-5 py-4 text-white">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-white/80">
                                         {preview?.subject}
                                     </p>

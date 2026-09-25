@@ -8,11 +8,6 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:unit": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "start-server-and-test dev http://localhost:5173 \"cypress run\"",
-    "cypress:open": "cypress open",
     "security:audit": "npm audit --omit=dev",
     "security:sast": "npm run lint",
     "security:check": "npm run security:audit && npm run security:sast"
@@ -33,23 +28,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.24",
-    "cypress": "^13.17.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
-    "start-server-and-test": "^3.0.11",
     "tailwindcss": "^3.4.19",
-    "vite": "^7.3.1",
-    "vitest": "^4.1.9"
+    "vite": "^7.3.1"
   }
 }

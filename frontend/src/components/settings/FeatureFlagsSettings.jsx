@@ -135,7 +135,7 @@ export default function FeatureFlagsSettings() {
                                 onClick={() => handleToggle(flag)}
                                 disabled={savingKey === flag.key}
                                 title={flag.ativo ? 'Desativar' : 'Ativar'}
-                                className="p-2 text-slate-500 hover:text-[#14ad81] hover:bg-slate-100 rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60"
+                                className="p-2 text-slate-500 hover:text-[#06b6d4] hover:bg-slate-100 rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {flag.ativo ? (
                                     <ToggleRight

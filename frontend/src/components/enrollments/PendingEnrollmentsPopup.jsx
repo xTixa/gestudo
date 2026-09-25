@@ -9,7 +9,7 @@ export default function PendingEnrollmentsPopup({ count, onClose, onNavigate }) 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-                <div className="bg-[#14ad81] px-6 py-4 flex items-center gap-3">
+                <div className="bg-[#06b6d4] px-6 py-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
                         <ClipboardList size={20} className="text-white" />
                     </div>

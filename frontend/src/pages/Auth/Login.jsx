@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/img/Asset-31.svg';
+import logo from '../../assets/img/gestudo-logo.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL; /*|| 'http://localhost:5000'*/
 const LOGIN_EMAIL_KEY = 'mc_login_email';
@@ -116,16 +116,16 @@ export default function Login({ onLogin }) {
     }
 
     return (
-        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#63738c]">
+        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#64748b]">
             <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center">
-                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#1c293d]/15 backdrop-blur md:grid-cols-2">
-                    <div className="hidden bg-[linear-gradient(160deg,#1c293d_0%,#1e3a5f_58%,#14ad81_150%)] p-10 text-white md:flex md:items-center md:justify-center">
+                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#0f172a]/15 backdrop-blur md:grid-cols-2">
+                    <div className="hidden bg-[linear-gradient(160deg,#0f172a_0%,#1e293b_58%,#06b6d4_150%)] p-10 text-white md:flex md:items-center md:justify-center">
                         <div className="max-w-sm">
                             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
-                                Bloco de Notas
+                                Gestudo
                             </span>
                             <h2 className="mt-5 text-3xl font-bold leading-tight">
-                                Bem-vindo ao portal Bloco de Notas
+                                Bem-vindo ao portal Gestudo
                             </h2>
                             <div className="mt-8 rounded-xl border border-white/20 bg-white/10 p-4">
                                 <p className="text-xs uppercase tracking-widest text-emerald-100">
@@ -143,13 +143,13 @@ export default function Login({ onLogin }) {
                         <div className="mb-8 text-center md:text-left">
                             <img
                                 src={logo}
-                                alt="Bloco de Notas"
+                                alt="Gestudo"
                                 className="mx-auto mb-4 h-16 object-contain md:mx-0"
                             />
-                            <h1 className="text-2xl font-bold text-[#1e3a5f]">
+                            <h1 className="text-2xl font-bold text-[#1e293b]">
                                 Iniciar sessão
                             </h1>
-                            <p className="mt-1 text-sm text-[#63738c]">
+                            <p className="mt-1 text-sm text-[#64748b]">
                                 Insere os teus dados para entrar na plataforma
                             </p>
                         </div>
@@ -158,7 +158,7 @@ export default function Login({ onLogin }) {
                             <div>
                                 <label
                                     htmlFor="login-email"
-                                    className="mb-1.5 block text-sm font-semibold text-[#1e3a5f]"
+                                    className="mb-1.5 block text-sm font-semibold text-[#1e293b]"
                                 >
                                     Email
                                 </label>
@@ -167,7 +167,7 @@ export default function Login({ onLogin }) {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
                                     placeholder="exemplo@email.com"
                                     required
                                 />
@@ -177,13 +177,13 @@ export default function Login({ onLogin }) {
                                 <div className="mb-1.5 flex items-center justify-between gap-3">
                                     <label
                                         htmlFor="login-password"
-                                        className="block text-sm font-semibold text-[#1e3a5f]"
+                                        className="block text-sm font-semibold text-[#1e293b]"
                                     >
                                         Palavra-passe
                                     </label>
                                     <a
                                         href="/recuperar-password"
-                                        className="text-xs font-semibold text-[#63738c] underline-offset-4 transition hover:text-[#1e3a5f] hover:underline"
+                                        className="text-xs font-semibold text-[#64748b] underline-offset-4 transition hover:text-[#1e293b] hover:underline"
                                     >
                                         Recuperar password
                                     </a>
@@ -196,13 +196,13 @@ export default function Login({ onLogin }) {
                                     onChange={(e) =>
                                         setPassword(e.target.value)
                                     }
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#1c293d] outline-none transition focus:border-[#14ad81] focus:ring-4 focus:ring-emerald-100"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
                                     placeholder="••••••••"
                                     required
                                 />
                             </div>
 
-                            <label className="flex items-center gap-2 text-sm text-[#63738c]">
+                            <label className="flex items-center gap-2 text-sm text-[#64748b]">
                                 <input
                                     type="checkbox"
                                     checked={rememberCredentials}
@@ -211,7 +211,7 @@ export default function Login({ onLogin }) {
                                             event.target.checked
                                         )
                                     }
-                                    className="h-4 w-4 rounded border-slate-300 text-[#14ad81] focus:ring-[#14ad81]"
+                                    className="h-4 w-4 rounded border-slate-300 text-[#06b6d4] focus:ring-[#06b6d4]"
                                 />
                                 Lembrar email neste dispositivo
                             </label>
@@ -219,7 +219,7 @@ export default function Login({ onLogin }) {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex w-full items-center justify-center rounded-xl bg-[#1e3a5f] py-3.5 font-bold text-white shadow-lg shadow-[#1c293d]/20 transition hover:bg-[#1c293d] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                                className="flex w-full items-center justify-center rounded-xl bg-[#1e293b] py-3.5 font-bold text-white shadow-lg shadow-[#0f172a]/20 transition hover:bg-[#0f172a] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {loading ? (
                                     <span className="flex items-center gap-2">
@@ -267,17 +267,17 @@ export default function Login({ onLogin }) {
                         )}
 
                         {user && (
-                            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f2f1ef] p-4">
+                            <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f8fafc] p-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#14ad81] font-bold text-white">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#06b6d4] font-bold text-white">
                                         {user.nome?.[0] ||
                                             user.email?.[0].toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-bold text-[#1e3a5f]">
+                                        <p className="text-sm font-bold text-[#1e293b]">
                                             {user.nome || user.email}
                                         </p>
-                                        <p className="text-xs uppercase tracking-wider text-[#63738c]">
+                                        <p className="text-xs uppercase tracking-wider text-[#64748b]">
                                             {user.role || 'Utilizador'}
                                         </p>
                                     </div>

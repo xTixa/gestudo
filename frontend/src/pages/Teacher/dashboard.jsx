@@ -261,9 +261,9 @@ function TodaySessionsCard({ sessions }) {
                     sessions.map((session) => (
                         <div
                             key={session.key}
-                            className="flex items-center gap-3 rounded-xl bg-[#f2f1ef] px-4 py-3"
+                            className="flex items-center gap-3 rounded-xl bg-[#f8fafc] px-4 py-3"
                         >
-                            <span className="min-w-[44px] rounded-lg bg-[#d9e8f0] px-2 py-2 text-center text-xs font-semibold text-[#63738c]">
+                            <span className="min-w-[44px] rounded-lg bg-[#d9e8f0] px-2 py-2 text-center text-xs font-semibold text-[#64748b]">
                                 {session.hour}
                             </span>
 

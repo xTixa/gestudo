@@ -51,7 +51,7 @@ async function bootstrapServer() {
 
         console.log(`
 ************************************
-MediaCenter API
+Gestudo API
 Servidor a correr na porta ${PORT}
 Ambiente: ${process.env.NODE_ENV || 'development'}
 Middlewares ativos

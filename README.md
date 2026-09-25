@@ -1,8 +1,8 @@
-# Bloco de Notas – Plataforma de Gestão de Centro de Explicações
+# Gestudo – Plataforma de Gestão de Centro de Explicações
 
 ### Descrição do Projeto
 
-A plataforma Bloco de Notas tem como objetivo agilizar a gestão de um centro de explicações, reduzindo erros associados a tarefas manuais e à utilização de múltiplas aplicações dispersas.
+A plataforma Gestudo tem como objetivo agilizar a gestão de um centro de explicações, reduzindo erros associados a tarefas manuais e à utilização de múltiplas aplicações dispersas.
 
 A aplicação centraliza a gestão de:
 
@@ -94,13 +94,19 @@ npm install
 
 3️. Executar aplicação
 
-Na raiz do projeto:
+Backend
 
 ```
+cd backend
 npm run dev
 ```
 
-(Usando concurrently para correr frontend e backend em simultâneo)
+Frontend (noutro terminal)
+
+```
+cd frontend
+npm run dev
+```
 
 ### Dashboard
 

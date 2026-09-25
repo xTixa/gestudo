@@ -88,7 +88,7 @@ export default function FilterCard({ filters, options, onChange }) {
                                 onChange('search', event.target.value)
                             }
                             placeholder="Detalhes, utilizador ou evento"
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-[#14ad81] focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-[#06b6d4] focus:bg-white focus:ring-2 focus:ring-emerald-100"
                         />
                     </div>
                 </label>
@@ -102,7 +102,7 @@ export default function FilterCard({ filters, options, onChange }) {
                         onChange={(event) =>
                             onChange('action', event.target.value)
                         }
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#14ad81] focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#06b6d4] focus:bg-white focus:ring-2 focus:ring-emerald-100"
                     >
                         <option value="">Todas</option>
                         {actions.map((action) => (
@@ -122,7 +122,7 @@ export default function FilterCard({ filters, options, onChange }) {
                         onChange={(event) =>
                             onChange('entity', event.target.value)
                         }
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#14ad81] focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#06b6d4] focus:bg-white focus:ring-2 focus:ring-emerald-100"
                     >
                         <option value="">Todas</option>
                         {entities.map((entity) => (
@@ -142,7 +142,7 @@ export default function FilterCard({ filters, options, onChange }) {
                         onChange={(event) =>
                             onChange('user', event.target.value)
                         }
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#14ad81] focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-[#06b6d4] focus:bg-white focus:ring-2 focus:ring-emerald-100"
                     >
                         <option value="">Todos</option>
                         {users.map((user) => (
@@ -173,7 +173,7 @@ export default function FilterCard({ filters, options, onChange }) {
                         onClick={() => onChange('period', item.key)}
                         className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
                             filters.period === item.key
-                                ? 'bg-[#1e3a5f] text-white'
+                                ? 'bg-[#1e293b] text-white'
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                     >

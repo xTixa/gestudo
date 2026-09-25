@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logo from '../../assets/img/Asset-31.svg';
+import logo from '../../assets/img/gestudo-logo.jpg';
 
 export default function PublicNavbar() {
     return (
@@ -8,7 +8,7 @@ export default function PublicNavbar() {
                 <Link to="/" className="flex items-center gap-3">
                     <img
                         src={logo}
-                        alt="Bloco de Notas"
+                        alt="Gestudo"
                         className="h-10 w-auto object-contain"
                     />
                 </Link>

@@ -50,7 +50,7 @@ function getStudentSessionsLabel(serviceId, index) {
 // componente para exibir um cartão de métrica com um ícone, um valor e um rótulo, estilizado com classes Tailwind CSS para garantir uma apresentação visualmente agradável e consistente, e que os valores sejam destacados de forma clara para facilitar a leitura e compreensão das métricas apresentadas
 function MetricCard({ icon, value, label }) {
     return (
-        <div className="rounded-2xl bg-[#f2f1ef] px-4 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+        <div className="rounded-2xl bg-[#f8fafc] px-4 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             <div className="flex justify-center text-slate-500">{icon}</div>
             <div className="mt-1 text-[26px] font-semibold leading-none text-slate-700">
                 {value}

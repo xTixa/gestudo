@@ -100,7 +100,7 @@ function getEmailConfig() {
     const pass = String(process.env.EMAIL_PASSWORD || '').trim();
     const from =
         String(process.env.EMAIL_FROM || '').trim() ||
-        `"MediaCenter" <${user}>`;
+        `"Gestudo" <${user}>`;
     const appUrl = String(
         process.env.APP_URL || 'http://localhost:5173'
     ).trim();
@@ -236,7 +236,7 @@ function renderManagedEmailHtml({ template, variables, logoUrl, buttonUrl }) {
                 <div class="wrapper">
                     <div class="container">
                         <div class="header">
-                            <img src="${escapeHtml(logoUrl)}" alt="MediaCenter" class="brand-logo" />
+                            <img src="${escapeHtml(logoUrl)}" alt="Gestudo" class="brand-logo" />
                             <h1>${escapeHtml(renderTemplateText(template.title, variables))}</h1>
                         </div>
                         <div class="content">
@@ -248,7 +248,7 @@ function renderManagedEmailHtml({ template, variables, logoUrl, buttonUrl }) {
                             }
                         </div>
                         <div class="footer">
-                            <p>MediaCenter - Bloco de Notas</p>
+                            <p>Gestudo</p>
                             ${
                                 footerText
                                     ? `<p>${escapeHtml(footerText)}</p>`
@@ -274,8 +274,8 @@ async function sendManagedTemplateEmail({
 }) {
     const template = await getEmailTemplate(templateKey);
     const subject =
-        renderTemplateText(template?.subject || 'MediaCenter', variables) ||
-        'MediaCenter';
+        renderTemplateText(template?.subject || 'Gestudo', variables) ||
+        'Gestudo';
     const html = renderManagedEmailHtml({
         template,
         variables,
@@ -478,7 +478,7 @@ export async function enviarEmailCredenciaisIniciais(
                     <div class="wrapper">
                         <div class="container">
                             <div class="header">
-                                <img src="${escapeHtml(logoUrl)}" alt="MediaCenter" class="brand-logo" />
+                                <img src="${escapeHtml(logoUrl)}" alt="Gestudo" class="brand-logo" />
                                 <h1>Bem-vindo ao portal</h1>
                                 <p>A tua conta foi criada com sucesso.</p>
                             </div>
@@ -511,7 +511,7 @@ export async function enviarEmailCredenciaisIniciais(
                             </div>
 
                             <div class="footer">
-                                <p>MediaCenter · Bloco de Notas</p>
+                                <p>Gestudo</p>
                                 <p>Este email foi enviado automaticamente. Não respondas a esta mensagem.</p>
                             </div>
                         </div>
@@ -523,7 +523,7 @@ export async function enviarEmailCredenciaisIniciais(
         const response = await currentTransporter.sendMail({
             from,
             to: email,
-            subject: 'Bem-vindo ao Bloco de Notas - Password Temporária',
+            subject: 'Bem-vindo ao Gestudo - Password Temporária',
             html: htmlContent,
             headers: {
                 'X-Priority': '3',
@@ -590,7 +590,7 @@ export async function enviarEmailAlerta({
                 titulo: safeTitle,
                 descricao:
                     safeDescription ||
-                    'Tem uma nova notificacao no MediaCenter.',
+                    'Tem uma nova notificacao no Gestudo.',
                 link: resolvedLink,
                 app_url: appUrl,
             },
@@ -629,18 +629,18 @@ export async function enviarEmailAlerta({
                     <div class="wrapper">
                         <div class="container">
                             <div class="header">
-                                <img src="${escapeHtml(logoUrl)}" alt="MediaCenter" class="brand-logo" />
+                                <img src="${escapeHtml(logoUrl)}" alt="Gestudo" class="brand-logo" />
                                 <h1>${escapeHtml(safeTitle)}</h1>
                             </div>
                             <div class="content">
                                 <p>Ola ${escapeHtml(nome || 'utilizador')},</p>
                                 <div class="alert-box">
-                                    <p>${escapeHtml(safeDescription || 'Tem uma nova notificacao no MediaCenter.')}</p>
+                                    <p>${escapeHtml(safeDescription || 'Tem uma nova notificacao no Gestudo.')}</p>
                                 </div>
-                                <a href="${escapeHtml(resolvedLink)}" class="button">Abrir no MediaCenter</a>
+                                <a href="${escapeHtml(resolvedLink)}" class="button">Abrir no Gestudo</a>
                             </div>
                             <div class="footer">
-                                <p>MediaCenter</p>
+                                <p>Gestudo</p>
                                 <p>Este email foi enviado automaticamente. Nao respondas a esta mensagem.</p>
                             </div>
                         </div>
@@ -919,7 +919,7 @@ export async function enviarEmailReagendamentoSessao({
                     <div class="wrapper">
                         <div class="container">
                             <div class="header">
-                                <img src="${escapeHtml(logoUrl)}" alt="MediaCenter" class="brand-logo" />
+                                <img src="${escapeHtml(logoUrl)}" alt="Gestudo" class="brand-logo" />
                                 <h1>Sessão reagendada</h1>
                                 <p>${escapeHtml(titulo)}</p>
                             </div>
@@ -949,7 +949,7 @@ export async function enviarEmailReagendamentoSessao({
                             </div>
 
                             <div class="footer">
-                                <p>MediaCenter · Bloco de Notas</p>
+                                <p>Gestudo</p>
                                 <p>Este email foi enviado automaticamente. Não respondas a esta mensagem.</p>
                             </div>
                         </div>
@@ -1099,7 +1099,7 @@ export async function enviarEmailDecisaoReagendamento({
                     <div class="wrapper">
                         <div class="container">
                             <div class="header">
-                                <img src="${escapeHtml(logoUrl)}" alt="MediaCenter" class="brand-logo" />
+                                <img src="${escapeHtml(logoUrl)}" alt="Gestudo" class="brand-logo" />
                                 <h1>${escapeHtml(tituloPrincipal)}</h1>
                                 <p>${escapeHtml(titulo)}</p>
                             </div>
@@ -1138,7 +1138,7 @@ export async function enviarEmailDecisaoReagendamento({
                             </div>
 
                             <div class="footer">
-                                <p>MediaCenter · Bloco de Notas</p>
+                                <p>Gestudo</p>
                                 <p>Este email foi enviado automaticamente. Não respondas a esta mensagem.</p>
                             </div>
                         </div>

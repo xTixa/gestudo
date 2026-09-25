@@ -182,7 +182,7 @@ export default function EnrollmentFormTextsSettings() {
                             onClick={() => selectSecao(secao)}
                             className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
                                 isActive
-                                    ? 'border-[#14ad81] bg-emerald-50 text-slate-900'
+                                    ? 'border-[#06b6d4] bg-emerald-50 text-slate-900'
                                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                             }`}
                         >

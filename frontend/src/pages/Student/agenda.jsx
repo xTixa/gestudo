@@ -60,7 +60,7 @@ const ACTIVITY_COLORS = {
         bg: 'bg-blue-100',
         border: 'border-blue-500',
         text: 'text-blue-900',
-        badge: 'bg-[#14ad81]',
+        badge: 'bg-[#06b6d4]',
     },
     reposta: {
         bg: 'bg-amber-100',
@@ -606,7 +606,7 @@ function WeekView({
                                     <div
                                         className={`h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
                                             isToday
-                                                ? 'bg-[#14ad81] text-white font-semibold'
+                                                ? 'bg-[#06b6d4] text-white font-semibold'
                                                 : 'hover:bg-slate-50'
                                         }`}
                                         onClick={() => setSelectedDate(date)}
@@ -824,7 +824,7 @@ function MonthView({
                                     goToMonth(year, month - 1);
                                 }
                             }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#14ad81]"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#06b6d4]"
                             aria-label="Escolher mês do histórico"
                         />
 
@@ -887,9 +887,9 @@ function MonthView({
                                 onClick={() => setSelectedDate(date)}
                                 className={`relative rounded-xl h-[74px] p-2 text-sm border transition ${
                                     isSelected
-                                        ? 'border-[#14ad81] bg-[#14ad81] text-white font-semibold'
+                                        ? 'border-[#06b6d4] bg-[#06b6d4] text-white font-semibold'
                                         : isToday
-                                          ? 'border-[#a7e5d6] bg-[#eaf9f5] text-slate-700'
+                                          ? 'border-[#a5f3fc] bg-[#eaf9f5] text-slate-700'
                                           : 'border-slate-200 hover:bg-slate-50'
                                 } ${!isCurrentMonth ? 'text-slate-400 bg-slate-50/40' : 'text-slate-700'}`}
                             >
@@ -961,7 +961,7 @@ function MonthView({
                                 ? 'bg-amber-500'
                                 : categoria === 'extra'
                                   ? 'bg-violet-500'
-                                  : 'bg-[#14ad81]';
+                                  : 'bg-[#06b6d4]';
 
                             return (
                                 <article
