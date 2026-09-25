@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Bell,
     ChevronDown,
+    ChevronRight,
     Settings,
     LogOut,
+    Menu,
     Search,
     Users,
     Check,
     ExternalLink,
     Loader,
 } from 'lucide-react';
-import logo from '../../assets/img/gestudo-logo.jpg';
 import { apiFetch } from '../../utils/api';
 import { listarEventos, marcarAlertalido } from '../../utils/api';
 import defaultAvatar from '../../assets/img/default-avatar.svg';
+import { getMenuTrail } from './menuConfig';
+
+const ROLE_LABEL = {
+    gestor: 'Administrador',
+    professor: 'Professor',
+    aluno: 'Aluno',
+};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -49,7 +58,9 @@ function getNotificationsPathByRole(role) {
     return getDashboardPathByRole(role);
 }
 
-export default function Navbar({ user, onLogout, onNavigate, compact = false }) {
+export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) {
+    const location = useLocation();
+    const trail = getMenuTrail(user?.role, location.pathname);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -434,43 +445,56 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
         }
     }
 
-    function handleLogoClick() {
-        onNavigate?.(getDashboardPathByRole(user?.role));
-    }
+    const initials =
+        displayName
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase())
+            .join('') || 'U';
 
     return (
-        <header
-            className={`border-b border-slate-200 bg-white px-4 py-3 sm:flex sm:items-center ${
-                compact ? 'min-h-16 sm:px-4 sm:py-0' : 'min-h-20 sm:px-6 sm:py-0'
-            }`}
-        >
-            <div
-                className={`flex w-full flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3 ${
-                    compact ? 'lg:gap-4' : 'lg:gap-6'
-                }`}
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
+            <button
+                type="button"
+                onClick={onToggleSidebar}
+                className="-ml-1 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+                aria-label="Abrir menu"
             >
-                <button
-                    type="button"
-                    onClick={handleLogoClick}
-                    className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
-                    aria-label="Ir para dashboard"
-                >
-                    <img
-                        src={logo}
-                        alt="Logo Centro de Explicações"
-                        className="h-10 w-auto object-contain"
-                    />
-                </button>
+                <Menu size={20} />
+            </button>
 
+            <nav
+                aria-label="Localização"
+                className="hidden min-w-0 items-center gap-1.5 text-sm md:flex"
+            >
+                {trail?.group ? (
+                    <>
+                        <span className="truncate text-slate-400">
+                            {trail.group}
+                        </span>
+                        <ChevronRight
+                            size={14}
+                            className="shrink-0 text-slate-300"
+                            aria-hidden="true"
+                        />
+                    </>
+                ) : null}
+                <span className="truncate font-medium text-slate-700">
+                    {trail?.label || 'Gestudo'}
+                </span>
+            </nav>
+
+            <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
                 {canUseGlobalSearch ? (
                     <form
                         onSubmit={handleSearchSubmit}
-                        className="order-last flex w-full min-w-0 items-center sm:order-none sm:flex-1 lg:max-w-3xl"
+                        className="min-w-0 flex-1 md:max-w-sm lg:max-w-md"
                     >
                         <div className="relative w-full" ref={searchRef}>
                             <Search
-                                size={17}
-                                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-grey"
+                                size={16}
+                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                             />
                             <input
                                 ref={searchInputRef}
@@ -496,9 +520,7 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                                 }
                                 onKeyDown={handleSearchKeyDown}
                                 placeholder="Pesquisar alunos, professores, serviços..."
-                                className={`w-full rounded-xl border border-slate-200 bg-brand-cream pl-10 pr-4 text-sm text-brand-navy outline-none transition focus:border-brand-emerald focus:bg-white focus:ring-2 focus:ring-emerald-100 ${
-                                    compact ? 'h-10' : 'h-11'
-                                }`}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-500/10"
                             />
 
                             {isSearchDropdownOpen && search.trim() ? (
@@ -506,7 +528,7 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                                     id="search-results-listbox"
                                     role="listbox"
                                     aria-label="Resultados da pesquisa"
-                                    className="fixed inset-x-4 top-32 z-[100] max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:top-full sm:mt-2 sm:max-h-96 sm:w-full"
+                                    className="fixed inset-x-4 top-[4.5rem] z-[100] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10 sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:top-full sm:mt-2 sm:max-h-96 sm:w-full"
                                 >
                                     {isSearching ? (
                                         <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-slate-500">
@@ -514,15 +536,14 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                                                 size={16}
                                                 className="animate-spin"
                                             />
-                                            Procurando...
+                                            A pesquisar...
                                         </div>
-                                    ) : searchResults.length === 0 ? (
-                                        <div className="px-4 py-6 text-center text-sm text-slate-500">
-                                            <p>
-                                                Nenhum resultado encontrado para
-                                                "{search}"
-                                            </p>
-                                        </div>
+                                    ) : searchResults.every(
+                                          (cat) => cat.items.length === 0
+                                      ) ? (
+                                        <p className="px-4 py-6 text-center text-sm text-slate-500">
+                                            Nenhum resultado para &quot;{search}&quot;
+                                        </p>
                                     ) : (
                                         (() => {
                                             let globalIndex = -1;
@@ -537,11 +558,11 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                                                             categoria.categoria
                                                         }
                                                     >
-                                                        <div className="border-t border-slate-100 bg-brand-cream px-4 py-2 text-xs font-semibold text-brand-grey">
+                                                        <p className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                                                             {
                                                                 categoria.categoria
                                                             }
-                                                        </div>
+                                                        </p>
                                                         {categoria.items.map(
                                                             (item) => {
                                                                 globalIndex += 1;
@@ -564,13 +585,15 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                                                                                 item
                                                                             )
                                                                         }
-                                                                        className={`w-full px-4 py-2.5 text-left text-sm text-brand-grey transition ${isActive ? 'bg-emerald-50 text-brand-emerald' : 'hover:bg-brand-cream hover:text-brand-navy'}`}
+                                                                        className={`block w-full px-4 py-2 text-left text-sm font-medium transition ${
+                                                                            isActive
+                                                                                ? 'bg-cyan-50 text-cyan-800'
+                                                                                : 'text-slate-700 hover:bg-slate-50'
+                                                                        }`}
                                                                     >
-                                                                        <p className="font-medium">
-                                                                            {
-                                                                                item.nome
-                                                                            }
-                                                                        </p>
+                                                                        {
+                                                                            item.nome
+                                                                        }
                                                                     </button>
                                                                 );
                                                             }
@@ -585,179 +608,229 @@ export default function Navbar({ user, onLogout, onNavigate, compact = false }) 
                     </form>
                 ) : null}
 
-                <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3">
-                    <div ref={notificationsRef} className="relative">
-                        <button
-                            type="button"
-                            onClick={handleNotificationToggle}
-                            className="relative rounded-xl p-2.5 text-brand-grey transition hover:bg-brand-cream hover:text-brand-navy"
-                            aria-label="Notificações"
-                        >
-                            <Bell size={19} className="text-current" />
-                            {unreadCount > 0 ? (
-                                <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </span>
-                            ) : null}
-                        </button>
+                <div ref={notificationsRef} className="relative shrink-0">
+                    <button
+                        type="button"
+                        onClick={handleNotificationToggle}
+                        className="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                        aria-label={
+                            unreadCount > 0
+                                ? `Notificações (${unreadCount} por ler)`
+                                : 'Notificações'
+                        }
+                    >
+                        <Bell size={19} />
+                        {unreadCount > 0 ? (
+                            <span className="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                        ) : null}
+                    </button>
 
-                        {isNotificationsOpen ? (
-                            <div className="fixed inset-x-4 top-24 z-[100] max-h-[calc(100vh-7rem)] overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-none">
-                                <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
-                                    <p className="text-sm font-semibold text-slate-700">
-                                        Notificações
-                                    </p>
-                                    {unreadCount > 0 ? (
-                                        <button
-                                            type="button"
-                                            onClick={handleMarkAllAsRead}
-                                            className="inline-flex items-center gap-1 text-xs font-medium text-brand-emerald hover:text-emerald-700"
-                                        >
-                                            <Check size={14} />
-                                            Marcar todas como lidas
-                                        </button>
-                                    ) : null}
-                                </div>
-                                <div className="max-h-[min(18rem,calc(100vh-14rem))] overflow-auto py-1 sm:max-h-72">
-                                    {notifications.length === 0 ? (
-                                        <p className="px-3 py-4 text-sm text-slate-500">
+                    {isNotificationsOpen ? (
+                        <div className="fixed inset-x-4 top-[4.5rem] z-[100] max-h-[calc(100vh-6rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96">
+                            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                                <p className="text-sm font-semibold text-slate-800">
+                                    Notificações
+                                </p>
+                                {unreadCount > 0 ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleMarkAllAsRead}
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-cyan-700 hover:text-cyan-900"
+                                    >
+                                        <Check size={14} />
+                                        Marcar todas como lidas
+                                    </button>
+                                ) : null}
+                            </div>
+                            <div className="max-h-[min(22rem,calc(100vh-14rem))] overflow-auto">
+                                {notifications.length === 0 ? (
+                                    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                                        <Bell
+                                            size={20}
+                                            className="text-slate-300"
+                                        />
+                                        <p className="text-sm text-slate-500">
                                             Sem notificações de momento.
                                         </p>
-                                    ) : (
-                                        notifications.map((notification) => (
-                                            <button
-                                                type="button"
-                                                key={notification.id}
-                                                onClick={() =>
-                                                    handleNotificationClick(
-                                                        notification.id
-                                                    )
-                                                }
-                                                className="w-full rounded-lg px-3 py-2 text-left hover:bg-brand-cream"
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <p className="text-sm font-medium text-slate-700">
-                                                        {notification.titulo}
-                                                    </p>
-                                                    {!notification.lido ? (
-                                                        <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
-                                                    ) : null}
-                                                </div>
+                                    </div>
+                                ) : (
+                                    notifications.map((notification) => (
+                                        <button
+                                            type="button"
+                                            key={notification.id}
+                                            onClick={() =>
+                                                handleNotificationClick(
+                                                    notification.id
+                                                )
+                                            }
+                                            className="flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition last:border-0 hover:bg-slate-50"
+                                        >
+                                            <span
+                                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                                                    notification.lido
+                                                        ? 'bg-transparent'
+                                                        : 'bg-cyan-500'
+                                                }`}
+                                                aria-hidden="true"
+                                            />
+                                            <span className="min-w-0">
+                                                <span
+                                                    className={`block text-sm ${
+                                                        notification.lido
+                                                            ? 'text-slate-600'
+                                                            : 'font-medium text-slate-800'
+                                                    }`}
+                                                >
+                                                    {notification.titulo}
+                                                </span>
                                                 {notification.descricao ? (
-                                                    <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">
+                                                    <span className="mt-0.5 line-clamp-2 block text-xs text-slate-500">
                                                         {notification.descricao}
-                                                    </p>
+                                                    </span>
                                                 ) : null}
-                                                <p className="text-xs text-slate-600 mt-1">
+                                                <span className="mt-1 block text-xs text-slate-400">
                                                     {getRelativeTime(
                                                         notification.createdAt
                                                     )}
-                                                </p>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                                <div className="border-t border-slate-100 px-2 pt-1.5">
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleMenuNavigation(
-                                                notificationsPath
-                                            )
-                                        }
-                                        className="w-full rounded-lg px-3 py-2 text-sm font-medium text-brand-emerald hover:bg-emerald-50"
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            Ver todas as notificações
-                                            <ExternalLink size={14} />
-                                        </span>
-                                    </button>
-                                </div>
+                                                </span>
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
                             </div>
-                        ) : null}
-                    </div>
-
-                    <div ref={dropdownRef} className="relative">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsDropdownOpen((prev) => !prev);
-                                setIsNotificationsOpen(false);
-                            }}
-                            className="flex items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-brand-cream"
-                        >
-                            <div className="h-9 w-9 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                                <img
-                                    src={avatarSrc}
-                                    alt={`Foto de ${displayName}`}
-                                    className="h-full w-full object-cover"
-                                    onError={(event) => {
-                                        const image = event.currentTarget;
-                                        if (
-                                            image.dataset.fallbackApplied ===
-                                            '1'
-                                        ) {
-                                            return;
-                                        }
-
-                                        image.dataset.fallbackApplied = '1';
-                                        image.src = defaultAvatar;
-                                    }}
-                                />
+                            <div className="border-t border-slate-100 p-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        handleMenuNavigation(notificationsPath)
+                                    }
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                                >
+                                    Ver todas as notificações
+                                    <ExternalLink size={14} />
+                                </button>
                             </div>
-                            <span className="hidden md:block text-sm font-medium text-slate-700 max-w-36 truncate">
+                        </div>
+                    ) : null}
+                </div>
+
+                <div
+                    className="mx-1 hidden h-6 w-px bg-slate-200 sm:block"
+                    aria-hidden="true"
+                />
+
+                <div ref={dropdownRef} className="relative shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsDropdownOpen((prev) => !prev);
+                            setIsNotificationsOpen(false);
+                        }}
+                        className="flex items-center gap-2.5 rounded-lg p-1 transition hover:bg-slate-100 md:pr-2"
+                        aria-haspopup="menu"
+                        aria-expanded={isDropdownOpen}
+                        aria-label="Menu da conta"
+                    >
+                        {user?.imagem_perfil_url ? (
+                            <img
+                                src={avatarSrc}
+                                alt=""
+                                className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200"
+                                onError={(event) => {
+                                    const image = event.currentTarget;
+                                    if (image.dataset.fallbackApplied === '1') {
+                                        return;
+                                    }
+                                    image.dataset.fallbackApplied = '1';
+                                    image.src = defaultAvatar;
+                                }}
+                            />
+                        ) : (
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-white">
+                                {initials}
+                            </span>
+                        )}
+                        <span className="hidden min-w-0 text-left md:block">
+                            <span className="block max-w-36 truncate text-sm font-medium leading-tight text-slate-800">
                                 {displayName}
                             </span>
-                            <ChevronDown size={16} className="text-slate-500" />
-                        </button>
+                            <span className="block text-xs leading-tight text-slate-500">
+                                {ROLE_LABEL[user?.role] || 'Utilizador'}
+                            </span>
+                        </span>
+                        <ChevronDown
+                            size={16}
+                            className="hidden text-slate-400 md:block"
+                        />
+                    </button>
 
-                        {isDropdownOpen ? (
-                            <div className="fixed inset-x-4 top-24 z-[100] rounded-xl border border-slate-200 bg-white p-2 shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-56 sm:max-w-none">
-                                {user?.role !== 'gestor' && (
+                    {isDropdownOpen ? (
+                        <div
+                            role="menu"
+                            className="fixed inset-x-4 top-[4.5rem] z-[100] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-60"
+                        >
+                            <div className="border-b border-slate-100 px-3 pb-2.5 pt-1.5">
+                                <p className="truncate text-sm font-medium text-slate-800">
+                                    {displayName}
+                                </p>
+                                {user?.email ? (
+                                    <p className="truncate text-xs text-slate-500">
+                                        {user.email}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div className="py-1">
+                                {user?.role !== 'gestor' ? (
                                     <button
                                         type="button"
+                                        role="menuitem"
                                         onClick={() =>
                                             handleMenuNavigation(
                                                 `/${user?.role}/perfil`
                                             )
                                         }
-                                        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-left hover:bg-slate-100"
+                                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                                     >
                                         <Users
                                             size={16}
-                                            className="text-slate-600"
+                                            className="text-slate-400"
                                         />
                                         Perfil
                                     </button>
-                                )}
-                                {user?.role === 'gestor' ? (
+                                ) : (
                                     <button
                                         type="button"
+                                        role="menuitem"
                                         onClick={() =>
                                             handleMenuNavigation(
-                                                `/${user?.role}/configuracoes`
+                                                '/gestor/configuracoes'
                                             )
                                         }
-                                        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-left hover:bg-slate-100"
+                                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                                     >
                                         <Settings
                                             size={16}
-                                            className="text-slate-600"
+                                            className="text-slate-400"
                                         />
                                         Configurações
                                     </button>
-                                ) : null}
+                                )}
+                            </div>
+                            <div className="border-t border-slate-100 pt-1">
                                 <button
                                     type="button"
+                                    role="menuitem"
                                     onClick={onLogout}
-                                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-left text-red-600 hover:bg-red-50"
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
                                 >
                                     <LogOut size={16} />
-                                    Terminar Sessão
+                                    Terminar sessão
                                 </button>
                             </div>
-                        ) : null}
-                    </div>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </header>

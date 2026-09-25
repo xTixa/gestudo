@@ -23,7 +23,6 @@ const REPORTS = [
     { key: 'catalogo-servicos', label: 'Catálogo de Serviços', description: 'Todos os serviços curriculares e extra-curriculares' },
     { key: 'ocupacao-salas', label: 'Ocupação de Salas', description: 'Taxa de utilização das salas por serviço ativo' },
     { key: 'receita-inscricoes', label: 'Receita de Inscrições', description: 'Volume de receita das inscrições por mês' },
-    { key: 'reagendamentos-pedidos', label: 'Reagendamentos', description: 'Pedidos de reagendamento submetidos pelos professores', filter: { key: 'estado', label: 'Estado', options: ['', 'pendente', 'aprovado', 'rejeitado'] } },
     { key: 'servicos-extracurriculares', label: 'Serviços Extra-Curriculares', description: 'Resumo dos serviços extra-curriculares' },
     { key: 'utilizadores', label: 'Utilizadores', description: 'Todos os utilizadores do sistema', filter: { key: 'role', label: 'Perfil', options: ['', 'aluno', 'professor', 'gestor'] } },
     { key: 'agenda-gestor', label: 'Agenda', description: 'Todas as sessões agendadas no sistema' },

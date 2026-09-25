@@ -1,245 +1,8 @@
-import {
-    LayoutDashboard,
-    Calendar,
-    BookOpen,
-    Users,
-    GraduationCap,
-    FileText,
-    Shield,
-    Bell,
-    Settings,
-    ChevronRight,
-    ChevronDown,
-    PanelLeftClose,
-    PanelLeftOpen,
-    SwitchCameraIcon,
-    LucideSearchCheck,
-    RefreshCcw,
-    BookOpenCheckIcon,
-    NotebookIcon,
-    DoorClosedIcon,
-    BoxIcon,
-    ClipboardCheck,
-    BarChart3,
-    ClipboardEdit,
-    ListChecks,
-} from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import markLogo from '../../assets/img/gestudo-mark.png';
 import { apiGet } from '../../utils/api';
-
-function isPathActive(currentPath, itemPath) {
-    if (!itemPath) {
-        return false;
-    }
-
-    return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
-}
-
-const menuByRole = {
-    gestor: [
-        {
-            key: 'dashboard',
-            label: 'Dashboard',
-            path: '/gestor/dashboard',
-            icon: LayoutDashboard,
-        },
-        {
-            key: 'agenda',
-            label: 'Agenda',
-            path: '/gestor/agenda',
-            icon: Calendar,
-        },
-        {
-            key: 'presencas',
-            label: 'Presenças',
-            path: '/gestor/presencas',
-            icon: ClipboardCheck,
-        },
-        {
-            key: 'reagendar',
-            label: 'Reagendamentos',
-            path: '/gestor/reagendar',
-            icon: RefreshCcw,
-        },
-        { section: 'SERVIÇOS' },
-        {
-            key: 'curriculares',
-            label: 'Curriculares',
-            path: '/gestor/servicos/curriculares',
-            icon: BookOpenCheckIcon,
-        },
-        {
-            key: 'extra-curriculares',
-            label: 'Extra-Curriculares',
-            path: '/gestor/servicos/extra-curriculares',
-            icon: BookOpen,
-        },
-        { section: 'ALUNOS' },
-        {
-            key: 'gestao-alunos',
-            label: 'Gestão Alunos',
-            path: '/gestor/alunos',
-            icon: Users,
-        },
-        { section: 'PROFESSORES' },
-        {
-            key: 'gestao-professores',
-            label: 'Gestão Professores',
-            path: '/gestor/professores',
-            icon: GraduationCap,
-        },
-        { section: 'ADMINISTRAÇÃO' },
-        {
-            key: 'inscricoes-publicas',
-            label: 'Inscrições Públicas',
-            path: '/gestor/inscricoes-publicas',
-            icon: FileText,
-        },
-        {
-            key: 'alteracoes-pendentes',
-            label: 'Alterações Pendentes',
-            path: '/gestor/alteracoes-pendentes',
-            icon: ClipboardEdit,
-        },
-        {
-            key: 'renovacoes',
-            label: 'Renovações',
-            path: '/gestor/renovacoes',
-            icon: RefreshCcw,
-        },
-        {
-            key: 'relatorios',
-            label: 'Relatórios',
-            path: '/gestor/relatorios',
-            icon: BarChart3,
-        },
-        {
-            key: 'auditoria-logs',
-            label: 'Auditoria/Logs',
-            path: '/gestor/logs',
-            icon: Shield,
-        },
-        {
-            key: 'configuracoes',
-            label: 'Configurações',
-            path: '/gestor/configuracoes',
-            icon: Settings,
-        },
-        { section: 'GESTÃO INTERNA' },
-        {
-            key: 'modalidade',
-            label: 'Modalidade',
-            path: '/gestor/modalidade',
-            icon: NotebookIcon,
-        },
-        {
-            key: 'salas',
-            label: 'Salas',
-            path: '/gestor/salas',
-            icon: DoorClosedIcon,
-        },
-        {
-            key: 'disciplinas',
-            label: 'Disciplinas',
-            path: '/gestor/disciplinas',
-            icon: NotebookIcon,
-        },
-        {
-            key: 'pacotes',
-            label: 'Pacotes',
-            path: '/gestor/pacotes',
-            icon: BoxIcon,
-        },
-        {
-            key: 'tipos-servico',
-            label: 'Tipos de Serviço',
-            path: '/gestor/tipos-servico',
-            icon: ListChecks,
-        },
-    ],
-    aluno: [
-        {
-            key: 'dashboard',
-            label: 'Dashboard',
-            path: '/aluno/dashboard',
-            icon: LayoutDashboard,
-        },
-        {
-            key: 'agenda',
-            label: 'Agenda',
-            path: '/aluno/agenda',
-            icon: Calendar,
-        },
-        {
-            key: 'meus-servicos',
-            label: 'Os Meus Serviços',
-            path: '/aluno/servicos',
-            icon: BookOpen,
-        },
-        {
-            key: 'subscricao-servicos',
-            label: 'Subscrição Serviços',
-            path: '/aluno/subscricao-servicos',
-            icon: BookOpenCheckIcon,
-        },
-        {
-            key: 'reinscricao',
-            label: 'Reinscrição',
-            path: '/aluno/reinscricao',
-            icon: ClipboardEdit,
-        },
-        {
-            key: 'presencas',
-            label: 'Presenças',
-            path: '/aluno/presencas',
-            icon: ClipboardCheck,
-        },
-    ],
-    professor: [
-        {
-            key: 'dashboard',
-            label: 'Dashboard',
-            path: '/professor/dashboard',
-            icon: LayoutDashboard,
-        },
-        {
-            key: 'agenda',
-            label: 'Agenda',
-            path: '/professor/agenda',
-            icon: Calendar,
-        },
-        {
-            key: 'reagendamentos',
-            label: 'Reagendamentos',
-            path: '/professor/reagendamentos',
-            icon: RefreshCcw,
-        },
-        {
-            key: 'meus-servicos',
-            label: 'Os Meus Serviços',
-            path: '/professor/servicos',
-            icon: BookOpen,
-        },
-        {
-            key: 'presencas',
-            label: 'Presenças',
-            path: '/professor/presencas',
-            icon: ClipboardCheck,
-        },
-        {
-            key: 'assiduidade',
-            label: 'Assiduidade',
-            path: '/professor/assiduidade',
-            icon: BarChart3,
-        },
-        {
-            key: 'notificacoes',
-            label: 'Notificações',
-            path: '/professor/notificacoes',
-            icon: Bell,
-        },
-    ],
-};
+import { isPathActive, menuByRole, ROLE_LABEL } from './menuConfig';
 
 export default function Sidebar({
     role,
@@ -277,44 +40,23 @@ export default function Sidebar({
         };
     }, [role]);
 
-    const menu = useMemo(() => {
-        const items = menuByRole[role] || [];
+    const groups = useMemo(() => {
+        const base = menuByRole[role] || [];
         if (role === 'aluno' && !reinscricaoAtiva) {
-            return items.filter((item) => item.key !== 'reinscricao');
+            return base.map((group) => ({
+                ...group,
+                items: group.items.filter((item) => item.key !== 'reinscricao'),
+            }));
         }
-        return items;
+        return base;
     }, [role, reinscricaoAtiva]);
-    const showLabels = isOpen;
-    const [openGroups, setOpenGroups] = useState({});
-    const isAdmin = role === 'gestor';
-    const sidebarWidthClass = isAdmin
-        ? isOpen
-            ? 'w-60 lg:w-60'
-            : 'w-60 lg:w-16'
-        : isOpen
-          ? 'w-64 lg:w-64'
-          : 'w-64 lg:w-20';
-    const innerPaddingClass = isAdmin ? 'px-2.5 py-3' : 'px-3 py-5';
-    const navSpacingClass = isAdmin ? 'space-y-1 mt-3' : 'space-y-2 mt-5';
-    const itemPaddingClass = isAdmin ? 'px-2.5 py-2' : 'px-3 py-2.5';
-    const childPaddingClass = isAdmin ? 'px-2.5 py-1.5' : 'px-3 py-2';
+
+    // Em ecrãs grandes, "isOpen" alterna entre expandida e recolhida (só
+    // ícones); em ecrãs pequenos, controla se o menu está visível.
+    const expanded = isOpen;
 
     function handleSelect(item) {
-        const isDesktop =
-            typeof window !== 'undefined' && window.innerWidth >= 1024;
-
-        if (!showLabels && isDesktop && item.children?.length) {
-            return;
-        }
-
-        if (item.children?.length) {
-            setOpenGroups((prev) => ({ ...prev, [item.key]: !prev[item.key] }));
-            return;
-        }
-
-        if (item.path) {
-            onNavigate?.(item.path);
-        }
+        onNavigate?.(item.path);
 
         if (typeof window !== 'undefined' && window.innerWidth < 1024) {
             onClose?.();
@@ -323,231 +65,146 @@ export default function Sidebar({
 
     return (
         <>
-            {!isOpen ? (
-                <button
-                    type="button"
-                    onClick={onToggle}
-                    className="fixed top-4 left-4 z-50 rounded-lg border border-slate-200 bg-white p-2 text-brand-navy shadow-sm lg:hidden"
-                    aria-label="Abrir menu"
-                >
-                    <PanelLeftOpen size={18} />
-                </button>
-            ) : null}
-
             {isOpen ? (
                 <button
                     type="button"
                     onClick={onClose}
-                    className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
+                    className="fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-[1px] lg:hidden"
                     aria-label="Fechar menu"
                 />
             ) : null}
 
             <aside
-                className={`
-					fixed inset-y-0 left-0 z-40 overflow-hidden
-					pointer-events-auto
-					bg-white border-r border-slate-200
-					transform transition-transform duration-300 lg:duration-0
-					${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-					lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
-					${sidebarWidthClass}
-				`}
+                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900 text-slate-300 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:transition-[width] ${
+                    isOpen ? 'translate-x-0' : '-translate-x-full'
+                } ${expanded ? 'lg:w-64' : 'lg:w-[72px]'}`}
+                aria-label="Menu principal"
             >
+                {/* Marca */}
                 <div
-                    className={`h-full w-full overflow-y-auto ${innerPaddingClass}`}
+                    className={`flex h-16 shrink-0 items-center gap-3 border-b border-white/10 ${
+                        expanded ? 'px-5' : 'px-5 lg:justify-center lg:px-0'
+                    }`}
                 >
-                    <div
-                        className={`${showLabels ? 'flex justify-end' : 'flex justify-center'}`}
+                    <button
+                        type="button"
+                        onClick={() => handleSelect({ path: groups[0]?.items[0]?.path })}
+                        className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                        aria-label="Ir para o dashboard"
                     >
-                        <button
-                            type="button"
-                            onClick={onToggle}
-                            className="rounded-lg p-2 text-brand-grey hover:bg-brand-cream hover:text-brand-navy"
-                            aria-label={
-                                showLabels
-                                    ? 'Recolher sidebar'
-                                    : 'Expandir sidebar'
-                            }
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                            <img src={markLogo} alt="" className="h-7 w-7 object-contain" />
+                        </span>
+                        <span className={`min-w-0 text-left ${expanded ? '' : 'lg:hidden'}`}>
+                            <span className="block text-[15px] font-semibold leading-tight tracking-tight text-white">
+                                Gestudo
+                            </span>
+                            <span className="block truncate text-xs leading-tight text-slate-400">
+                                {ROLE_LABEL[role] || 'Plataforma'}
+                            </span>
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="ml-auto rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+                        aria-label="Fechar menu"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Navegação */}
+                <nav
+                    className={`flex-1 overflow-y-auto overflow-x-hidden py-4 [scrollbar-width:thin] ${
+                        expanded ? 'px-3' : 'px-3 lg:px-2.5'
+                    }`}
+                >
+                    {groups.map((group, groupIndex) => (
+                        <div
+                            key={group.title || `grupo-${groupIndex}`}
+                            className={groupIndex > 0 ? 'mt-4' : ''}
                         >
-                            {showLabels ? (
-                                <PanelLeftClose size={18} />
-                            ) : (
-                                <PanelLeftOpen size={18} />
-                            )}
-                        </button>
-                    </div>
-
-                    <nav className={navSpacingClass}>
-                        {menu.map((item, index) => {
-                            if (item.section) {
-                                return (
-                                    <p
-                                        key={index}
-                                        className={`text-xs font-semibold text-brand-grey tracking-wide overflow-hidden transition-all duration-150 ${
-                                            showLabels
-                                                ? isAdmin
-                                                    ? 'mt-5 mb-1.5 max-h-6 opacity-100'
-                                                    : 'mt-8 mb-3 max-h-6 opacity-100'
-                                                : 'my-0 max-h-0 opacity-0'
-                                        }`}
-                                    >
-                                        {item.section}
+                            {group.title ? (
+                                expanded ? (
+                                    <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        {group.title}
                                     </p>
-                                );
-                            }
-
-                            const Icon = item.icon;
-                            const isActive = isPathActive(
-                                currentPath,
-                                item.path
-                            );
-                            const isGroup = Boolean(item.children?.length);
-                            const hasActiveChild = isGroup
-                                ? item.children.some((child) =>
-                                      isPathActive(currentPath, child.path)
-                                  )
-                                : false;
-                            const isGroupOpen =
-                                Boolean(openGroups[item.key]) || hasActiveChild;
-                            const isChildActive = isGroup
-                                ? item.children.some((child) =>
-                                      isPathActive(currentPath, child.path)
-                                  )
-                                : false;
-
-                            if (!showLabels && isGroup) {
-                                return (
-                                    <div
-                                        key={item.key}
-                                        className={
-                                            isAdmin ? 'space-y-1' : 'space-y-2'
-                                        }
-                                    >
-                                        {item.children.map((child) => {
-                                            const ChildIcon =
-                                                child.icon || Settings;
-                                            const isChildCurrent = isPathActive(
-                                                currentPath,
-                                                child.path
-                                            );
-
-                                            return (
-                                                <button
-                                                    type="button"
-                                                    key={child.key}
-                                                    onClick={() =>
-                                                        handleSelect(child)
-                                                    }
-                                                    className={`
-													w-full flex items-center justify-center
-													rounded-lg ${itemPaddingClass} text-sm transition
-													${
-                                                        isChildCurrent
-                                                            ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
-                                                            : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
-                                                    }
-												`}
-                                                    aria-label={child.label}
-                                                >
-                                                    <ChildIcon size={18} />
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <div key={item.key}>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSelect(item)}
-                                        className={`
-										w-full flex items-center ${showLabels ? 'justify-between' : 'justify-center'}
-										rounded-lg ${itemPaddingClass} text-sm transition
-										${
-                                            isActive || isChildActive
-                                                ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
-                                                : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
-                                        }
-									`}
-                                        aria-label={
-                                            !showLabels ? item.label : undefined
-                                        }
-                                    >
+                                ) : (
+                                    <>
+                                        <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 lg:hidden">
+                                            {group.title}
+                                        </p>
                                         <div
-                                            className={`flex items-center ${showLabels ? 'gap-3' : 'gap-0'}`}
-                                        >
-                                            <Icon size={18} />
-                                            <span
-                                                className={`whitespace-nowrap overflow-hidden transition-all duration-150 ${
-                                                    showLabels
-                                                        ? 'max-w-[10rem] opacity-100'
-                                                        : 'max-w-0 opacity-0'
+                                            className="mx-auto mb-2 hidden h-px w-6 bg-white/10 lg:block"
+                                            aria-hidden="true"
+                                        />
+                                    </>
+                                )
+                            ) : null}
+
+                            <ul className="space-y-0.5">
+                                {group.items.map((item) => {
+                                    const Icon = item.icon;
+                                    const active = isPathActive(currentPath, item.path);
+
+                                    return (
+                                        <li key={item.key}>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelect(item)}
+                                                title={expanded ? undefined : item.label}
+                                                aria-current={active ? 'page' : undefined}
+                                                className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 ${
+                                                    expanded ? '' : 'lg:justify-center lg:px-0'
+                                                } ${
+                                                    active
+                                                        ? 'bg-white/10 text-white'
+                                                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
                                                 }`}
                                             >
-                                                {item.label}
-                                            </span>
-                                        </div>
-
-                                        {showLabels && isGroup ? (
-                                            isGroupOpen ? (
-                                                <ChevronDown
-                                                    size={16}
-                                                    className="text-brand-grey"
+                                                {active ? (
+                                                    <span
+                                                        className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-cyan-400"
+                                                        aria-hidden="true"
+                                                    />
+                                                ) : null}
+                                                <Icon
+                                                    size={18}
+                                                    strokeWidth={active ? 2.25 : 2}
+                                                    className={`shrink-0 ${
+                                                        active
+                                                            ? 'text-cyan-400'
+                                                            : 'text-slate-500 group-hover:text-slate-300'
+                                                    }`}
                                                 />
-                                            ) : (
-                                                <ChevronRight
-                                                    size={16}
-                                                    className="text-brand-grey"
-                                                />
-                                            )
-                                        ) : item.arrow && showLabels ? (
-                                            <ChevronRight
-                                                size={16}
-                                                className="text-brand-grey"
-                                            />
-                                        ) : null}
-                                    </button>
+                                                <span className={`truncate ${expanded ? '' : 'lg:hidden'}`}>
+                                                    {item.label}
+                                                </span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    ))}
+                </nav>
 
-                                    {showLabels && isGroup && isGroupOpen ? (
-                                        <div
-                                            className={
-                                                isAdmin
-                                                    ? 'mt-1.5 ml-8 space-y-1'
-                                                    : 'mt-2 ml-9 space-y-1.5'
-                                            }
-                                        >
-                                            {item.children.map((child) => {
-                                                const isChildCurrent =
-                                                    isPathActive(
-                                                        currentPath,
-                                                        child.path
-                                                    );
-                                                return (
-                                                    <button
-                                                        type="button"
-                                                        key={child.key}
-                                                        onClick={() =>
-                                                            handleSelect(child)
-                                                        }
-                                                        className={`w-full rounded-md ${childPaddingClass} text-left text-sm transition ${
-                                                            isChildCurrent
-                                                                ? 'bg-[#06b6d4] text-[#0f172a] font-semibold'
-                                                                : 'text-brand-grey hover:bg-brand-cream hover:text-brand-navy'
-                                                        }`}
-                                                    >
-                                                        {child.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            );
-                        })}
-                    </nav>
+                {/* Recolher / expandir (só em ecrãs grandes) */}
+                <div className="hidden shrink-0 border-t border-white/10 p-3 lg:block">
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100 ${
+                            expanded ? '' : 'justify-center px-0'
+                        }`}
+                        aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
+                        title={expanded ? undefined : 'Expandir menu'}
+                    >
+                        {expanded ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                        {expanded ? <span>Recolher menu</span> : null}
+                    </button>
                 </div>
             </aside>
         </>

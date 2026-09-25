@@ -6,7 +6,6 @@ import {
     CheckCircle2,
     Clock3,
     GraduationCap,
-    UserCog,
 } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
@@ -67,7 +66,6 @@ function StatusCard({ icon, tone, title, description, actionLabel, onAction }) {
 export default function DashboardAlunoPage() {
     const navigate = useNavigate();
     const [todaysSessions, setTodaysSessions] = useState([]);
-    const [perfil, setPerfil] = useState(null);
     const [alertasNaoLidos, setAlertasNaoLidos] = useState(0);
     const [presencas, setPresencas] = useState([]);
     const [loadingError, setLoadingError] = useState(null);
@@ -80,10 +78,9 @@ export default function DashboardAlunoPage() {
                 setLoadingError(null);
                 const { from, to, today } = getCurrentMonthRange();
 
-                const [agendaRes, perfilRes, alertasRes, presencasRes] =
+                const [agendaRes, alertasRes, presencasRes] =
                     await Promise.all([
                         apiGet(`/api/public/agenda?from=${from}&to=${to}`),
-                        apiGet('/api/aluno/perfil'),
                         apiGet('/api/alertas/eventos?lido=false&limite=1'),
                         apiGet('/api/aluno/presencas'),
                     ]);
@@ -122,11 +119,6 @@ export default function DashboardAlunoPage() {
 
                 if (!isMounted) return;
                 setTodaysSessions(todayList);
-
-                if (perfilRes.ok) {
-                    const perfilData = await perfilRes.json();
-                    if (isMounted) setPerfil(perfilData?.aluno || null);
-                }
 
                 if (alertasRes.ok) {
                     const alertasData = await alertasRes.json();
@@ -202,17 +194,6 @@ export default function DashboardAlunoPage() {
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[370px_minmax(0,1fr)]">
                 <div className="space-y-3">
-                    {perfil?.alteracaoPendente && (
-                        <StatusCard
-                            icon={UserCog}
-                            tone="amber"
-                            title="Alteração de perfil pendente"
-                            description="O pedido que fizeste está a aguardar aprovação do gestor."
-                            actionLabel="Ver o meu perfil"
-                            onAction={() => navigate('/aluno/perfil')}
-                        />
-                    )}
-
                     <StatusCard
                         icon={Bell}
                         tone={alertasNaoLidos > 0 ? 'blue' : 'slate'}

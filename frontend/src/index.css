@@ -4,10 +4,25 @@
 
 :root {
     color-scheme: light;
+    /* Cores das séries dos gráficos (validadas para daltonismo, ver dashboard) */
+    --chart-series-1: #0891b2;
+    --chart-series-2: #eb6834;
+    --chart-grid: #e2e8f0;
+    --chart-axis: #64748b;
 }
 
 html.dark {
     color-scheme: dark;
+    --chart-series-1: #0e9fbf;
+    --chart-series-2: #d95926;
+    --chart-grid: #3f3f46;
+    --chart-axis: #a1a1aa;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
 }
 
 html.dark body,
@@ -84,36 +99,6 @@ html.dark .text-blue-800 {
         linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), rgb(6 182 212 / 0.12) 50%, transparent calc(50% + 1px)),
         radial-gradient(circle at 18% 18%, rgb(6 182 212 / 0.14), transparent 28%),
         radial-gradient(circle at 82% 78%, rgb(30 41 59 / 0.12), transparent 30%);
-}
-
-[data-admin-compact='true'] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 1rem !important;
-}
-
-[data-admin-compact='true'] .space-y-5 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.875rem !important;
-}
-
-[data-admin-compact='true'] .gap-6 {
-    gap: 1rem !important;
-}
-
-[data-admin-compact='true'] .gap-5 {
-    gap: 0.875rem !important;
-}
-
-[data-admin-compact='true'] .rounded-2xl {
-    border-radius: 0.75rem !important;
-}
-
-[data-admin-compact='true'] .p-6,
-[data-admin-compact='true'] .sm\:p-6 {
-    padding: 1rem !important;
-}
-
-[data-admin-compact='true'] .p-5,
-[data-admin-compact='true'] .sm\:p-5 {
-    padding: 0.875rem !important;
 }
 
 [data-admin-compact='true'] input,

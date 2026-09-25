@@ -149,11 +149,6 @@ export async function removerGestor(req, res) {
             return res.status(404).json({ message: 'Administrador não encontrado.' });
         }
 
-        await client.query(
-            `UPDATE alteracoes_pendentes_perfil SET revisto_por = NULL WHERE revisto_por = $1`,
-            [idUser]
-        );
-
         await client.query(`DELETE FROM users WHERE id_user = $1`, [idUser]);
 
         await client.query('COMMIT');

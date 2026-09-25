@@ -482,25 +482,6 @@ export async function dispatchAlertaAusencia({
 }
 
 /**
- * Dispara alerta de manutenção do sistema
- * Usado para notificar sobre manutenção planejada
- *
- * @param {Object} manutencao - Dados da manutenção {titulo, descricao, data_inicio, data_fim, ...}
- * @returns {Promise<Object>} resultado do dispatch
- */
-export async function dispatchAlertaManutencao(manutencao) {
-    return dispatchAlert({
-        codigo: 'manutencao-sistema',
-        titulo: manutencao.titulo || 'Manutenção do sistema',
-        descricao:
-            manutencao.descricao ||
-            'Manutenção planejada do sistema. Alguns serviços podem estar indisponíveis.',
-        nivel: 'warning',
-        payload: manutencao,
-    });
-}
-
-/**
  * Dispara alerta customizado (para qualquer cenário não coberto)
  *
  * @param {string} codigo - Código do alerta (deve existir em alertas_definicoes)

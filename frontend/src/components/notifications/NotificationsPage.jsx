@@ -4,7 +4,6 @@ import {
     Search,
     Trash2,
     UserPlus,
-    CalendarDays,
     FileText,
     AlertTriangle,
 } from 'lucide-react';
@@ -55,13 +54,6 @@ function getNotificationStyle(tipo, nivel) {
         return {
             iconBg: 'bg-amber-100 text-amber-600',
             Icon: AlertTriangle,
-        };
-    }
-
-    if (tipo === 'manutencao') {
-        return {
-            iconBg: 'bg-rose-100 text-rose-500',
-            Icon: CalendarDays,
         };
     }
 

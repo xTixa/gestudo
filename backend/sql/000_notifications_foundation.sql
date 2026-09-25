@@ -157,6 +157,5 @@ VALUES
     ('financeiro', 'faturas-vencidas', 'Faturas vencidas', 'Avisos sobre faturas vencidas.', 'ReceiptText', true, true, true, true, 10),
     ('financeiro', 'pagamentos-recebidos', 'Pagamentos recebidos', 'Confirmacoes de pagamentos processados.', 'CircleCheck', true, false, false, true, 20),
     ('academico', 'ausencias-alunos', 'Ausencias de alunos', 'Avisos quando uma falta e registada.', 'UserX', true, true, true, true, 30),
-    ('academico', 'renovacao-matricula', 'Renovacao da matricula', 'Notificacao sobre renovacao de matricula do aluno.', 'RefreshCcw', true, true, false, true, 40),
-    ('sistema', 'manutencao-sistema', 'Manutencao do sistema', 'Avisos de manutencao planeada do sistema.', 'Wrench', true, true, true, true, 50)
+    ('academico', 'renovacao-matricula', 'Renovacao da matricula', 'Notificacao sobre renovacao de matricula do aluno.', 'RefreshCcw', true, true, false, true, 40)
 ON CONFLICT (codigo) DO NOTHING;

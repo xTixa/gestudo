@@ -1,7 +1,5 @@
 import express from 'express';
 import {
-    criarPedidoReagendamentoProfessor,
-    listarPedidosReagendamentoProfessor,
     listarServicosProfessorResumo,
     listarAlunosParaProfessor,
     obterPerfilProfessorLogado,
@@ -31,7 +29,5 @@ router.get('/presencas/assiduidade', listarTabelaAssiduidadeProfessor);
 router.get('/presencas/:id_servico/historico', obterHistoricoPresencasServicoProfessor);
 router.get('/presencas/:id_servico', obterPresencaProfessor);
 router.post('/presencas', guardarPresencasProfessor);
-router.get('/reagendamentos', listarPedidosReagendamentoProfessor);
-router.post('/reagendamentos', criarPedidoReagendamentoProfessor);
 
 export default router;

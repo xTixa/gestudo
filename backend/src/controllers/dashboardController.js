@@ -98,9 +98,6 @@ export async function obterResumoDashboard(req, res) {
                 matriculasExpiradas: Number(
                     resumo.alunos_matricula_expirada || 0
                 ),
-                reagendamentosPendentes: Number(
-                    resumo.pedidos_reagendamento_pendentes || 0
-                ),
                 inscricoesPublicasPendentes: Number(
                     resumo.inscricoes_publicas_pendentes || 0
                 ),

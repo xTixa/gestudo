@@ -405,10 +405,7 @@ export default function UpdatePerfilAlunoPage() {
                 }
             }
 
-            setSuccess(
-                data?.message ||
-                    'As suas alterações foram submetidas e aguardam aprovação do gestor.'
-            );
+            setSuccess('Perfil atualizado com sucesso.');
             setTimeout(() => navigate('/aluno/perfil'), 1200);
         } catch (submitError) {
             setError(submitError?.message || 'Erro ao guardar alterações.');

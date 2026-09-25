@@ -32,13 +32,6 @@ const REPORTS = {
         view: 'vw_receita_inscricoes',
         orderBy: 'mes DESC',
     },
-    'reagendamentos-pedidos': {
-        view: 'vw_pedidos_reagendamento_detalhe',
-        orderBy: 'created_at DESC',
-        filters: {
-            estado: 'estado',
-        },
-    },
     'servicos-extracurriculares': {
         view: 'vw_servicos_extracurriculares_resumo',
         orderBy: 'data_inicio DESC, hora_inicio ASC, id_servico DESC',
@@ -137,26 +130,6 @@ export async function listarRelatorioGestor(req, res) {
         console.error('Erro ao listar relatorio:', error.message);
         return res.status(500).json({
             message: 'Erro ao listar relatorio.',
-        });
-    }
-}
-
-export async function obterResumoDashboardDetalhado(req, res) {
-    try {
-        const { rows } = await db.query(`
-            SELECT *
-            FROM public.fn_dashboard_resumo_detalhado()
-            LIMIT 1
-        `);
-
-        return res.status(200).json({ resumo: rows[0] || null });
-    } catch (error) {
-        console.error(
-            'Erro ao obter resumo detalhado do dashboard:',
-            error.message
-        );
-        return res.status(500).json({
-            message: 'Erro ao obter resumo detalhado do dashboard.',
         });
     }
 }

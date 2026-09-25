@@ -2,8 +2,6 @@ import express from 'express';
 import {
     enviarNotificacao,
     listarNotificacoes,
-} from '../controllers/manutencaoController.js';
-import {
     registarDeviceToken,
     removerDeviceToken,
 } from '../controllers/notificacoesController.js';
@@ -50,7 +48,7 @@ router.post('/device-token/remover', authMiddleware, removerDeviceToken);
  *
  * Headers: {X-User-Id: number} + {Authorization: Bearer <token>}
  * Body: {
- *   tipo?: string (ex: 'manutencao', 'aviso', 'geral'),
+ *   tipo?: string (ex: 'aviso', 'geral'),
  *   titulo: string (obrigatório),
  *   descricao?: string,
  *   nivel?: 'info' | 'warning' | 'danger' (default: 'info')

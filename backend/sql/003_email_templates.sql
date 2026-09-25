@@ -78,24 +78,5 @@ Motivo: {motivo}',
     'Ver na plataforma',
     '["nome", "titulo_sessao", "data_anterior", "hora_anterior", "sala_anterior", "data_nova", "hora_nova", "sala_nova", "motivo", "app_url"]'::jsonb,
     '["nome", "titulo_sessao", "data_nova", "hora_nova"]'::jsonb
-),
-(
-    'reschedule_decision',
-    'Decisao de reagendamento',
-    'Email enviado quando um pedido de reagendamento e aprovado ou rejeitado.',
-    'Pedido de reagendamento {decisao}',
-    'Pedido {decisao}',
-    'Ola {nome},',
-    'O teu pedido para "{titulo_sessao}" foi {decisao}.
-
-Antes: {data_anterior} as {hora_anterior}, sala {sala_anterior}
-Agora: {data_nova} as {hora_nova}, sala {sala_nova}
-
-Motivo do pedido: {motivo}
-Motivo da decisao: {motivo_decisao}',
-    'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
-    'Ver na plataforma',
-    '["nome", "decisao", "titulo_sessao", "data_anterior", "hora_anterior", "sala_anterior", "data_nova", "hora_nova", "sala_nova", "motivo", "motivo_decisao", "app_url"]'::jsonb,
-    '["nome", "decisao", "titulo_sessao"]'::jsonb
 )
 ON CONFLICT (template_key) DO NOTHING;

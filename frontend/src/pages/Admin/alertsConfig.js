@@ -58,15 +58,6 @@ export const DEFAULT_ALERT_GROUPS = [
                 emailEnabled: true,
                 smsEnabled: false,
             },
-            {
-                id: 'reagendamento-pendente',
-                title: 'Novo pedido de reagendamento',
-                description: 'Quando um professor submete um pedido de reagendamento de sessao',
-                icon: 'CalendarClock',
-                appEnabled: true,
-                emailEnabled: false,
-                smsEnabled: false,
-            },
         ],
     },
     {

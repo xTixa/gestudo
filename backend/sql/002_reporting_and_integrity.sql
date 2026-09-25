@@ -321,6 +321,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.fn_dashboard_resumo_detalhado();
 CREATE OR REPLACE FUNCTION public.fn_dashboard_resumo_detalhado()
 RETURNS TABLE (
     alunos_ativos integer,
@@ -330,7 +331,6 @@ RETURNS TABLE (
     servicos_extracurriculares_ativos integer,
     inscricoes_ativas integer,
     faltas_por_resolver integer,
-    pedidos_reagendamento_pendentes integer,
     inscricoes_publicas_pendentes integer
 )
 LANGUAGE sql
@@ -344,7 +344,6 @@ AS $$
         (SELECT COUNT(*)::int FROM public.servicos_extracurriculares s WHERE coalesce(s.ativo, true) = true),
         (SELECT COUNT(*)::int FROM public.inscricoes i WHERE lower(coalesce(i.estado, 'ativa')) = 'ativa'),
         (SELECT COUNT(*)::int FROM public.presencas p WHERE lower(coalesce(p.estado, '')) = 'falta'),
-        (SELECT COUNT(*)::int FROM public.pedidos_reagendamento_professor prp WHERE lower(coalesce(prp.estado, 'pendente')) = 'pendente'),
         (SELECT COUNT(*)::int FROM public.inscricoes_publicas ip WHERE lower(coalesce(ip.estado, 'pendente')) = 'pendente');
 $$;
 
@@ -402,39 +401,6 @@ LEFT JOIN public.pessoas prof_p ON prof_p.id_pessoa = prof.id_pessoa
 LEFT JOIN public.disciplinas d ON d.id_disciplina = sc.id_disciplina
 LEFT JOIN public.salas sala ON sala.id_sala = sc.id_sala
 LEFT JOIN public.users marcador ON marcador.id_user = p.marcado_por;
-
-CREATE OR REPLACE VIEW public.vw_pedidos_reagendamento_detalhe AS
-SELECT
-    prp.id_pedido_reagendamento,
-    prp.id_professor,
-    prof_p.nome AS professor,
-    prof_u.email AS professor_email,
-    prp.id_servico,
-    prp.titulo_servico,
-    prp.aluno_nome,
-    prp.ano_label,
-    prp.data_original,
-    prp.hora_original,
-    prp.sala_original,
-    prp.data_sugerida,
-    prp.hora_sugerida,
-    prp.sala_sugerida,
-    prp.motivo,
-    prp.estado,
-    prp.aprovado_por,
-    aprov.email AS aprovado_por_email,
-    prp.rejeitado_por,
-    rej.email AS rejeitado_por_email,
-    prp.decidido_em,
-    prp.motivo_decisao,
-    prp.created_at,
-    prp.updated_at
-FROM public.pedidos_reagendamento_professor prp
-LEFT JOIN public.professores prof ON prof.id_professor = prp.id_professor
-LEFT JOIN public.pessoas prof_p ON prof_p.id_pessoa = prof.id_pessoa
-LEFT JOIN public.users prof_u ON prof_u.id_user = prof.id_user
-LEFT JOIN public.users aprov ON aprov.id_user = prp.aprovado_por
-LEFT JOIN public.users rej ON rej.id_user = prp.rejeitado_por;
 
 CREATE OR REPLACE VIEW public.vw_alertas_eventos_detalhe AS
 SELECT

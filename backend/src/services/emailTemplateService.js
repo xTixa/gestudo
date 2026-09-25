@@ -58,35 +58,6 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         ],
         requiredVariables: ['nome', 'titulo_sessao', 'data_nova', 'hora_nova'],
     },
-    reschedule_decision: {
-        templateKey: 'reschedule_decision',
-        name: 'Decisao de reagendamento',
-        description:
-            'Email enviado quando um pedido de reagendamento e aprovado ou rejeitado.',
-        subject: 'Pedido de reagendamento {decisao}',
-        title: 'Pedido {decisao}',
-        introText: 'Ola {nome},',
-        bodyText:
-            'O teu pedido para "{titulo_sessao}" foi {decisao}.\n\nAntes: {data_anterior} as {hora_anterior}, sala {sala_anterior}\nAgora: {data_nova} as {hora_nova}, sala {sala_nova}\n\nMotivo do pedido: {motivo}\nMotivo da decisao: {motivo_decisao}',
-        footerText:
-            'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
-        buttonLabel: 'Ver na plataforma',
-        allowedVariables: [
-            'nome',
-            'decisao',
-            'titulo_sessao',
-            'data_anterior',
-            'hora_anterior',
-            'sala_anterior',
-            'data_nova',
-            'hora_nova',
-            'sala_nova',
-            'motivo',
-            'motivo_decisao',
-            'app_url',
-        ],
-        requiredVariables: ['nome', 'decisao', 'titulo_sessao'],
-    },
     credentials_guardian: {
         templateKey: 'credentials_guardian',
         name: 'Credenciais iniciais - Encarregado de educacao',

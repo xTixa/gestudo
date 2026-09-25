@@ -10,9 +10,6 @@ import {
     adicionarServicoCurricularAluno,
     removerServicoAluno,
     atualizarDisciplinasPretendidasAluno,
-    listarAlteracoesPendentesPerfil,
-    aprovarAlteracaoPendentePerfil,
-    rejeitarAlteracaoPendentePerfil,
 } from '../controllers/alunoController.js';
 import {
     listarProfessores,
@@ -22,15 +19,12 @@ import {
     criarProfessor,
     alterarEstadoProfessor,
     eliminarProfessorDefinitivo,
-    listarPedidosReagendamentoGestor,
-    atualizarEstadoPedidoReagendamentoGestor,
 } from '../controllers/professorController.js';
 import {
     obterGraficosDashboard,
     obterResumoDashboard,
 } from '../controllers/dashboardController.js';
 import { listarLogs } from '../controllers/logsController.js';
-import { listarAgenda } from '../controllers/agendaController.js';
 import { listarTabelaPresencasGestor } from '../controllers/presencasController.js';
 import {
     listarDisciplinasCatalogo,
@@ -59,12 +53,6 @@ import {
     eliminarTipoServicoExtraCatalogo,
 } from '../controllers/gestaoInternaController.js';
 import {
-    criarAvisoManutencao,
-    listarAvisosManutencao,
-    atualizarAvisoManutencao,
-    removerAvisoManutencao,
-} from '../controllers/manutencaoController.js';
-import {
     listarEmailTemplates,
     obterEmailTemplate,
     atualizarEmailTemplate,
@@ -87,7 +75,6 @@ import {
 import {
     listarRelatorioGestor,
     listarSalasDisponiveis,
-    obterResumoDashboardDetalhado,
 } from '../controllers/relatoriosController.js';
 import {
     listarServicosCurriculares,
@@ -119,7 +106,6 @@ import {
 } from '../controllers/gestorManagementController.js';
 import { limparDadosEmMassa } from '../controllers/limpezaDadosController.js';
 import { notificarFalhaParcialLote } from '../controllers/notificacoesGestorController.js';
-import { obterAnoLetivo, encerrarAnoLetivo } from '../controllers/anoLetivoController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import {
@@ -139,7 +125,7 @@ import {
  * 2. Gestão de Pessoas (Alunos, Professores)
  * 3. Gestão de Catálogos (Disciplinas)
  * 4. Gestão de Serviços (Curriculares)
- * 5. Manutenção & Notificações
+ * 5. Notificações & Configurações
  *
  * Autenticação: OBRIGATÓRIA
  * Autorização: OBRIGATÓRIA (role='gestor')
@@ -163,7 +149,6 @@ router.use(roleMiddleware('gestor'));
  */
 router.get('/dashboard-resumo', obterResumoDashboard);
 router.get('/dashboard-graficos', obterGraficosDashboard);
-router.get('/dashboard-resumo-detalhado', obterResumoDashboardDetalhado);
 router.get(
     '/relatorios/:relatorio',
     validateParams({ relatorio: 'string' }),
@@ -197,24 +182,6 @@ router.get(
         format: { type: 'string', required: false },
     }),
     listarLogs
-);
-
-/**
- * GET /api/gestor/agenda
- * Lista agenda global com filtro por intervalo de datas
- *
- * Query: {from: YYYY-MM-DD, to: YYYY-MM-DD}
- * Response: {atividadesPorDia: {data: [atividades]}, totalServicos: number}
- * Status: 200 OK | 400 Bad Request | 500 Internal Server Error
- */
-router.get(
-    '/agenda',
-    validateQuery({
-        from: { type: 'date', required: false },
-        to: { type: 'date', required: false },
-        rescheduleEligible: { type: 'string', required: false },
-    }),
-    listarAgenda
 );
 
 router.get(
@@ -297,32 +264,6 @@ router.post(
     '/alunos/:id/reset-password',
     validateParams({ id: 'number' }),
     resetarPasswordAluno
-);
-
-/**
- * GET /api/gestor/alteracoes-pendentes
- * Lista pedidos de alteração de perfil de aluno pendentes de aprovação
- */
-router.get('/alteracoes-pendentes', listarAlteracoesPendentesPerfil);
-
-/**
- * POST /api/gestor/alteracoes-pendentes/:id/aprovar
- * Aprova um pedido de alteração de perfil, aplicando os dados propostos
- */
-router.post(
-    '/alteracoes-pendentes/:id/aprovar',
-    validateParams({ id: 'number' }),
-    aprovarAlteracaoPendentePerfil
-);
-
-/**
- * POST /api/gestor/alteracoes-pendentes/:id/rejeitar
- * Rejeita um pedido de alteração de perfil, sem aplicar as alterações
- */
-router.post(
-    '/alteracoes-pendentes/:id/rejeitar',
-    validateParams({ id: 'number' }),
-    rejeitarAlteracaoPendentePerfil
 );
 router.post(
     '/alunos/:id/servicos-curriculares',
@@ -845,35 +786,7 @@ router.delete(
 );
 router.delete('/inscricoes-publicas/lote', apagarInscricoesPublicasEmLote);
 
-router.get(
-    '/reagendamentos/pedidos',
-    validateQuery({
-        estado: {
-            type: 'string',
-            required: false,
-            enum: ['pendente', 'aprovado', 'rejeitado'],
-        },
-    }),
-    listarPedidosReagendamentoGestor
-);
-router.patch(
-    '/reagendamentos/pedidos/:id/estado',
-    validateParams({ id: 'number' }),
-    validateBody({
-        estado: {
-            type: 'string',
-            required: true,
-            enum: ['pendente', 'aprovado', 'rejeitado'],
-        },
-        motivo_decisao: {
-            type: 'string',
-            required: false,
-        },
-    }),
-    atualizarEstadoPedidoReagendamentoGestor
-);
-
-// =============== MANUTENÇÃO & NOTIFICAÇÕES ===============
+// =============== NOTIFICAÇÕES & CONFIGURAÇÕES ===============
 
 /**
  * POST /api/gestor/notificar-falha-parcial
@@ -929,67 +842,6 @@ router.patch(
     validateParams({ key: 'string' }),
     validateBody({ ativo: { type: 'boolean', required: true } }),
     atualizarFeatureFlag
-);
-
-/**
- * POST /api/gestor/manutencao-avisos
- * Cria novo aviso de manutenção do sistema
- *
- * Body: {titulo: string, descricao?: string, ativa?: boolean}
- * Response: {id, titulo, descricao, ativa, criadaEm}
- * Status: 201 Created | 400 Bad Request | 500 Internal Server Error
- */
-router.post(
-    '/manutencao-avisos',
-    validateBody({
-        titulo: { type: 'string', required: true, min: 3 },
-        descricao: { type: 'string', required: false },
-        ativa: { type: 'boolean', required: false },
-    }),
-    criarAvisoManutencao
-);
-
-/**
- * GET /api/gestor/manutencao-avisos
- * Lista todos os avisos de manutenção ativos
- *
- * Response: [{id, titulo, descricao, ativa, criadaEm}]
- * Status: 200 OK | 500 Internal Server Error
- */
-router.get('/manutencao-avisos', listarAvisosManutencao);
-
-/**
- * PATCH /api/gestor/manutencao-avisos/:id
- * Atualiza aviso de manutenção
- *
- * Params: id
- * Body: {titulo?, descricao?, ativa?}
- * Response: {id, titulo, descricao, ativa, criadaEm}
- * Status: 200 OK | 404 Not Found | 500 Internal Server Error
- */
-router.patch(
-    '/manutencao-avisos/:id',
-    validateParams({ id: 'number' }),
-    validateBody({
-        titulo: { type: 'string', required: false, min: 3 },
-        descricao: { type: 'string', required: false },
-        ativa: { type: 'boolean', required: false },
-    }),
-    atualizarAvisoManutencao
-);
-
-/**
- * DELETE /api/gestor/manutencao-avisos/:id
- * Remove aviso de manutenção (soft delete)
- *
- * Params: id
- * Response: {id, titulo}
- * Status: 200 OK | 404 Not Found | 500 Internal Server Error
- */
-router.delete(
-    '/manutencao-avisos/:id',
-    validateParams({ id: 'number' }),
-    removerAvisoManutencao
 );
 
 // =============== GESTÃO DE RENOVAÇÕES DE MATRÍCULA ===============
@@ -1058,18 +910,6 @@ router.post(
         opcoes: { type: 'object', required: true },
     }),
     limparDadosEmMassa
-);
-
-// =============== GESTÃO DO ANO LECTIVO ===============
-
-router.get('/ano-letivo', obterAnoLetivo);
-router.post(
-    '/ano-letivo/encerrar',
-    validateBody({
-        confirmacao: { type: 'string', required: true },
-        opcoes: { type: 'object', required: false },
-    }),
-    encerrarAnoLetivo
 );
 
 export default router;

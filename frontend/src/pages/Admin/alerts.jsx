@@ -603,11 +603,12 @@ export default function AlertsPage() {
         <section className="mx-auto w-full max-w-7xl space-y-4 pb-8 sm:pb-10">
             <AdminPageHeader
                 eyebrow="Alertas"
-                title="Alertas e Notificações"
+                title="Alertas e notificações"
+                className="lg:!flex-col lg:!items-start"
                 subtitle="Configure como deseja receber as notificações. Pode adicionar alertas personalizados agora e depois."
                 icon={BellRing}
                 actions={
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             type="button"
                             onClick={() => setAllByChannel('appEnabled', true)}

@@ -61,24 +61,19 @@ export async function limparDadosEmMassa(req, res) {
             contagens.presencas = await deleteWithFallback(client, 'DELETE FROM presencas');
         }
 
-        // ── 2. Pedidos de reagendamento ───────────────────────────────────────────
-        if (professores || servicos || alunos) {
-            await deleteWithFallback(client, 'DELETE FROM pedidos_reagendamento_professor');
-        }
-
-        // ── 3. Inscrições em serviços ─────────────────────────────────────────────
+        // ── 2. Inscrições em serviços ─────────────────────────────────────────────
         if (alunos || servicos) {
             contagens.inscricoes = await deleteWithFallback(client, 'DELETE FROM inscricoes');
         }
 
-        // ── 4. Serviços curriculares e extra-curriculares ─────────────────────────
+        // ── 3. Serviços curriculares e extra-curriculares ─────────────────────────
         if (servicos) {
             const sc = await deleteWithFallback(client, 'DELETE FROM servicos_curriculares');
             const se = await deleteWithFallback(client, 'DELETE FROM servicos_extracurriculares');
             contagens.servicos = sc + se;
         }
 
-        // ── 5. Alunos (users + pessoas + encarregados) ────────────────────────────
+        // ── 4. Alunos (users + pessoas + encarregados) ────────────────────────────
         if (alunos) {
             const { rows: alunoRows } = await client.query(`
                 SELECT
@@ -143,7 +138,7 @@ export async function limparDadosEmMassa(req, res) {
             contagens.alunos = alunoRows.length;
         }
 
-        // ── 6. Professores (users + pessoas) ──────────────────────────────────────
+        // ── 5. Professores (users + pessoas) ──────────────────────────────────────
         if (professores) {
             const { rows: profRows } = await client.query(`
                 SELECT p.id_professor, p.id_user AS prof_id_user, p.id_pessoa AS prof_id_pessoa
@@ -177,12 +172,12 @@ export async function limparDadosEmMassa(req, res) {
             contagens.professores = profRows.length;
         }
 
-        // ── 7. Inscrições públicas ────────────────────────────────────────────────
+        // ── 6. Inscrições públicas ────────────────────────────────────────────────
         if (inscricoes_publicas) {
             contagens.inscricoes_publicas = await deleteWithFallback(client, 'DELETE FROM inscricoes_publicas');
         }
 
-        // ── 8. Logs ───────────────────────────────────────────────────────────────
+        // ── 7. Logs ───────────────────────────────────────────────────────────────
         if (logs) {
             contagens.logs = await deleteWithFallback(client, 'DELETE FROM logs');
         }

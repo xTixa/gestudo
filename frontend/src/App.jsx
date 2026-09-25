@@ -19,11 +19,9 @@ import AlertsPage from './pages/Admin/alerts';
 import NotificationsPage from './pages/Admin/notifications';
 import SettingsPage from './pages/Admin/settings';
 import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
-import PendingProfileChangesPage from './pages/Admin/PendingProfileChanges';
 import RenewalsPage from './pages/Admin/renewals';
 import AgendaPage from './pages/Admin/agenda';
 import PresencasGestorPage from './pages/Admin/presences';
-import ReagendamentosPage from './pages/Admin/rescheduling';
 import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
 import SalasPage from './pages/Admin/InternalManagement/rooms';
 import ModalidadePage from './pages/Admin/InternalManagement/modality';
@@ -41,7 +39,6 @@ import FichaAlunoPage from './pages/Admin/StudentManagement/recordStudent';
 import FichaProfPage from './pages/Admin/TeacherManagement/recordTeacher';
 import DashboardProfessorPage from './pages/Teacher/dashboard';
 import AgendaProfessorPage from './pages/Teacher/agenda';
-import ReagendamentosProfessorPage from './pages/Teacher/rescheduling';
 import ServicosProfessorPage from './pages/Teacher/services';
 import PresencasProfessorPage from './pages/Teacher/presences';
 import AssiduidadeProfessorPage from './pages/Teacher/attendance';
@@ -110,10 +107,6 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<PresencasGestorPage />}
                     />
                     <Route
-                        path="/gestor/reagendar"
-                        element={<ReagendamentosPage />}
-                    />
-                    <Route
                         path="/gestor/servicos/curriculares"
                         element={<GestaoCurricularPage />}
                     />
@@ -125,10 +118,6 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/gestor/inscricoes-publicas"
                         element={<PublicEnrollmentsPage />}
-                    />
-                    <Route
-                        path="/gestor/alteracoes-pendentes"
-                        element={<PendingProfileChangesPage />}
                     />
                     <Route
                         path="/gestor/renovacoes"
@@ -207,10 +196,6 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/professor/agenda"
                         element={<AgendaProfessorPage />}
-                    />
-                    <Route
-                        path="/professor/reagendamentos"
-                        element={<ReagendamentosProfessorPage />}
                     />
                     <Route
                         path="/professor/servicos"
@@ -527,21 +512,19 @@ function App() {
                 />
 
                 {/* Conteúdo principal */}
-                <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     {/* Navbar */}
                     <Navbar
                         user={user}
                         onLogout={handleLogout}
                         onNavigate={handleNavigate}
-                        compact={isAdminRole}
+                        onToggleSidebar={() => setSidebarOpen(true)}
                     />
 
                     {/* Conteúdo da página */}
                     <main
                         data-admin-compact={isAdminRole ? 'true' : undefined}
-                        className={`flex-1 overflow-auto ${
-                            isAdminRole ? 'p-3 sm:p-4' : 'p-4 sm:p-6'
-                        }`}
+                        className="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8"
                     >
                         <ErrorBoundary>
                             <AuthenticatedRoutes

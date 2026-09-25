@@ -12,7 +12,6 @@ import {
     registarUpdate,
 } from '../services/logService.js';
 import {
-    dispatchAlert,
     notificarGestoresCriacaoConta,
     notificarGestoresAlunoEliminado,
 } from '../services/alertasDispatchService.js';
@@ -1341,24 +1340,6 @@ export async function obterMeuPerfil(req, res) {
             ),
         };
 
-        const alteracaoPendenteResult = await db.query(
-            `
-                SELECT id_alteracao, dados_propostos, criado_em
-                FROM alteracoes_pendentes_perfil
-                WHERE id_aluno = $1 AND estado = 'pendente'
-                LIMIT 1
-            `,
-            [alunoResult.rows[0].id_aluno]
-        );
-
-        perfilSemPrecos.alteracaoPendente = alteracaoPendenteResult.rows[0]
-            ? {
-                  id: alteracaoPendenteResult.rows[0].id_alteracao,
-                  dadosPropostos: alteracaoPendenteResult.rows[0].dados_propostos,
-                  criadoEm: alteracaoPendenteResult.rows[0].criado_em,
-              }
-            : null;
-
         return res.status(200).json({ aluno: perfilSemPrecos });
     } catch (error) {
         console.error('Erro ao obter perfil do aluno:', error.message);
@@ -1368,9 +1349,8 @@ export async function obterMeuPerfil(req, res) {
     }
 }
 
-// Campos que o aluno pode propor alterar no seu próprio perfil (mesmos que
-// atualizarAluno aceita). Qualquer alteração fica pendente de aprovação do
-// gestor em vez de ser gravada de imediato.
+// Campos que o aluno pode alterar no seu próprio perfil (subconjunto dos que
+// atualizarAluno aceita).
 const CAMPOS_PERFIL_ALUNO = [
     'nome',
     'data_nasc',
@@ -1396,40 +1376,12 @@ const CAMPOS_PERFIL_ALUNO = [
     'encarregado_email',
 ];
 
-// Notifica todos os gestores quando um aluno submete (ou atualiza) um
-// pedido de alteração de perfil que aguarda aprovação.
-async function notificarGestoresAlteracaoPendentePerfil({ alunoNome }) {
-    try {
-        const { rows: gestorRows } = await db.query(
-            `SELECT id_user FROM users WHERE role = 'gestor' AND status = true`
-        );
-        const gestorIds = gestorRows.map((r) => r.id_user).filter(Boolean);
-        if (!gestorIds.length) return;
-
-        await dispatchAlert({
-            codigo: 'alteracao-perfil-pendente',
-            for_user_ids: gestorIds,
-            titulo: 'Novo pedido de alteração de perfil',
-            descricao: `${alunoNome || 'Um aluno'} submeteu um pedido de alteração ao seu perfil que aguarda aprovação.`,
-            nivel: 'info',
-            payload: { alunoNome },
-            pushLink: '/gestor/alunos',
-        });
-    } catch (err) {
-        console.warn(
-            '[alunoController] Falha ao notificar gestores de alteração de perfil pendente:',
-            err.message
-        );
-    }
-}
-
 /**
- * Submete um pedido de alteração ao perfil do aluno autenticado, que fica
- * pendente de aprovação do gestor (não é gravado de imediato).
+ * Atualiza o perfil do aluno autenticado.
  *
  * @param {Object} req - Objecto de requisição (req.userId, body)
  * @param {Object} res - Objecto de resposta
- * @returns {JSON} Confirmação de submissão do pedido
+ * @returns {JSON} Dados atualizados do aluno
  */
 export async function atualizarMeuPerfil(req, res) {
     if (!req.userId) {
@@ -1455,232 +1407,30 @@ export async function atualizarMeuPerfil(req, res) {
 
         const alunoId = alunoResult.rows[0].id_aluno;
 
-        const dadosPropostos = {};
+        const body = {};
         CAMPOS_PERFIL_ALUNO.forEach((campo) => {
-            const valor = req.body?.[campo];
-            if (valor !== undefined) {
-                dadosPropostos[campo] = valor;
+            if (req.body?.[campo] !== undefined) {
+                body[campo] = req.body[campo];
             }
         });
 
-        if (!Object.keys(dadosPropostos).length) {
+        if (!Object.keys(body).length) {
             return res.status(400).json({ message: 'Sem dados para atualizar.' });
         }
 
-        const existente = await db.query(
-            `
-                SELECT id_alteracao, dados_propostos
-                FROM alteracoes_pendentes_perfil
-                WHERE id_aluno = $1 AND estado = 'pendente'
-                LIMIT 1
-            `,
-            [alunoId]
+        return atualizarAluno(
+            {
+                ...req,
+                params: { ...(req.params || {}), id: String(alunoId) },
+                body,
+            },
+            res
         );
-
-        if (existente.rows.length) {
-            const mergedDados = {
-                ...existente.rows[0].dados_propostos,
-                ...dadosPropostos,
-            };
-
-            await db.query(
-                `
-                    UPDATE alteracoes_pendentes_perfil
-                    SET dados_propostos = $1::jsonb, atualizado_em = now()
-                    WHERE id_alteracao = $2
-                `,
-                [JSON.stringify(mergedDados), existente.rows[0].id_alteracao]
-            );
-        } else {
-            const perfilAtual = await carregarPerfilAlunoPorIdAluno(db, alunoId);
-
-            await db.query(
-                `
-                    INSERT INTO alteracoes_pendentes_perfil
-                        (id_aluno, dados_propostos, dados_anteriores, estado)
-                    VALUES ($1, $2::jsonb, $3::jsonb, 'pendente')
-                `,
-                [
-                    alunoId,
-                    JSON.stringify(dadosPropostos),
-                    JSON.stringify(perfilAtual),
-                ]
-            );
-
-            notificarGestoresAlteracaoPendentePerfil({
-                alunoNome: perfilAtual?.pessoa?.nome,
-            });
-        }
-
-        return res.status(202).json({
-            message:
-                'As suas alterações foram submetidas e aguardam aprovação do gestor.',
-            pendente: true,
-        });
     } catch (error) {
         console.error('Erro ao atualizar perfil do aluno:', error.message);
         return res
             .status(500)
             .json({ message: 'Erro ao atualizar o perfil do aluno.' });
-    }
-}
-
-/**
- * Lista pedidos de alteração de perfil de aluno pendentes de aprovação.
- *
- * @param {Object} req - Objecto de requisição
- * @param {Object} res - Objecto de resposta
- * @returns {JSON} Lista de alterações pendentes
- */
-export async function listarAlteracoesPendentesPerfil(req, res) {
-    try {
-        const { rows } = await db.query(
-            `
-                SELECT
-                    ap.id_alteracao,
-                    ap.id_aluno,
-                    ap.dados_propostos,
-                    ap.dados_anteriores,
-                    ap.estado,
-                    ap.criado_em,
-                    ap.atualizado_em,
-                    p.nome AS aluno_nome
-                FROM alteracoes_pendentes_perfil ap
-                INNER JOIN alunos a ON a.id_aluno = ap.id_aluno
-                INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
-                WHERE ap.estado = 'pendente'
-                ORDER BY ap.criado_em ASC
-            `
-        );
-
-        return res.status(200).json({ alteracoes: rows });
-    } catch (error) {
-        console.error('Erro ao listar alterações pendentes:', error.message);
-        return res
-            .status(500)
-            .json({ message: 'Erro ao listar alterações pendentes.' });
-    }
-}
-
-/**
- * Aprova um pedido de alteração de perfil de aluno: aplica os dados
- * propostos ao registo do aluno e marca o pedido como aprovado.
- *
- * @param {Object} req - Objecto de requisição (params: id)
- * @param {Object} res - Objecto de resposta
- * @returns {JSON} Confirmação de aprovação
- */
-export async function aprovarAlteracaoPendentePerfil(req, res) {
-    const { id } = req.params;
-
-    if (!id || Number.isNaN(Number(id))) {
-        return res.status(400).json({ message: 'ID de alteração inválido.' });
-    }
-
-    try {
-        const { rows } = await db.query(
-            `
-                SELECT id_alteracao, id_aluno, dados_propostos
-                FROM alteracoes_pendentes_perfil
-                WHERE id_alteracao = $1 AND estado = 'pendente'
-                LIMIT 1
-            `,
-            [id]
-        );
-
-        if (!rows.length) {
-            return res.status(404).json({
-                message: 'Pedido de alteração não encontrado ou já revisto.',
-            });
-        }
-
-        const pedido = rows[0];
-
-        const resultado = await new Promise((resolve) => {
-            const fakeRes = {
-                status(code) {
-                    this.statusCode = code;
-                    return this;
-                },
-                json(payload) {
-                    resolve({ statusCode: this.statusCode || 200, payload });
-                },
-            };
-
-            atualizarAluno(
-                {
-                    params: { id: String(pedido.id_aluno) },
-                    body: pedido.dados_propostos,
-                    userId: req.userId,
-                },
-                fakeRes
-            );
-        });
-
-        if (resultado.statusCode >= 400) {
-            return res.status(resultado.statusCode).json(resultado.payload);
-        }
-
-        await db.query(
-            `
-                UPDATE alteracoes_pendentes_perfil
-                SET estado = 'aprovada', revisto_por = $1, revisto_em = now(), atualizado_em = now()
-                WHERE id_alteracao = $2
-            `,
-            [req.userId ?? null, id]
-        );
-
-        return res.status(200).json({
-            message: 'Alteração aprovada e aplicada ao perfil do aluno.',
-        });
-    } catch (error) {
-        console.error('Erro ao aprovar alteração pendente:', error.message);
-        return res
-            .status(500)
-            .json({ message: 'Erro ao aprovar alteração pendente.' });
-    }
-}
-
-/**
- * Rejeita um pedido de alteração de perfil de aluno, sem aplicar as
- * alterações propostas.
- *
- * @param {Object} req - Objecto de requisição (params: id, body: motivo?)
- * @param {Object} res - Objecto de resposta
- * @returns {JSON} Confirmação de rejeição
- */
-export async function rejeitarAlteracaoPendentePerfil(req, res) {
-    const { id } = req.params;
-    const motivo = String(req.body?.motivo ?? '').trim() || null;
-
-    if (!id || Number.isNaN(Number(id))) {
-        return res.status(400).json({ message: 'ID de alteração inválido.' });
-    }
-
-    try {
-        const { rows } = await db.query(
-            `
-                UPDATE alteracoes_pendentes_perfil
-                SET estado = 'rejeitada', revisto_por = $1, revisto_em = now(),
-                    atualizado_em = now(), motivo_rejeicao = $2
-                WHERE id_alteracao = $3 AND estado = 'pendente'
-                RETURNING id_alteracao
-            `,
-            [req.userId ?? null, motivo, id]
-        );
-
-        if (!rows.length) {
-            return res.status(404).json({
-                message: 'Pedido de alteração não encontrado ou já revisto.',
-            });
-        }
-
-        return res.status(200).json({ message: 'Alteração rejeitada.' });
-    } catch (error) {
-        console.error('Erro ao rejeitar alteração pendente:', error.message);
-        return res
-            .status(500)
-            .json({ message: 'Erro ao rejeitar alteração pendente.' });
     }
 }
 

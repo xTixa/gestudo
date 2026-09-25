@@ -11,10 +11,10 @@ export default function GestaoInternaFilters({
     const hasFilter = searchTerm.trim().length > 0;
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                 <label>
-                    <span className="mb-2 block text-sm font-medium text-slate-600">
+                    <span className="mb-1.5 block text-xs font-medium text-slate-500">
                         Filtrar
                     </span>
                     <div className="relative">
@@ -29,7 +29,7 @@ export default function GestaoInternaFilters({
                                 onSearchChange(event.target.value)
                             }
                             placeholder={placeholder}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-spindle"
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-800 placeholder:text-slate-400 transition hover:border-slate-300 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10"
                         />
                         {hasFilter ? (
                             <button
@@ -44,7 +44,7 @@ export default function GestaoInternaFilters({
                     </div>
                 </label>
 
-                <div className="rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-600">
+                <div className="flex h-9 items-center gap-1 whitespace-nowrap rounded-lg bg-slate-50 px-3 text-sm text-slate-500">
                     A mostrar{' '}
                     <span className="font-semibold text-slate-800">
                         {filteredCount}

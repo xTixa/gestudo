@@ -261,16 +261,6 @@ export default function PerfilAlunoPage() {
                 Editar perfil
             </button>
 
-            {!loading && profile?.alteracaoPendente ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 shadow-sm">
-                    Tens alterações ao perfil submetidas em{' '}
-                    {new Date(
-                        profile.alteracaoPendente.criadoEm
-                    ).toLocaleDateString('pt-PT')}{' '}
-                    que ainda aguardam aprovação do gestor.
-                </div>
-            ) : null}
-
             {loading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-sm text-slate-500 shadow-sm">
                     A carregar perfil...

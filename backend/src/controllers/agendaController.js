@@ -81,57 +81,6 @@ function buildTitle(row) {
     return parts.join(' - ');
 }
 
-// Converte valor de dias_semana em array de dias normalizados (ex: ['segunda', 'quarta'])
-function parseDiasSemana(value) {
-    if (Array.isArray(value)) {
-        return value
-            .map((item) =>
-                String(
-                    item && typeof item === 'object'
-                        ? item.dia || item.day || ''
-                        : item || ''
-                )
-                    .trim()
-                    .toLowerCase()
-            )
-            .filter(Boolean);
-    }
-
-    if (!value) {
-        return [];
-    }
-
-    if (typeof value === 'string') {
-        try {
-            const parsed = JSON.parse(value);
-            return Array.isArray(parsed)
-                ? parsed
-                      .map((item) =>
-                          String(
-                              item && typeof item === 'object'
-                                  ? item.dia || item.day || ''
-                                  : item || ''
-                          )
-                              .trim()
-                              .toLowerCase()
-                      )
-                      .filter(Boolean)
-                : [];
-        } catch {
-            return value
-                .split(',')
-                .map((item) =>
-                    String(item || '')
-                        .trim()
-                        .toLowerCase()
-                )
-                .filter(Boolean);
-        }
-    }
-
-    return [];
-}
-
 function parseScheduleEntries(value, fallbackStart, fallbackEnd) {
     const raw = Array.isArray(value)
         ? value
@@ -300,47 +249,6 @@ function buildPresencasByService(rows = []) {
     });
 
     return map;
-}
-
-const RESCHEDULE_MIN_LEAD_MINUTES = 60;
-
-function buildSessionDateTime(dateValue, timeValue) {
-    const date = parseDateOrNull(dateValue);
-    const time = normalizeTime(timeValue);
-
-    if (!date || !/^\d{2}:\d{2}$/.test(time)) {
-        return null;
-    }
-
-    const [hours, minutes] = time.split(':').map(Number);
-    if ([hours, minutes].some((value) => Number.isNaN(value))) {
-        return null;
-    }
-
-    const sessionStart = new Date(date);
-    sessionStart.setHours(hours, minutes, 0, 0);
-    return sessionStart;
-}
-
-function filterAtividadesElegiveisPorData(atividadesPorDia, cutoffDate) {
-    const filteredMap = {};
-
-    Object.entries(atividadesPorDia || {}).forEach(([dateKey, atividades]) => {
-        const filteredAtividades = (atividades || []).filter((atividade) => {
-            const sessionStart = buildSessionDateTime(dateKey, atividade?.hora);
-            if (!sessionStart) {
-                return false;
-            }
-
-            return sessionStart.getTime() >= cutoffDate.getTime();
-        });
-
-        if (filteredAtividades.length > 0) {
-            filteredMap[dateKey] = filteredAtividades;
-        }
-    });
-
-    return filteredMap;
 }
 
 //construção do mapa de atividades por dia a partir das linhas retornadas pela query
@@ -512,16 +420,9 @@ async function resolveInscricoesServicoColumn() {
  * @param {number|null} userId - ID do utilizador autenticado (ou null para vazio)
  * @param {string} fromParam - Data de início (YYYY-MM-DD)
  * @param {string} toParam - Data de fim (YYYY-MM-DD)
- * @param {Object} [options]
- * @param {boolean} [options.rescheduleEligible] - Filtra só atividades elegíveis para reagendamento
  * @returns {Promise<{atividadesPorDia: Object, totalServicos: number}>}
  */
-export async function buscarAtividadesPorDia(
-    userId,
-    fromParam,
-    toParam,
-    options = {}
-) {
+export async function buscarAtividadesPorDia(userId, fromParam, toParam) {
     const fromDate = parseDateOrNull(fromParam);
     const toDate = parseDateOrNull(toParam);
 
@@ -760,24 +661,13 @@ export async function buscarAtividadesPorDia(
         presencasByService = buildPresencasByService(presencasRows);
     }
 
-    const rescheduleEligible = String(
-        options?.rescheduleEligible || ''
-    ).toLowerCase();
-    const cutoffDate = new Date(
-        Date.now() + RESCHEDULE_MIN_LEAD_MINUTES * 60000
-    );
-
-    const atividadesBase = buildAtividadesPorDia(
+    const atividadesPorDia = buildAtividadesPorDia(
         rows,
         fromDate,
         toDate,
         presencasBySession,
         presencasByService
     );
-    const atividadesPorDia =
-        rescheduleEligible === 'true'
-            ? filterAtividadesElegiveisPorData(atividadesBase, cutoffDate)
-            : atividadesBase;
 
     const totalServicos = Object.values(atividadesPorDia).reduce(
         (total, atividades) =>
@@ -812,8 +702,7 @@ export async function listarAgenda(req, res) {
         const resultado = await buscarAtividadesPorDia(
             req.userId,
             fromParam,
-            toParam,
-            { rescheduleEligible: req.query?.rescheduleEligible }
+            toParam
         );
 
         return res.status(200).json(resultado);

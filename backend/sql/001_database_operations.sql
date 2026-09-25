@@ -227,40 +227,11 @@ CREATE TABLE IF NOT EXISTS public.inscricoes_publicas (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.pedidos_reagendamento_professor (
-    id_pedido_reagendamento BIGSERIAL PRIMARY KEY,
-    id_professor BIGINT NOT NULL,
-    id_servico BIGINT NOT NULL,
-    titulo_servico TEXT,
-    aluno_nome TEXT,
-    ano_label TEXT,
-    data_original DATE,
-    hora_original TEXT,
-    sala_original TEXT,
-    data_sugerida DATE,
-    hora_sugerida TEXT,
-    sala_sugerida TEXT,
-    motivo TEXT,
-    estado TEXT NOT NULL DEFAULT 'pendente',
-    aprovado_por BIGINT,
-    rejeitado_por BIGINT,
-    decidido_em TIMESTAMPTZ,
-    motivo_decisao TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE INDEX IF NOT EXISTS idx_inscricoes_publicas_estado
 ON public.inscricoes_publicas (estado);
 
 CREATE INDEX IF NOT EXISTS idx_inscricoes_publicas_created_at
 ON public.inscricoes_publicas (created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_reagendamento_professor_estado
-ON public.pedidos_reagendamento_professor (estado);
-
-CREATE INDEX IF NOT EXISTS idx_reagendamento_professor_professor
-ON public.pedidos_reagendamento_professor (id_professor);
 
 -- ============================================================
 -- updated_at support
@@ -276,7 +247,6 @@ BEGIN
         'pacotes',
         'tipo_servico_extracurricular',
         'presencas',
-        'pedidos_reagendamento_professor',
         'inscricoes_publicas'
     ]
     LOOP
@@ -311,13 +281,6 @@ BEGIN
         CREATE TRIGGER trg_presencas_audit
         AFTER INSERT OR UPDATE OR DELETE ON public.presencas
         FOR EACH ROW EXECUTE FUNCTION public.fn_audit_row_change('presencas', 'id_presenca', 'info');
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pedidos_reagendamento_professor') THEN
-        DROP TRIGGER IF EXISTS trg_pedidos_reagendamento_professor_audit ON public.pedidos_reagendamento_professor;
-        CREATE TRIGGER trg_pedidos_reagendamento_professor_audit
-        AFTER INSERT OR UPDATE OR DELETE ON public.pedidos_reagendamento_professor
-        FOR EACH ROW EXECUTE FUNCTION public.fn_audit_row_change('pedidos_reagendamento_professor', 'id_pedido_reagendamento', 'alert');
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'inscricoes_publicas') THEN
