@@ -938,30 +938,38 @@ export async function obterResumoFinanceiro(req, res) {
 /**
  * GET /api/gestor/financeiro/alunos/:id/conta-corrente
  */
+/**
+ * Mensalidades e totais de um aluno. Partilhado pelo backoffice e pela área
+ * do encarregado de educação.
+ */
+export async function calcularContaCorrenteAluno(idAluno) {
+    const { rows } = await db.query(
+        `${MENSALIDADE_SELECT} WHERE v.id_aluno = $1 ORDER BY v.mes_referencia DESC`,
+        [idAluno]
+    );
+    const mensalidades = rows.map(mapMensalidadeRow);
+    const ativas = mensalidades.filter((m) => m.estado !== 'anulada');
+
+    return {
+        mensalidades,
+        totais: {
+            faturado: toMoney(ativas.reduce((s, m) => s + m.valorTotal, 0)),
+            pago: toMoney(ativas.reduce((s, m) => s + m.valorPago, 0)),
+            emDivida: toMoney(ativas.reduce((s, m) => s + m.valorEmDivida, 0)),
+            vencido: toMoney(
+                ativas
+                    .filter((m) => m.estado === 'vencida')
+                    .reduce((s, m) => s + m.valorEmDivida, 0)
+            ),
+        },
+    };
+}
+
 export async function obterContaCorrenteAluno(req, res) {
     const idAluno = Number(req.params.id);
 
     try {
-        const { rows } = await db.query(
-            `${MENSALIDADE_SELECT} WHERE v.id_aluno = $1 ORDER BY v.mes_referencia DESC`,
-            [idAluno]
-        );
-        const mensalidades = rows.map(mapMensalidadeRow);
-        const ativas = mensalidades.filter((m) => m.estado !== 'anulada');
-
-        return res.json({
-            mensalidades,
-            totais: {
-                faturado: toMoney(ativas.reduce((s, m) => s + m.valorTotal, 0)),
-                pago: toMoney(ativas.reduce((s, m) => s + m.valorPago, 0)),
-                emDivida: toMoney(ativas.reduce((s, m) => s + m.valorEmDivida, 0)),
-                vencido: toMoney(
-                    ativas
-                        .filter((m) => m.estado === 'vencida')
-                        .reduce((s, m) => s + m.valorEmDivida, 0)
-                ),
-            },
-        });
+        return res.json(await calcularContaCorrenteAluno(idAluno));
     } catch (error) {
         console.error('[financeiro] obterContaCorrenteAluno:', error.message);
         return res.status(500).json({ message: 'Erro ao obter a conta corrente.' });

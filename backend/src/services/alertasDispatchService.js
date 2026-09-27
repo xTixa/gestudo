@@ -467,14 +467,17 @@ export async function dispatchAlertaAusencia({
     for_user_ids = [],
     ausencia,
     pushLink = '/aluno/notificacoes',
+    titulo = 'Nova ausência registada',
+    descricao = null,
 }) {
     const data = ausencia || {};
 
     return dispatchAlert({
         codigo: 'ausencias-alunos',
         for_user_ids,
-        titulo: 'Nova ausência registada',
-        descricao: `Foi registada uma falta em ${data.data || 'data por definir'}.`,
+        titulo,
+        descricao:
+            descricao || `Foi registada uma falta em ${data.data || 'data por definir'}.`,
         nivel: 'info',
         payload: data,
         pushLink,

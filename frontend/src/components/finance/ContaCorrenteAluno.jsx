@@ -7,8 +7,34 @@ import NovaMensalidadeModal from './NovaMensalidadeModal';
 import { currentMes, formatDate, formatMes, formatMoney } from './financeFormat';
 import { btnGhost } from './financeUi';
 
-/** Conta corrente do aluno (mensalidades, pagos e em dívida) na ficha. */
-export default function ContaCorrenteAluno({ idAluno }) {
+/**
+ * Conta corrente do aluno (mensalidades, pagos e em dívida) na ficha.
+ * Com `readOnly` (área do encarregado) mostra só a consulta, sem ações.
+ */
+const rowCls = 'flex w-full items-center gap-3 px-4 py-3 text-sm';
+
+function MensalidadeResumo({ m }) {
+    return (
+        <>
+            <span className="min-w-0 flex-1">
+                <span className="block font-medium text-slate-800">{formatMes(m.mes)}</span>
+                <span className="block text-xs text-slate-500">Vence a {formatDate(m.dataVencimento)}</span>
+            </span>
+            <span className="text-right tabular-nums">
+                <span className="block font-medium text-slate-900">{formatMoney(m.valorTotal)}</span>
+                {m.valorPago > 0 && m.estado !== 'paga' ? (
+                    <span className="block text-xs text-slate-500">pago {formatMoney(m.valorPago)}</span>
+                ) : null}
+            </span>
+            <span className="w-24 text-right">
+                <EstadoBadge estado={m.estado} />
+            </span>
+        </>
+    );
+}
+
+export default function ContaCorrenteAluno({ idAluno, url, readOnly = false }) {
+    const endpoint = url || `/api/gestor/financeiro/alunos/${idAluno}/conta-corrente`;
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [selectedId, setSelectedId] = useState(null);
@@ -17,7 +43,7 @@ export default function ContaCorrenteAluno({ idAluno }) {
 
     useEffect(() => {
         let active = true;
-        apiGet(`/api/gestor/financeiro/alunos/${idAluno}/conta-corrente`)
+        apiGet(endpoint)
             .then(async (res) => {
                 const json = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(json?.message || 'Erro ao carregar a conta corrente.');
@@ -28,7 +54,7 @@ export default function ContaCorrenteAluno({ idAluno }) {
         return () => {
             active = false;
         };
-    }, [idAluno, reloadKey]);
+    }, [endpoint, reloadKey]);
 
     const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
     const totais = data?.totais;
@@ -40,10 +66,12 @@ export default function ContaCorrenteAluno({ idAluno }) {
                     <div className="h-5 w-1 rounded bg-blue-500" />
                     <h2 className="text-base font-semibold text-slate-800">Conta corrente</h2>
                 </div>
-                <button type="button" className={btnGhost} onClick={() => setNovaOpen(true)}>
-                    <FilePlus2 size={14} aria-hidden="true" />
-                    Nova mensalidade
-                </button>
+                {readOnly ? null : (
+                    <button type="button" className={btnGhost} onClick={() => setNovaOpen(true)}>
+                        <FilePlus2 size={14} aria-hidden="true" />
+                        Nova mensalidade
+                    </button>
+                )}
             </div>
 
             {error ? <p className="text-sm text-rose-600">{error}</p> : null}
@@ -77,25 +105,19 @@ export default function ContaCorrenteAluno({ idAluno }) {
                         <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">
                             {data.mensalidades.map((m) => (
                                 <li key={m.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedId(m.id)}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-slate-50"
-                                    >
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block font-medium text-slate-800">{formatMes(m.mes)}</span>
-                                            <span className="block text-xs text-slate-500">Vence a {formatDate(m.dataVencimento)}</span>
-                                        </span>
-                                        <span className="text-right tabular-nums">
-                                            <span className="block font-medium text-slate-900">{formatMoney(m.valorTotal)}</span>
-                                            {m.valorPago > 0 && m.estado !== 'paga' ? (
-                                                <span className="block text-xs text-slate-500">pago {formatMoney(m.valorPago)}</span>
-                                            ) : null}
-                                        </span>
-                                        <span className="w-24 text-right">
-                                            <EstadoBadge estado={m.estado} />
-                                        </span>
-                                    </button>
+                                    {readOnly ? (
+                                        <div className={rowCls}>
+                                            <MensalidadeResumo m={m} />
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedId(m.id)}
+                                            className={`${rowCls} text-left transition hover:bg-slate-50`}
+                                        >
+                                            <MensalidadeResumo m={m} />
+                                        </button>
+                                    )}
                                 </li>
                             ))}
                         </ul>

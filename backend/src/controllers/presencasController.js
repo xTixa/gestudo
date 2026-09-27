@@ -312,6 +312,12 @@ function mapAttendanceRows(rows) {
     }));
 }
 
+// "2026-09-27" → "27/09/2026"
+function formatDatePt(dateKey) {
+    const [ano, mes, dia] = String(dateKey || '').split('-');
+    return ano && mes && dia ? `${dia}/${mes}/${ano}` : '';
+}
+
 async function notificarFaltasRegistadas({
     faltasParaNotificar,
     serviceId,
@@ -326,17 +332,47 @@ async function notificarFaltasRegistadas({
     try {
         const alunosParaNotificar = await db.query(
             `
-                SELECT a.id_aluno, a.id_user, p.nome
+                SELECT a.id_aluno, a.id_user, p.nome, ue.id_user AS ee_user_id
                 FROM alunos a
                 INNER JOIN pessoas p ON p.id_pessoa = a.id_pessoa
+                LEFT JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+                LEFT JOIN users ue
+                    ON ue.id_user = e.id_user
+                   AND ue.role = 'encarregado'
+                   AND ue.status = true
                 WHERE a.id_aluno = ANY($1::int[])
                   AND a.id_user IS NOT NULL
             `,
             [uniqueAbsenceStudentIds]
         );
 
-        await Promise.allSettled(
-            alunosParaNotificar.rows.map((row) =>
+        // Aviso ao encarregado de educação (se tiver conta própria).
+        const quando = [formatDatePt(dataAula), horaAula ? `às ${horaAula}` : null]
+            .filter(Boolean)
+            .join(' ');
+        const avisosEncarregados = alunosParaNotificar.rows
+            .filter((row) => row.ee_user_id && row.ee_user_id !== row.id_user)
+            .map((row) => {
+                const nome = String(row.nome || 'Aluno').trim();
+                return dispatchAlertaAusencia({
+                    for_user_ids: [row.ee_user_id],
+                    titulo: `Falta registada: ${nome.split(/\s+/)[0]}`,
+                    descricao: `${nome} faltou à sessão de ${quando || 'hoje'}.`,
+                    ausencia: {
+                        id_aluno: row.id_aluno,
+                        aluno: nome,
+                        id_servico: serviceId,
+                        data: dataAula,
+                        hora: horaAula || null,
+                        estado: 'falta',
+                    },
+                    pushLink: '/encarregado/presencas',
+                });
+            });
+
+        await Promise.allSettled([
+            ...avisosEncarregados,
+            ...alunosParaNotificar.rows.map((row) =>
                 dispatchAlertaAusencia({
                     for_user_ids: [row.id_user],
                     ausencia: {
@@ -351,8 +387,8 @@ async function notificarFaltasRegistadas({
                     },
                     pushLink: '/aluno/presencas',
                 })
-            )
-        );
+            ),
+        ]);
     } catch (notificationError) {
         console.warn(
             '[presencasController] Falha ao notificar faltas:',
@@ -1269,113 +1305,127 @@ export async function listarMinhasPresencasAluno(req, res) {
                 .json({ message: 'Autenticação necessária.' });
         }
 
-        const aluno = await obterAlunoPorUserId(req.userId);
-        if (!aluno?.id_aluno) {
+        const payload = await obterPresencasAlunoPorUserId(req.userId);
+        if (!payload) {
             return res.status(404).json({ message: 'Aluno não encontrado.' });
         }
 
-        const anoLetivo = getAnoLetivoRange(new Date());
-        const hasDataReposicao = await hasPresencasDataReposicaoColumn();
-
-        const attendanceQuery = `
-            SELECT
-                pr.id_presenca,
-                pr.data_aula,
-                pr.hora_aula,
-                pr.estado,
-                pr.observacao,
-                ${
-                    hasDataReposicao
-                        ? 'pr.data_reposicao,'
-                        : 'NULL::date AS data_reposicao,'
-                }
-                s.id_servico,
-                COALESCE(d.nome, 'Serviço') AS disciplina,
-                COALESCE(p.nome, 'Professor') AS professor,
-                COALESCE(sa.nome, 'Sem sala') AS sala
-            FROM presencas pr
-            INNER JOIN servicos_curriculares s ON s.id_servico = pr.id_servico
-            LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
-            LEFT JOIN salas sa ON sa.id_sala = s.id_sala
-            LEFT JOIN professores prf ON prf.id_professor = s.id_professor
-            LEFT JOIN pessoas p ON p.id_pessoa = prf.id_pessoa
-            WHERE pr.id_aluno = $1
-                %s
-            ORDER BY pr.data_aula DESC, pr.hora_aula DESC NULLS LAST, pr.id_presenca DESC
-        `;
-
-        let { rows } = await db.query(
-            attendanceQuery.replace(
-                '%s',
-                'AND pr.data_aula >= $2::date AND pr.data_aula < $3::date'
-            ),
-            [aluno.id_aluno, anoLetivo.startDate, anoLetivo.endDate]
-        );
-
-        if (!rows.length) {
-            ({ rows } = await db.query(attendanceQuery.replace('%s', ''), [
-                aluno.id_aluno,
-            ]));
-        }
-
-        const months = [
-            'Jan',
-            'Fev',
-            'Mar',
-            'Abr',
-            'Mai',
-            'Jun',
-            'Jul',
-            'Ago',
-            'Set',
-            'Out',
-            'Nov',
-            'Dez',
-        ];
-
-        const presencas = rows.map((row) => {
-            const dataAula = normalizeDateOnly(row.data_aula);
-            const dateObject = new Date(`${dataAula}T00:00:00`);
-            const monthIndex = Number.isNaN(dateObject.getTime())
-                ? 0
-                : dateObject.getMonth();
-
-            return {
-                id: row.id_presenca,
-                date: dataAula,
-                month: months[monthIndex],
-                time: String(row.hora_aula || '').trim() || '--:--',
-                subject: String(row.disciplina || 'Serviço').trim(),
-                teacher: String(row.professor || 'Professor').trim(),
-                room: String(row.sala || 'Sem sala').trim() || 'Sem sala',
-                status: String(row.estado || 'presente')
-                    .trim()
-                    .toLowerCase(),
-                note: String(row.observacao || '').trim(),
-                replacementDate:
-                    normalizeDateOnly(row.data_reposicao) ||
-                    extractReplacementDateFromObservation(row.observacao),
-                serviceId: row.id_servico,
-            };
-        });
-
-        return res.status(200).json({
-            aluno: {
-                id_aluno: aluno.id_aluno,
-                nome: String(aluno.nome || 'Aluno').trim(),
-                ano: aluno.ano,
-                turma: aluno.turma,
-            },
-            year: anoLetivo.label,
-            ano_letivo: anoLetivo.label,
-            presencas,
-        });
+        return res.status(200).json(payload);
     } catch (error) {
         console.error('Erro ao listar presenças do aluno:', error.message);
         return res.status(500).json({
             message: 'Erro ao listar presenças do aluno.',
         });
     }
+}
+
+/**
+ * Presenças do ano letivo de um aluno, a partir do id_user da conta do aluno.
+ * Partilhado pela área do aluno e pela área do encarregado de educação.
+ * Devolve null se o utilizador não corresponder a um aluno.
+ */
+export async function obterPresencasAlunoPorUserId(userId) {
+    const aluno = await obterAlunoPorUserId(userId);
+    if (!aluno?.id_aluno) {
+        return null;
+    }
+
+    const anoLetivo = getAnoLetivoRange(new Date());
+    const hasDataReposicao = await hasPresencasDataReposicaoColumn();
+
+    const attendanceQuery = `
+        SELECT
+            pr.id_presenca,
+            pr.data_aula,
+            pr.hora_aula,
+            pr.estado,
+            pr.observacao,
+            ${
+                hasDataReposicao
+                    ? 'pr.data_reposicao,'
+                    : 'NULL::date AS data_reposicao,'
+            }
+            s.id_servico,
+            COALESCE(d.nome, 'Serviço') AS disciplina,
+            COALESCE(p.nome, 'Professor') AS professor,
+            COALESCE(sa.nome, 'Sem sala') AS sala
+        FROM presencas pr
+        INNER JOIN servicos_curriculares s ON s.id_servico = pr.id_servico
+        LEFT JOIN disciplinas d ON d.id_disciplina = s.id_disciplina
+        LEFT JOIN salas sa ON sa.id_sala = s.id_sala
+        LEFT JOIN professores prf ON prf.id_professor = s.id_professor
+        LEFT JOIN pessoas p ON p.id_pessoa = prf.id_pessoa
+        WHERE pr.id_aluno = $1
+            %s
+        ORDER BY pr.data_aula DESC, pr.hora_aula DESC NULLS LAST, pr.id_presenca DESC
+    `;
+
+    let { rows } = await db.query(
+        attendanceQuery.replace(
+            '%s',
+            'AND pr.data_aula >= $2::date AND pr.data_aula < $3::date'
+        ),
+        [aluno.id_aluno, anoLetivo.startDate, anoLetivo.endDate]
+    );
+
+    if (!rows.length) {
+        ({ rows } = await db.query(attendanceQuery.replace('%s', ''), [
+            aluno.id_aluno,
+        ]));
+    }
+
+    const months = [
+        'Jan',
+        'Fev',
+        'Mar',
+        'Abr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Set',
+        'Out',
+        'Nov',
+        'Dez',
+    ];
+
+    const presencas = rows.map((row) => {
+        const dataAula = normalizeDateOnly(row.data_aula);
+        const dateObject = new Date(`${dataAula}T00:00:00`);
+        const monthIndex = Number.isNaN(dateObject.getTime())
+            ? 0
+            : dateObject.getMonth();
+
+        return {
+            id: row.id_presenca,
+            date: dataAula,
+            month: months[monthIndex],
+            time: String(row.hora_aula || '').trim() || '--:--',
+            subject: String(row.disciplina || 'Serviço').trim(),
+            teacher: String(row.professor || 'Professor').trim(),
+            room: String(row.sala || 'Sem sala').trim() || 'Sem sala',
+            status: String(row.estado || 'presente')
+                .trim()
+                .toLowerCase(),
+            note: String(row.observacao || '').trim(),
+            replacementDate:
+                normalizeDateOnly(row.data_reposicao) ||
+                extractReplacementDateFromObservation(row.observacao),
+            serviceId: row.id_servico,
+        };
+    });
+
+    return {
+        aluno: {
+            id_aluno: aluno.id_aluno,
+            nome: String(aluno.nome || 'Aluno').trim(),
+            ano: aluno.ano,
+            turma: aluno.turma,
+        },
+        year: anoLetivo.label,
+        ano_letivo: anoLetivo.label,
+        presencas,
+    };
 }
 
 export async function obterHistoricoPresencasServicoProfessor(req, res) {

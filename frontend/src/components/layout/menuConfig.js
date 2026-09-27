@@ -121,12 +121,24 @@ export const menuByRole = {
             ],
         },
     ],
+    encarregado: [
+        {
+            items: [
+                { key: 'dashboard', label: 'Dashboard', path: '/encarregado/dashboard', icon: LayoutDashboard },
+                { key: 'agenda', label: 'Agenda', path: '/encarregado/agenda', icon: Calendar },
+                { key: 'presencas', label: 'Presenças', path: '/encarregado/presencas', icon: ClipboardCheck },
+                { key: 'pagamentos', label: 'Pagamentos', path: '/encarregado/pagamentos', icon: Wallet, module: 'financeiro' },
+                { key: 'notificacoes', label: 'Notificações', path: '/encarregado/notificacoes', icon: Bell },
+            ],
+        },
+    ],
 };
 
 export const ROLE_LABEL = {
     gestor: 'Painel de gestão',
     professor: 'Área do professor',
     aluno: 'Área do aluno',
+    encarregado: 'Área do encarregado',
 };
 
 // Páginas que não aparecem no menu lateral mas precisam de breadcrumb.

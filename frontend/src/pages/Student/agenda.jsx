@@ -139,7 +139,15 @@ function formatMonthPickerValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export default function AgendaPage() {
+// Também usada na área do encarregado de educação, com o endpoint do educando.
+export default function AgendaPage({
+    agendaPath = '/api/public/agenda',
+    eyebrow = 'Painel do Aluno',
+    title = 'A minha agenda',
+    subtitle = 'Visão geral das tuas atividades, sessões e eventos agendados.',
+    headerActions = null,
+    showCalendarSync = true,
+}) {
     const [currentMonth, setCurrentMonth] = useState(() => new Date());
     const [selectedDate, setSelectedDate] = useState(() => new Date());
     const [atividadesPorDia, setAtividadesPorDia] = useState({});
@@ -228,7 +236,7 @@ export default function AgendaPage() {
                         : formatDateKey(calendarDays[calendarDays.length - 1]);
 
                 const response = await apiGet(
-                    `${API_URL}/api/public/agenda?from=${from}&to=${to}`
+                    `${API_URL}${agendaPath}?from=${from}&to=${to}`
                 );
                 const data = await response.json();
 
@@ -256,7 +264,7 @@ export default function AgendaPage() {
         return () => {
             isMounted = false;
         };
-    }, [weekStart, weekEnd, viewMode, calendarDays, reloadToken]);
+    }, [weekStart, weekEnd, viewMode, calendarDays, reloadToken, agendaPath]);
 
     function goToPreviousMonth() {
         setCurrentMonth((prev) => {
@@ -311,13 +319,14 @@ export default function AgendaPage() {
     return (
         <section className="flex h-full flex-col space-y-5">
             <UsersPageHeader
-                eyebrow="Painel do Aluno"
-                title="A minha agenda"
-                subtitle="Visão geral das tuas atividades, sessões e eventos agendados."
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
                 icon={CalendarDays}
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
-                        <CalendarSyncButton />
+                        {headerActions}
+                        {showCalendarSync && <CalendarSyncButton />}
                         <button
                             type="button"
                             onClick={() => setReloadToken((prev) => prev + 1)}

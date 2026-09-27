@@ -18,6 +18,7 @@ import gestorRoutes from './routes/gestorRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import alunoRoutes from './routes/alunoRoutes.js';
 import professorRoutes from './routes/professorRoutes.js';
+import encarregadoRoutes from './routes/encarregadoRoutes.js';
 import notificacoesRoutes from './routes/notificacoesRoutes.js';
 import alertasRoutes from './routes/alertasRoutes.js';
 import buscaRoutes from './routes/buscaRoutes.js';
@@ -84,6 +85,7 @@ app.use(csrfProtectionMiddleware()); // Proteção CSRF para rotas autenticadas
 
 app.use('/api/aluno', verificarMatriculaAtiva, alunoRoutes); // Perfil do aluno (role aluno)
 app.use('/api/professor', professorRoutes); // Área do professor (role professor)
+app.use('/api/encarregado', encarregadoRoutes); // Área do encarregado de educação (role encarregado)
 app.use('/api/busca', buscaRoutes); // Busca global (autenticada)
 app.use('/api/gestor', gestorRoutes); // Admin only (roleMiddleware aplicado na rota)
 app.use('/api/notificacoes', notificacoesRoutes); // Notificações (auth + role verificati)

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { createEvents } from 'ics';
 import { db } from '../config/db.js';
 import { buscarAtividadesPorDia } from '../controllers/agendaController.js';
+import { listarEducandosDoEncarregado, primeiroNome } from './encarregadoService.js';
 
 const FEED_PAST_DAYS = 30;
 const FEED_FUTURE_DAYS = 365;
@@ -136,7 +137,7 @@ function getEventoTitle(atividade) {
  * dataOriginal/dataReposicao preenchidos) aparece no feed, para evitar
  * mostrar a mesma aula duas vezes no calendário externo.
  */
-function construirEventosICS(atividadesPorDia) {
+function construirEventosICS(atividadesPorDia, { etiqueta = null, uidSufixo = '' } = {}) {
     const eventos = [];
 
     Object.entries(atividadesPorDia || {}).forEach(([dataKey, atividades]) => {
@@ -172,8 +173,10 @@ function construirEventosICS(atividadesPorDia) {
             }
 
             eventos.push({
-                uid: `mc-servico-${atividade.id}-${dataKey}@mediacenter.app`,
-                title: getEventoTitle(atividade),
+                uid: `mc-servico-${atividade.id}-${dataKey}${uidSufixo}@mediacenter.app`,
+                title: etiqueta
+                    ? `${etiqueta} · ${getEventoTitle(atividade)}`
+                    : getEventoTitle(atividade),
                 start: [ano, mes, dia, hora.horas, hora.minutos],
                 startInputType: 'local',
                 startOutputType: 'local',
@@ -185,6 +188,39 @@ function construirEventosICS(atividadesPorDia) {
     });
 
     return eventos;
+}
+
+/**
+ * Eventos do feed de um utilizador. Para um encarregado de educação, junta as
+ * agendas de todos os educandos, com o primeiro nome do educando no título e
+ * um UID distinto por aluno (irmãos na mesma sessão não se sobrepõem).
+ */
+async function construirEventosDoUtilizador(userId, from, to) {
+    const { rows } = await db.query(
+        `SELECT role FROM users WHERE id_user = $1 LIMIT 1`,
+        [userId]
+    );
+
+    if (rows[0]?.role !== 'encarregado') {
+        const { atividadesPorDia } = await buscarAtividadesPorDia(userId, from, to);
+        return construirEventosICS(atividadesPorDia);
+    }
+
+    const educandos = await listarEducandosDoEncarregado(userId);
+    const porEducando = await Promise.all(
+        educandos.map(async (educando) => {
+            const { atividadesPorDia } = await buscarAtividadesPorDia(
+                educando.id_user,
+                from,
+                to
+            );
+            return construirEventosICS(atividadesPorDia, {
+                etiqueta: educandos.length > 1 ? primeiroNome(educando.nome) : null,
+                uidSufixo: `-a${educando.id_aluno}`,
+            });
+        })
+    );
+    return porEducando.flat();
 }
 
 /**
@@ -206,13 +242,11 @@ export async function gerarFeedICSPorToken(token) {
     const toDate = new Date(hoje);
     toDate.setDate(toDate.getDate() + FEED_FUTURE_DAYS);
 
-    const { atividadesPorDia } = await buscarAtividadesPorDia(
+    const eventos = await construirEventosDoUtilizador(
         userId,
         formatDateKey(fromDate),
         formatDateKey(toDate)
     );
-
-    const eventos = construirEventosICS(atividadesPorDia);
 
     const { error, value } = createEvents(eventos, {
         productId: 'mediacenter/agenda',

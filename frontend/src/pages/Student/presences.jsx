@@ -192,7 +192,14 @@ function AttendanceRow({ session }) {
     );
 }
 
-export default function PresencasAlunoPage() {
+// Também usada na área do encarregado de educação, com o endpoint do educando.
+export default function PresencasAlunoPage({
+    presencasPath = '/api/aluno/presencas',
+    eyebrow = 'Presenças do aluno',
+    title = 'As Minhas Presenças',
+    subtitle = 'Consulta o histórico de aulas e faltas por mês.',
+    headerActions = null,
+}) {
     const [selectedMonth, setSelectedMonth] = useState(() => currentMonthKey());
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [presencas, setPresencas] = useState([]);
@@ -209,7 +216,7 @@ export default function PresencasAlunoPage() {
             setError('');
 
             try {
-                const response = await apiGet('/api/aluno/presencas');
+                const response = await apiGet(presencasPath);
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -243,7 +250,7 @@ export default function PresencasAlunoPage() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [presencasPath]);
 
     const rowsByMonth = useMemo(() => {
         return presencas.reduce((accumulator, row) => {
@@ -295,10 +302,11 @@ export default function PresencasAlunoPage() {
     return (
         <section className="space-y-5">
             <UsersPageHeader
-                eyebrow="Presenças do aluno"
-                title="As Minhas Presenças"
-                subtitle="Consulta o histórico de aulas e faltas por mês."
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
                 icon={CalendarDays}
+                actions={headerActions}
             />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

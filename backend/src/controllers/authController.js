@@ -444,8 +444,10 @@ export async function alterarPassword(req, res) {
             : passwordAtual === String(user.password);
 
         if (!isValidPassword) {
+            // 400 e não 401: o frontend trata 401 como sessão expirada e
+            // faria logout por um simples engano na password atual.
             return res
-                .status(401)
+                .status(400)
                 .json({ message: 'Password atual inválida.' });
         }
 

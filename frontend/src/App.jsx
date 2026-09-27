@@ -54,6 +54,12 @@ import ReinscricaoAlunoPage from './pages/Student/reinscricao';
 import ServicosAlunoPage from './pages/Student/services';
 import PresencasAlunoPage from './pages/Student/presences';
 import NotificationsAlunoPage from './pages/Student/notifications';
+import DashboardEncarregadoPage from './pages/Guardian/dashboard';
+import AgendaEncarregadoPage from './pages/Guardian/agenda';
+import PresencasEncarregadoPage from './pages/Guardian/presences';
+import PagamentosEncarregadoPage from './pages/Guardian/payments';
+import NotificacoesEncarregadoPage from './pages/Guardian/notifications';
+import PerfilEncarregadoPage from './pages/Guardian/profile';
 import PerfilAlunoPage from './pages/Student/Profile/profile';
 import UpdatePerfilAlunoPage from './pages/Student/Profile/updateProfile';
 import PerfilProfessorPage from './pages/Teacher/Profile/profile';
@@ -73,12 +79,14 @@ const ROLE_HOME_PATH = {
     gestor: '/gestor/dashboard',
     professor: '/professor/dashboard',
     aluno: '/aluno/dashboard',
+    encarregado: '/encarregado/dashboard',
 };
 
 const ROLE_PREFIX_PATH = {
     gestor: '/gestor',
     professor: '/professor',
     aluno: '/aluno',
+    encarregado: '/encarregado',
 };
 
 function getStoredUser() {
@@ -287,6 +295,37 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="*"
                         element={<Navigate to="/aluno/dashboard" replace />}
+                    />
+                </>
+            ) : currentRole === 'encarregado' ? (
+                <>
+                    <Route
+                        path="/encarregado/dashboard"
+                        element={<DashboardEncarregadoPage />}
+                    />
+                    <Route
+                        path="/encarregado/agenda"
+                        element={<AgendaEncarregadoPage />}
+                    />
+                    <Route
+                        path="/encarregado/presencas"
+                        element={<PresencasEncarregadoPage />}
+                    />
+                    <Route
+                        path="/encarregado/pagamentos"
+                        element={gate('financeiro', <PagamentosEncarregadoPage />)}
+                    />
+                    <Route
+                        path="/encarregado/notificacoes"
+                        element={<NotificacoesEncarregadoPage />}
+                    />
+                    <Route
+                        path="/encarregado/perfil"
+                        element={<PerfilEncarregadoPage />}
+                    />
+                    <Route
+                        path="*"
+                        element={<Navigate to="/encarregado/dashboard" replace />}
                     />
                 </>
             ) : (

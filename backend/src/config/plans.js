@@ -108,10 +108,15 @@ export function requireModule(moduleKey) {
 // ── Limites ────────────────────────────────────────────────────────────────
 
 export async function countActiveUsers(role, client = db) {
-    const { rows } = await client.query(
-        `SELECT COUNT(*)::int AS total FROM users WHERE role = $1 AND status = true`,
-        [role]
-    );
+    // Alunos contam pela tabela alunos, para não incluir outras contas.
+    const query =
+        role === 'aluno'
+            ? `SELECT COUNT(*)::int AS total
+               FROM alunos a
+               INNER JOIN users u ON u.id_user = a.id_user
+               WHERE u.status = true`
+            : `SELECT COUNT(*)::int AS total FROM users WHERE role = $1 AND status = true`;
+    const { rows } = await client.query(query, role === 'aluno' ? [] : [role]);
     return rows[0]?.total ?? 0;
 }
 

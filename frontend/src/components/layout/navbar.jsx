@@ -39,6 +39,10 @@ function getDashboardPathByRole(role) {
         return '/aluno/dashboard';
     }
 
+    if (role === 'encarregado') {
+        return '/encarregado/dashboard';
+    }
+
     return '/';
 }
 
@@ -53,6 +57,10 @@ function getNotificationsPathByRole(role) {
 
     if (role === 'aluno') {
         return '/aluno/notificacoes';
+    }
+
+    if (role === 'encarregado') {
+        return '/encarregado/notificacoes';
     }
 
     return getDashboardPathByRole(role);
