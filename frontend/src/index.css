@@ -79,28 +79,6 @@ html.dark .text-blue-800 {
     color: #e4e4e7 !important;
 }
 
-.auth-notebook-bg {
-    background:
-        linear-gradient(rgb(30 41 59 / 0.055) 1px, transparent 1px),
-        linear-gradient(90deg, rgb(30 41 59 / 0.055) 1px, transparent 1px),
-        linear-gradient(135deg, #f8fafc 0%, #ffffff 42%, #cffafe 100%);
-    background-size:
-        32px 32px,
-        32px 32px,
-        auto;
-}
-
-.auth-notebook-bg::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), rgb(6 182 212 / 0.12) 50%, transparent calc(50% + 1px)),
-        radial-gradient(circle at 18% 18%, rgb(6 182 212 / 0.14), transparent 28%),
-        radial-gradient(circle at 82% 78%, rgb(30 41 59 / 0.12), transparent 30%);
-}
-
 [data-admin-compact='true'] input,
 [data-admin-compact='true'] select {
     min-height: 2.25rem;

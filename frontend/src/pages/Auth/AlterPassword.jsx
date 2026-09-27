@@ -1,20 +1,50 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { apiPost } from '../../utils/api';
-import logo from '../../assets/img/gestudo-logo.jpg';
+import AuthLayout, {
+    AuthAlert,
+    AuthButton,
+    AuthField,
+    PasswordInput,
+} from '../../components/auth/AuthLayout';
+
+const ASIDE = {
+    eyebrow: 'Segurança da conta',
+    title: 'Primeiro acesso: defina a sua palavra-passe',
+    text: 'Este passo é obrigatório e protege os seus dados e os dos seus alunos.',
+    points: [
+        'Pelo menos 8 caracteres',
+        'Misture maiúsculas, minúsculas e números',
+        'Não reutilize palavras-passe de outros serviços',
+    ],
+};
+
+const STRENGTH_LEVELS = [
+    { label: 'Fraca', bar: 'bg-red-400' },
+    { label: 'Fraca', bar: 'bg-red-400' },
+    { label: 'Razoável', bar: 'bg-york-400' },
+    { label: 'Boa', bar: 'bg-emerald-400' },
+    { label: 'Forte', bar: 'bg-emerald-600' },
+];
+
+function getPasswordStrength(value) {
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value) || value.length >= 12) score += 1;
+    return { score, ...STRENGTH_LEVELS[score] };
+}
 
 export default function AlterarPasswordObrigatorio() {
     const navigate = useNavigate();
     const [passwordAtual, setPasswordAtual] = useState('');
     const [passwordNova, setPasswordNova] = useState('');
     const [passwordNovaConfirm, setPasswordNovaConfirm] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showPasswordNova, setShowPasswordNova] = useState(false);
-    const [showPasswordNovaConfirm, setShowPasswordNovaConfirm] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const strength = getPasswordStrength(passwordNova);
 
     useEffect(() => {
         // Verificar se utilizador está autenticado e é primeira login
@@ -94,203 +124,74 @@ export default function AlterarPasswordObrigatorio() {
     }
 
     return (
-        <div className="auth-notebook-bg relative min-h-screen overflow-hidden p-4 font-sans text-[#64748b]">
-            <div className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center">
-                <div className="grid w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-[#0f172a]/15 backdrop-blur md:grid-cols-2">
-                    <div className="hidden bg-[linear-gradient(160deg,#0f172a_0%,#1e293b_58%,#06b6d4_150%)] p-10 text-white md:flex md:items-center md:justify-center">
-                        <div className="max-w-sm">
-                            <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-emerald-100">
-                                Segurança de Conta
+        <AuthLayout
+            aside={ASIDE}
+            title="Definir nova palavra-passe"
+            subtitle="Por segurança, altere a palavra-passe temporária para concluir o primeiro acesso."
+        >
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <AuthField id="pw-atual" label="Palavra-passe temporária">
+                    <PasswordInput
+                        id="pw-atual"
+                        autoComplete="current-password"
+                        value={passwordAtual}
+                        onChange={(e) => setPasswordAtual(e.target.value)}
+                        placeholder="A que recebeu por email"
+                        disabled={loading}
+                        required
+                    />
+                </AuthField>
+
+                <AuthField id="pw-nova" label="Nova palavra-passe">
+                    <PasswordInput
+                        id="pw-nova"
+                        autoComplete="new-password"
+                        value={passwordNova}
+                        onChange={(e) => setPasswordNova(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                        disabled={loading}
+                        required
+                    />
+                    {passwordNova && (
+                        <div className="mt-2 flex items-center gap-2">
+                            <div className="flex flex-1 gap-1">
+                                {[1, 2, 3, 4].map((level) => (
+                                    <span
+                                        key={level}
+                                        className={`h-1 flex-1 rounded-full ${
+                                            level <= strength.score
+                                                ? strength.bar
+                                                : 'bg-slate-200'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                            <span className="w-14 text-right text-xs font-medium text-slate-500">
+                                {strength.label}
                             </span>
-                            <h2 className="mt-5 text-3xl font-bold leading-tight">
-                                Primeiro acesso: atualize a sua palavra-passe
-                            </h2>
-                            <p className="mt-3 text-sm text-slate-200">
-                                Esta etapa é obrigatória para proteger os seus
-                                dados e garantir acesso seguro à plataforma.
-                            </p>
-
-                            <div className="mt-8 rounded-xl border border-white/20 bg-white/10 p-4">
-                                <p className="text-xs uppercase tracking-widest text-emerald-100">
-                                    Boas práticas
-                                </p>
-                                <p className="mt-1 text-sm text-slate-100">
-                                    Use uma password forte com letras
-                                    maiúsculas, minúsculas, números e símbolos.
-                                </p>
-                            </div>
                         </div>
-                    </div>
+                    )}
+                </AuthField>
 
-                    <div className="p-7 sm:p-10">
-                        <div className="mb-8 text-center md:text-left">
-                            <img
-                                src={logo}
-                                alt="Gestudo"
-                                className="mx-auto mb-4 h-16 object-contain md:mx-0"
-                            />
-                            <h1 className="text-2xl font-bold text-[#1e293b]">
-                                Alterar palavra-passe
-                            </h1>
-                            <p className="mt-1 text-sm text-[#64748b]">
-                                Defina uma nova palavra-passe para concluir o
-                                primeiro acesso
-                            </p>
-                        </div>
+                <AuthField id="pw-confirm" label="Confirmar nova palavra-passe">
+                    <PasswordInput
+                        id="pw-confirm"
+                        autoComplete="new-password"
+                        value={passwordNovaConfirm}
+                        onChange={(e) => setPasswordNovaConfirm(e.target.value)}
+                        placeholder="Repita a nova palavra-passe"
+                        disabled={loading}
+                        required
+                    />
+                </AuthField>
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
-                                    Password Atual
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={
-                                            showPassword ? 'text' : 'password'
-                                        }
-                                        value={passwordAtual}
-                                        onChange={(e) =>
-                                            setPasswordAtual(e.target.value)
-                                        }
-                                        placeholder="Digite a password temporária"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
-                                        disabled={loading}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPassword(!showPassword)
-                                        }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
-                                        aria-label="Mostrar ou ocultar password atual"
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
+                {error && <AuthAlert>{error}</AuthAlert>}
+                {success && <AuthAlert type="success">{success}</AuthAlert>}
 
-                            <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
-                                    Nova Password
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={
-                                            showPasswordNova
-                                                ? 'text'
-                                                : 'password'
-                                        }
-                                        value={passwordNova}
-                                        onChange={(e) =>
-                                            setPasswordNova(e.target.value)
-                                        }
-                                        placeholder="Mínimo 8 caracteres"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
-                                        disabled={loading}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPasswordNova(
-                                                !showPasswordNova
-                                            )
-                                        }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
-                                        aria-label="Mostrar ou ocultar nova password"
-                                    >
-                                        {showPasswordNova ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="mb-1.5 block text-sm font-semibold text-[#1e293b]">
-                                    Confirmar Nova Password
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={
-                                            showPasswordNovaConfirm
-                                                ? 'text'
-                                                : 'password'
-                                        }
-                                        value={passwordNovaConfirm}
-                                        onChange={(e) =>
-                                            setPasswordNovaConfirm(
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Repita a nova password"
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[#0f172a] outline-none transition focus:border-[#06b6d4] focus:ring-4 focus:ring-emerald-100"
-                                        disabled={loading}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPasswordNovaConfirm(
-                                                !showPasswordNovaConfirm
-                                            )
-                                        }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] transition hover:text-[#1e293b]"
-                                        aria-label="Mostrar ou ocultar confirmação da nova password"
-                                    >
-                                        {showPasswordNovaConfirm ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="flex w-full items-center justify-center rounded-xl bg-[#1e293b] py-3.5 font-bold text-white shadow-lg shadow-[#0f172a]/20 transition hover:bg-[#0f172a] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                                {loading
-                                    ? 'A processar...'
-                                    : 'Guardar nova password'}
-                            </button>
-                        </form>
-
-                        {error && (
-                            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                                <p className="flex items-center justify-center gap-2 text-center text-sm font-medium text-red-600">
-                                    <AlertCircle size={16} />
-                                    {error}
-                                </p>
-                            </div>
-                        )}
-
-                        {success && (
-                            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                                <p className="text-center text-sm font-medium text-emerald-700">
-                                    {success}
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-[#f8fafc] p-4">
-                            <p className="text-xs text-[#64748b]">
-                                Dica de segurança: evite reutilizar passwords de
-                                outros serviços.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                <AuthButton loading={loading} loadingText="A guardar...">
+                    Guardar e continuar
+                </AuthButton>
+            </form>
+        </AuthLayout>
     );
 }

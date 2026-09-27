@@ -10,6 +10,7 @@ import Login from './pages/Auth/Login';
 import RecoverPassword from './pages/Auth/RecoverPassword';
 import AlterarPasswordObrigatorio from './pages/Auth/AlterPassword';
 import InfosInscricaoPage from './pages/Infos/enrollment';
+import HomePage from './pages/Infos/home';
 import Navbar from './components/layout/navbar';
 import Sidebar from './components/layout/sidebar';
 import DashboardGestor from './pages/Admin/dashboard';
@@ -492,7 +493,7 @@ function App() {
     if (!user) {
         return (
             <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/" element={<HomePage />} />
                 <Route path="/inscricao" element={<InfosInscricaoPage />} />
                 <Route
                     path="/login"
@@ -506,7 +507,7 @@ function App() {
                     path="/auth/alterar-password-obrigatorio"
                     element={<AlterarPasswordObrigatorio />}
                 />
-                <Route path="*" element={<NotFound homePath="/login" />} />
+                <Route path="*" element={<NotFound homePath="/" />} />
             </Routes>
         );
     }
