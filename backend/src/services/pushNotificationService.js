@@ -1,5 +1,6 @@
 import { db } from '../config/db.js';
 import { getFirebaseMessaging } from './firebaseAdminService.js';
+import { hasModule } from '../config/plans.js';
 
 // Tamanho máximo recomendado para um lote de tokens do FCM, para evitar erros de payload muito grande. O FCM suporta até 1000 tokens por requisição, mas usar um número menor pode ajudar a reduzir a chance de falhas e melhorar o desempenho.
 const FCM_BATCH_SIZE = 500;
@@ -130,6 +131,17 @@ async function enviarPushParaTokens({
     payload,
     link,
 }) {
+    if (!hasModule('notificacoes_push')) {
+        return {
+            success: false,
+            skipped: true,
+            reason: 'plan_module_unavailable',
+            totalTokens: 0,
+            successCount: 0,
+            failureCount: 0,
+        };
+    }
+
     const messaging = getFirebaseMessaging();
     if (!messaging) {
         return {

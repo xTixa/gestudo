@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { db } from '../config/db.js';
+import { assertWithinLimit, isPlanError, sendPlanError } from '../config/plans.js';
 import { enviarEmailCredenciaisIniciais } from '../services/emailService.js';
 import { registarInsert, registarUpdate, registarDelete } from '../services/logService.js';
 
@@ -46,6 +47,8 @@ export async function criarGestor(req, res) {
             return res.status(400).json({ message: 'Já existe um utilizador com esse email.' });
         }
 
+        await assertWithinLimit('gestores');
+
         const passwordTemporaria = gerarPasswordTemporaria();
         const passwordHash = await bcrypt.hash(passwordTemporaria, 10);
 
@@ -77,6 +80,9 @@ export async function criarGestor(req, res) {
             gestor: novoGestor,
         });
     } catch (error) {
+        if (isPlanError(error)) {
+            return sendPlanError(res, error);
+        }
         if (error?.code === '23505') {
             return res.status(400).json({ message: 'Já existe um utilizador com esse email.' });
         }
@@ -98,6 +104,16 @@ export async function alterarEstadoGestor(req, res) {
     }
 
     try {
+        if (status === true) {
+            const current = await db.query(
+                `SELECT status FROM users WHERE id_user = $1 AND role = 'gestor'`,
+                [idUser]
+            );
+            if (current.rows.length && current.rows[0].status !== true) {
+                await assertWithinLimit('gestores');
+            }
+        }
+
         const { rows } = await db.query(
             `UPDATE users SET status = $1
              WHERE id_user = $2 AND role = 'gestor'
@@ -118,6 +134,9 @@ export async function alterarEstadoGestor(req, res) {
             gestor: rows[0],
         });
     } catch (error) {
+        if (isPlanError(error)) {
+            return sendPlanError(res, error);
+        }
         console.error('Erro ao alterar estado do gestor:', error.message);
         return res.status(500).json({ message: 'Erro ao alterar estado do administrador.' });
     }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import PublicNavbar from '../../components/infos/PublicNavbar';
+import { usePlan } from '../../utils/plan';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const API_BASES = Array.from(
@@ -73,7 +74,30 @@ function newPlanoItem(id) {
     return { id, disciplina: '', tipoServico: '', modalidade: '', pacote: '' };
 }
 
+// O formulário público só está disponível se o pacote incluir inscrições online.
 export default function InfosInscricaoPage() {
+    const { loading, hasModule } = usePlan();
+
+    if (loading) return null;
+    if (hasModule('inscricoes_online')) return <InscricaoForm />;
+
+    return (
+        <div className="min-h-screen bg-slate-50">
+            <PublicNavbar />
+            <main className="mx-auto max-w-lg px-4 py-20 text-center">
+                <h1 className="text-2xl font-semibold text-slate-900">
+                    Inscrições online indisponíveis
+                </h1>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                    Este centro não recebe inscrições através do site. Contacte
+                    diretamente o centro para se inscrever.
+                </p>
+            </main>
+        </div>
+    );
+}
+
+function InscricaoForm() {
     const [sent, setSent] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);

@@ -66,6 +66,8 @@ import {
 import PendingEnrollmentsPopup from './components/enrollments/PendingEnrollmentsPopup';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './pages/NotFound';
+import PlanGate from './components/plan/PlanGate';
+import { usePlan } from './utils/plan';
 
 const ROLE_HOME_PATH = {
     gestor: '/gestor/dashboard',
@@ -98,6 +100,12 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
     currentRole,
     user,
 }) {
+    const gate = (module, element) => (
+        <PlanGate module={module} isManager={currentRole === 'gestor'}>
+            {element}
+        </PlanGate>
+    );
+
     return (
         <Routes>
             {currentRole === 'gestor' ? (
@@ -119,29 +127,29 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         path="/gestor/servicos/extra-curriculares"
                         element={<GestaoExtraPage />}
                     />
-                    <Route path="/gestor/logs" element={<AuditLogs />} />
+                    <Route path="/gestor/logs" element={gate('auditoria', <AuditLogs />)} />
                     <Route
                         path="/gestor/inscricoes-publicas"
-                        element={<PublicEnrollmentsPage />}
+                        element={gate('inscricoes_online', <PublicEnrollmentsPage />)}
                     />
                     <Route
                         path="/gestor/renovacoes"
-                        element={<RenewalsPage />}
+                        element={gate('renovacoes', <RenewalsPage />)}
                     />
-                    <Route path="/gestor/financeiro" element={<FinanceOverview />} />
+                    <Route path="/gestor/financeiro" element={gate('financeiro', <FinanceOverview />)} />
                     <Route
                         path="/gestor/financeiro/mensalidades"
-                        element={<MensalidadesPage />}
+                        element={gate('financeiro', <MensalidadesPage />)}
                     />
                     <Route
                         path="/gestor/financeiro/pagamentos"
-                        element={<PagamentosPage />}
+                        element={gate('financeiro', <PagamentosPage />)}
                     />
                     <Route
                         path="/gestor/financeiro/professores"
-                        element={<CustosProfessoresPage />}
+                        element={gate('custos_professores', <CustosProfessoresPage />)}
                     />
-                    <Route path="/gestor/alertas" element={<AlertsPage />} />
+                    <Route path="/gestor/alertas" element={gate('alertas', <AlertsPage />)} />
                     <Route
                         path="/gestor/notificacoes"
                         element={<NotificationsPage user={user} />}
@@ -198,7 +206,7 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     />
                     <Route
                         path="/gestor/relatorios"
-                        element={<ReportsPage />}
+                        element={gate('relatorios', <ReportsPage />)}
                     />
                     <Route
                         path="*"
@@ -225,7 +233,7 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     />
                     <Route
                         path="/professor/assiduidade"
-                        element={<AssiduidadeProfessorPage />}
+                        element={gate('assiduidade', <AssiduidadeProfessorPage />)}
                     />
                     <Route
                         path="/professor/notificacoes"
@@ -261,7 +269,7 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     />
                     <Route
                         path="/aluno/reinscricao"
-                        element={<ReinscricaoAlunoPage />}
+                        element={gate('renovacoes', <ReinscricaoAlunoPage />)}
                     />
                     <Route
                         path="/aluno/presencas"
@@ -321,6 +329,8 @@ function App() {
     );
 
     const prevUserRef = useRef(null);
+    const { hasModule, loading: planLoading } = usePlan();
+    const pushEnabled = !planLoading && hasModule('notificacoes_push');
 
     function handleLogin(loggedUser, csrfToken) {
         setUser(loggedUser);
@@ -430,7 +440,7 @@ function App() {
     }, [user]);
 
     useEffect(() => {
-        if (!user) {
+        if (!user || !pushEnabled) {
             return undefined;
         }
 
@@ -459,7 +469,7 @@ function App() {
             active = false;
             unsubscribeForeground();
         };
-    }, [user]);
+    }, [user, pushEnabled]);
 
     const handleLogout = useCallback(async () => {
         try {

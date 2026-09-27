@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiDelete, apiGet, apiPatch } from '../../../utils/api';
+import { usePlan } from '../../../utils/plan';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -40,6 +41,7 @@ function getProfessorProfileImage(professor) {
 }
 
 export default function FichaProfPage() {
+    const canExport = usePlan().hasModule('exportacoes');
     const navigate = useNavigate();
     const { id: profId } = useParams();
 
@@ -304,14 +306,16 @@ export default function FichaProfPage() {
                 icon={UserRound}
                 actions={
                     <>
-                        <button
-                            type="button"
-                            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                            title="Download ficha"
-                            onClick={handleDownloadFicha}
-                        >
-                            <Download size={14} />
-                        </button>
+                        {canExport && (
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                title="Download ficha"
+                                onClick={handleDownloadFicha}
+                            >
+                                <Download size={14} />
+                            </button>
+                        )}
                         <button
                             type="button"
                             className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"

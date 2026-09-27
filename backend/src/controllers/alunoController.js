@@ -1,4 +1,5 @@
 import { db } from '../config/db.js';
+import { assertWithinLimit, isPlanError, sendPlanError } from '../config/plans.js';
 import bcrypt from 'bcryptjs';
 import {
     enviarEmailCredenciaisIniciais,
@@ -823,6 +824,8 @@ export async function criarAluno(req, res) {
                 .json({ message: 'Já existe um utilizador com esse email.' });
         }
 
+        await assertWithinLimit('alunos', client);
+
         const passwordTemporaria = gerarPasswordTemporaria();
         const passwordHash = await bcrypt.hash(passwordTemporaria, 10);
 
@@ -1043,6 +1046,10 @@ export async function criarAluno(req, res) {
             await client.query('ROLLBACK');
         } catch {
             // noop
+        }
+
+        if (isPlanError(error)) {
+            return sendPlanError(res, error);
         }
 
         if (error?.code === '23505') {
@@ -1847,6 +1854,16 @@ export async function alterarEstadoAluno(req, res) {
         const aluno = alunoResult.rows[0];
         const beforePerfil = await carregarPerfilAlunoPorIdAluno(client, id);
 
+        if (status === true) {
+            const currentStatus = await client.query(
+                `SELECT status FROM users WHERE id_user = $1`,
+                [aluno.id_user]
+            );
+            if (currentStatus.rows[0]?.status !== true) {
+                await assertWithinLimit('alunos', client);
+            }
+        }
+
         const updateUserResult = await client.query(
             `
                 UPDATE users
@@ -1887,6 +1904,10 @@ export async function alterarEstadoAluno(req, res) {
             await client.query('ROLLBACK');
         } catch {
             // noop
+        }
+
+        if (isPlanError(error)) {
+            return sendPlanError(res, error);
         }
 
         console.error('Erro ao alterar estado do aluno:', error.message);

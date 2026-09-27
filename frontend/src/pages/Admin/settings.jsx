@@ -13,6 +13,7 @@ import {
     DatabaseZap,
     FileText,
     SlidersHorizontal,
+    Package,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
@@ -21,10 +22,13 @@ import EmailTemplatesSettings from '../../components/settings/EmailTemplatesSett
 import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
 import EnrollmentFormTextsSettings from '../../components/settings/EnrollmentFormTextsSettings';
 import FeatureFlagsSettings from '../../components/settings/FeatureFlagsSettings';
+import PlanSettings from '../../components/settings/PlanSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
+import { usePlan } from '../../utils/plan';
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState('alertas');
+    const [activeTab, setActiveTab] = useState('pacote');
+    const { hasModule } = usePlan();
     const [notification, setNotification] = useState(null);
 
     // Gestores
@@ -113,13 +117,14 @@ export default function SettingsPage() {
     }
 
     const tabs = [
-        { id: 'alertas', label: 'Alertas e notificações', icon: Bell },
-        { id: 'emails', label: 'Templates de email', icon: Mail },
+        { id: 'pacote', label: 'Pacote', icon: Package },
+        { id: 'alertas', label: 'Alertas e notificações', icon: Bell, module: 'alertas' },
+        { id: 'emails', label: 'Templates de email', icon: Mail, module: 'modelos_email' },
         { id: 'gestores', label: 'Administradores', icon: Shield },
         { id: 'limpeza', label: 'Limpeza de dados', icon: DatabaseZap },
-        { id: 'inscricao-textos', label: 'Formulário de inscrição', icon: FileText },
-        { id: 'funcionalidades', label: 'Funcionalidades', icon: SlidersHorizontal },
-    ];
+        { id: 'inscricao-textos', label: 'Formulário de inscrição', icon: FileText, module: 'textos_inscricao' },
+        { id: 'funcionalidades', label: 'Funcionalidades', icon: SlidersHorizontal, module: 'renovacoes' },
+    ].filter((tab) => !tab.module || hasModule(tab.module));
 
     return (
         <section className="space-y-6">
@@ -166,6 +171,7 @@ export default function SettingsPage() {
                 {/* Conteúdo das Abas */}
                 <div className="p-5 sm:p-6 lg:p-8">
 
+                    {activeTab === 'pacote' && <PlanSettings />}
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
                     {activeTab === 'limpeza' && <DataCleanupSettings />}

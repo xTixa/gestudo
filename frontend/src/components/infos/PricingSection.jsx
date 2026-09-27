@@ -49,7 +49,7 @@ function PlanCard({ plan, annual, contactEmail }) {
         >
             {plan.featured && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-slate-900">
-                    Mais escolhido
+                    Recomendado
                 </span>
             )}
 
@@ -67,7 +67,7 @@ function PlanCard({ plan, annual, contactEmail }) {
             <p className="mt-1 h-5 text-xs text-slate-500">
                 {annual
                     ? `${priceFormatter.format(price * 12)}€ faturados por ano`
-                    : 'Sem fidelização'}
+                    : 'Faturado mensalmente'}
             </p>
 
             <a

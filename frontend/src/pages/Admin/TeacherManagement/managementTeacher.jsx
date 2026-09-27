@@ -24,6 +24,7 @@ import autoTable from 'jspdf-autotable';
 import { read, utils, write } from 'xlsx';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
+import { usePlan } from '../../../utils/plan';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -604,6 +605,7 @@ function getProfessorNif(professor) {
 }
 
 export default function GestaoProfessores() {
+    const canExport = usePlan().hasModule('exportacoes');
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [professorSelecionado, setProfessorSelecionado] = useState(null);
@@ -1300,14 +1302,16 @@ export default function GestaoProfessores() {
                 icon={GraduationCap}
                 actions={
                     <div className="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setShowExportModal(true)}
-                            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200"
-                        >
-                            <Download size={16} />
-                            Exportar
-                        </button>
+                        {canExport && (
+                            <button
+                                type="button"
+                                onClick={() => setShowExportModal(true)}
+                                className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200"
+                            >
+                                <Download size={16} />
+                                Exportar
+                            </button>
+                        )}
 
                         <button
                             type="button"

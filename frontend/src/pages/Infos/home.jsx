@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 import markLogo from '../../assets/img/gestudo-mark.png';
 import PricingSection from '../../components/infos/PricingSection';
+import { SALES_EMAIL } from '../../utils/plan';
 
-// Substituir pelo contacto comercial real antes de publicar.
-const CONTACT_EMAIL = 'geral@gestudo.pt';
+const CONTACT_EMAIL = SALES_EMAIL;
 
 const NAV_LINKS = [
     { href: '#funcionalidades', label: 'Funcionalidades' },
@@ -170,7 +170,7 @@ const FAQS = [
     },
     {
         q: 'O que acontece se ultrapassar o limite de alunos?',
-        a: 'Avisamos com antecedência e propomos a passagem para o pacote seguinte. Nenhum aluno fica sem acesso.',
+        a: 'Os alunos já ativos mantêm o acesso. Só não é possível ativar novas contas até desativar alunos que já não frequentam o centro ou mudar para um pacote superior. A utilização atual está sempre visível nas configurações.',
     },
     {
         q: 'Como recebo inscrições de novos alunos?',
@@ -795,9 +795,6 @@ export default function HomePage() {
                         <span>· Plataforma de Gestão de Estudos</span>
                     </div>
                     <div className="flex items-center gap-5">
-                        <Link to="/inscricao" className="hover:text-slate-800">
-                            Inscrição online
-                        </Link>
                         <Link to="/login" className="hover:text-slate-800">
                             Entrar
                         </Link>

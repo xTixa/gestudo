@@ -109,6 +109,8 @@ import { notificarFalhaParcialLote } from '../controllers/notificacoesGestorCont
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import financeiroRoutes from './financeiroRoutes.js';
+import { requireModule } from '../config/plans.js';
+import { obterPlanoGestor } from '../controllers/planoController.js';
 import {
     validateBody,
     validateParams,
@@ -139,8 +141,20 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(roleMiddleware('gestor'));
 
+// Pacote contratado: módulos incluídos, limites e utilização atual.
+router.get('/plano', obterPlanoGestor);
+
+// Módulos que dependem do pacote contratado (ver config/plans.js).
+router.use('/relatorios', requireModule('relatorios'));
+router.use('/logs', requireModule('auditoria'));
+router.use('/inscricoes-publicas', requireModule('inscricoes_online'));
+router.use('/renovacoes', requireModule('renovacoes'));
+router.use('/email-templates', requireModule('modelos_email'));
+router.use('/inscricao-textos', requireModule('textos_inscricao'));
+router.use('/financeiro/professores', requireModule('custos_professores'));
+
 // Gestão financeira: mensalidades, pagamentos e conta corrente dos alunos.
-router.use('/financeiro', financeiroRoutes);
+router.use('/financeiro', requireModule('financeiro'), financeiroRoutes);
 
 // =============== DASHBOARD & AUDITORIA ===============
 

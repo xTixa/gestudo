@@ -23,6 +23,7 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import BarSeriesChart from '../../components/dashboard/BarSeriesChart';
 import { apiGet } from '../../utils/api';
 import { formatMoney } from '../../components/finance/financeFormat';
+import { usePlan } from '../../utils/plan';
 
 const WEEKLY_SERIES = [
     { key: 'alunos', label: 'Inscrições ativas' },
@@ -238,6 +239,7 @@ export default function DashboardGestor() {
     const [sessionsLoading, setSessionsLoading] = useState(true);
     const [sessionsError, setSessionsError] = useState('');
     const [financeiro, setFinanceiro] = useState(null);
+    const { hasModule } = usePlan();
     const [expandedChart, setExpandedChart] = useState(null);
     const dialogRef = useRef(null);
     const userName = getStoredUserName();
@@ -373,6 +375,7 @@ export default function DashboardGestor() {
     const attention = [
         {
             key: 'inscricoes',
+            module: 'inscricoes_online',
             icon: Inbox,
             label: 'Inscrições públicas',
             description: 'Pedidos de inscrição por validar',
@@ -382,6 +385,7 @@ export default function DashboardGestor() {
         },
         {
             key: 'renovacoes',
+            module: 'renovacoes',
             icon: RefreshCcw,
             label: 'Matrículas por renovar',
             description: 'Alunos sem matrícula no ano letivo atual',
@@ -400,6 +404,7 @@ export default function DashboardGestor() {
         },
         {
             key: 'mensalidades',
+            module: 'financeiro',
             icon: Receipt,
             label: 'Mensalidades em atraso',
             description:
@@ -410,7 +415,7 @@ export default function DashboardGestor() {
             tone: 'critical',
             path: '/gestor/financeiro/mensalidades?mes=&estado=vencida',
         },
-    ];
+    ].filter((item) => !item.module || hasModule(item.module));
     const pendingTotal = attention.reduce((sum, item) => sum + (item.count || 0), 0);
 
     const dateLabel = now.toLocaleDateString('pt-PT', {

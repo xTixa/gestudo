@@ -10,6 +10,8 @@ import { obterFeedICS } from '../controllers/calendarFeedController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
 import { rateLimitMiddleware } from '../middlewares/securityMiddleware.js';
+import { requireModule } from '../config/plans.js';
+import { obterPlanoPublico } from '../controllers/planoController.js';
 
 /**
  * ========================================
@@ -45,8 +47,10 @@ const inscricaoRateLimit = rateLimitMiddleware(5, 60);
 router.get('/inscricao-opcoes', listarOpcoesInscricao);
 router.get('/inscricao-textos', obterInscricaoTextosPublico);
 router.get('/feature-flags', obterFeatureFlagsPublico);
+router.get('/plano', obterPlanoPublico);
 router.post(
     '/inscricao',
+    requireModule('inscricoes_online'),
     inscricaoRateLimit,
     validateBody({
         nome_completo: { type: 'string', required: true, min: 3 },
@@ -80,6 +84,6 @@ router.get('/agenda', authMiddleware, listarAgenda);
  * Response: text/calendar (.ics)
  * Status: 200 OK | 400 Bad Request | 404 Not Found
  */
-router.get('/agenda.ics', obterFeedICS);
+router.get('/agenda.ics', requireModule('calendario_sync'), obterFeedICS);
 
 export default router;

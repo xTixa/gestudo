@@ -1,3 +1,5 @@
+import { isValidPlanKey } from './plans.js';
+
 // runtimeConfig.js - Validação de variáveis de ambiente para configuração de tempo de execução, garantindo que as configurações essenciais estejam presentes e sejam válidas, e fornecendo feedback claro sobre quaisquer problemas encontrados para facilitar a resolução antes do arranque da aplicação
 function isNonEmpty(value) {
     return typeof value === 'string' && value.trim().length > 0;
@@ -150,6 +152,17 @@ export function validateRuntimeConfig() {
     if (!hasEmailLogoPublicId && !hasEmailLogoUrl) {
         warnings.push(
             'Logo de email não configurado. Defina EMAIL_LOGO_URL ou EMAIL_LOGO_PUBLIC_ID para personalizar o cabeçalho dos emails.'
+        );
+    }
+
+    const plano = String(process.env.GESTUDO_PLANO || '').trim().toLowerCase();
+    if (!plano) {
+        warnings.push(
+            'GESTUDO_PLANO não definido. A usar o pacote "completo" (todas as funcionalidades).'
+        );
+    } else if (!isValidPlanKey(plano)) {
+        warnings.push(
+            `GESTUDO_PLANO="${plano}" inválido. Use basico, plus, profissional ou completo. A usar "completo".`
         );
     }
 

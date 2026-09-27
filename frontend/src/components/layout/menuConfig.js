@@ -37,7 +37,8 @@ export function isPathActive(currentPath, itemPath, exact = false) {
 }
 
 // Menu organizado por grupos. Cada grupo tem um título opcional e uma lista
-// de itens; os URLs são os mesmos das rotas em App.jsx.
+// de itens; os URLs são os mesmos das rotas em App.jsx. `module` indica o
+// módulo do pacote contratado de que o item depende (ver utils/plan.js).
 export const menuByRole = {
     gestor: [
         {
@@ -64,17 +65,17 @@ export const menuByRole = {
         {
             title: 'Inscrições',
             items: [
-                { key: 'inscricoes-publicas', label: 'Inscrições públicas', path: '/gestor/inscricoes-publicas', icon: Inbox },
-                { key: 'renovacoes', label: 'Renovações', path: '/gestor/renovacoes', icon: RefreshCcw },
+                { key: 'inscricoes-publicas', label: 'Inscrições públicas', path: '/gestor/inscricoes-publicas', icon: Inbox, module: 'inscricoes_online' },
+                { key: 'renovacoes', label: 'Renovações', path: '/gestor/renovacoes', icon: RefreshCcw, module: 'renovacoes' },
             ],
         },
         {
             title: 'Financeiro',
             items: [
-                { key: 'financeiro', label: 'Visão geral', path: '/gestor/financeiro', icon: Wallet, exact: true },
-                { key: 'mensalidades', label: 'Mensalidades', path: '/gestor/financeiro/mensalidades', icon: Receipt },
-                { key: 'pagamentos', label: 'Pagamentos', path: '/gestor/financeiro/pagamentos', icon: Banknote },
-                { key: 'custos-professores', label: 'Professores', path: '/gestor/financeiro/professores', icon: HandCoins },
+                { key: 'financeiro', label: 'Visão geral', path: '/gestor/financeiro', icon: Wallet, exact: true, module: 'financeiro' },
+                { key: 'mensalidades', label: 'Mensalidades', path: '/gestor/financeiro/mensalidades', icon: Receipt, module: 'financeiro' },
+                { key: 'pagamentos', label: 'Pagamentos', path: '/gestor/financeiro/pagamentos', icon: Banknote, module: 'financeiro' },
+                { key: 'custos-professores', label: 'Professores', path: '/gestor/financeiro/professores', icon: HandCoins, module: 'custos_professores' },
             ],
         },
         {
@@ -90,8 +91,8 @@ export const menuByRole = {
         {
             title: 'Sistema',
             items: [
-                { key: 'relatorios', label: 'Relatórios', path: '/gestor/relatorios', icon: BarChart3 },
-                { key: 'auditoria-logs', label: 'Auditoria', path: '/gestor/logs', icon: ScrollText },
+                { key: 'relatorios', label: 'Relatórios', path: '/gestor/relatorios', icon: BarChart3, module: 'relatorios' },
+                { key: 'auditoria-logs', label: 'Auditoria', path: '/gestor/logs', icon: ScrollText, module: 'auditoria' },
                 { key: 'configuracoes', label: 'Configurações', path: '/gestor/configuracoes', icon: Settings },
             ],
         },
@@ -103,7 +104,7 @@ export const menuByRole = {
                 { key: 'agenda', label: 'Agenda', path: '/aluno/agenda', icon: Calendar },
                 { key: 'meus-servicos', label: 'Os meus serviços', path: '/aluno/servicos', icon: BookOpen },
                 { key: 'subscricao-servicos', label: 'Subscrição de serviços', path: '/aluno/subscricao-servicos', icon: BookOpenCheck },
-                { key: 'reinscricao', label: 'Reinscrição', path: '/aluno/reinscricao', icon: ClipboardEdit },
+                { key: 'reinscricao', label: 'Reinscrição', path: '/aluno/reinscricao', icon: ClipboardEdit, module: 'renovacoes' },
                 { key: 'presencas', label: 'Presenças', path: '/aluno/presencas', icon: ClipboardCheck },
             ],
         },
@@ -115,7 +116,7 @@ export const menuByRole = {
                 { key: 'agenda', label: 'Agenda', path: '/professor/agenda', icon: Calendar },
                 { key: 'meus-servicos', label: 'Os meus serviços', path: '/professor/servicos', icon: BookOpen },
                 { key: 'presencas', label: 'Presenças', path: '/professor/presencas', icon: ClipboardCheck },
-                { key: 'assiduidade', label: 'Assiduidade', path: '/professor/assiduidade', icon: BarChart3 },
+                { key: 'assiduidade', label: 'Assiduidade', path: '/professor/assiduidade', icon: BarChart3, module: 'assiduidade' },
                 { key: 'notificacoes', label: 'Notificações', path: '/professor/notificacoes', icon: Bell },
             ],
         },

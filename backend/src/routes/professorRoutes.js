@@ -14,6 +14,7 @@ import {
 } from '../controllers/presencasController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
+import { requireModule } from '../config/plans.js';
 
 const router = express.Router();
 
@@ -25,7 +26,11 @@ router.patch('/perfil', atualizarMeuPerfilProfessor);
 router.get('/servicos', listarServicosProfessorResumo);
 router.get('/alunos', listarAlunosParaProfessor);
 router.get('/presencas/servicos', listarServicosParaPresencaProfessor);
-router.get('/presencas/assiduidade', listarTabelaAssiduidadeProfessor);
+router.get(
+    '/presencas/assiduidade',
+    requireModule('assiduidade'),
+    listarTabelaAssiduidadeProfessor
+);
 router.get('/presencas/:id_servico/historico', obterHistoricoPresencasServicoProfessor);
 router.get('/presencas/:id_servico', obterPresencaProfessor);
 router.post('/presencas', guardarPresencasProfessor);

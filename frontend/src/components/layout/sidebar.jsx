@@ -1,7 +1,8 @@
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import markLogo from '../../assets/img/gestudo-mark.png';
 import { apiGet } from '../../utils/api';
+import { usePlan } from '../../utils/plan';
 import { isPathActive, menuByRole, ROLE_LABEL } from './menuConfig';
 
 export default function Sidebar({
@@ -13,6 +14,7 @@ export default function Sidebar({
     onClose,
 }) {
     const [reinscricaoAtiva, setReinscricaoAtiva] = useState(true);
+    const { hasModule } = usePlan();
 
     useEffect(() => {
         if (role !== 'aluno') return;
@@ -40,16 +42,17 @@ export default function Sidebar({
         };
     }, [role]);
 
-    const groups = useMemo(() => {
-        const base = menuByRole[role] || [];
-        if (role === 'aluno' && !reinscricaoAtiva) {
-            return base.map((group) => ({
-                ...group,
-                items: group.items.filter((item) => item.key !== 'reinscricao'),
-            }));
-        }
-        return base;
-    }, [role, reinscricaoAtiva]);
+    const groups = (menuByRole[role] || [])
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => {
+                if (item.key === 'reinscricao' && !reinscricaoAtiva) {
+                    return false;
+                }
+                return !item.module || hasModule(item.module);
+            }),
+        }))
+        .filter((group) => group.items.length > 0);
 
     // Em ecrãs grandes, "isOpen" alterna entre expandida e recolhida (só
     // ícones); em ecrãs pequenos, controla se o menu está visível.

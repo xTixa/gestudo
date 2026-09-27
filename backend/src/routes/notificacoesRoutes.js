@@ -7,6 +7,7 @@ import {
 } from '../controllers/notificacoesController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
+import { requireModule } from '../config/plans.js';
 
 /**
  * ========================================
@@ -37,7 +38,12 @@ const router = express.Router();
  */
 router.get('/', listarNotificacoes);
 
-router.post('/device-token', authMiddleware, registarDeviceToken);
+router.post(
+    '/device-token',
+    authMiddleware,
+    requireModule('notificacoes_push'),
+    registarDeviceToken
+);
 
 router.post('/device-token/remover', authMiddleware, removerDeviceToken);
 

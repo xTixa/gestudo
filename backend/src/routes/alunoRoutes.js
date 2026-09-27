@@ -10,6 +10,7 @@ import {
 } from '../controllers/inscricaoController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { roleMiddleware } from '../middlewares/roleMiddleware.js';
+import { requireModule } from '../config/plans.js';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.get('/presencas', listarMinhasPresencasAluno);
 // Rotas de reinscrição (nível/ano/turma/plano apenas). A renovação da
 // matrícula acontece quando o gestor aprova o pedido de reinscrição
 // (ver atualizarEstadoInscricaoPublica em inscricaoController.js).
+router.use('/reinscricao', requireModule('renovacoes'));
 router.get('/reinscricao/opcoes', listarOpcoesInscricao);
 router.post('/reinscricao', criarReinscricaoAluno);
 

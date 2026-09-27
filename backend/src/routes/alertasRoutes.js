@@ -7,6 +7,7 @@ import {
     listarEventos,
 } from '../controllers/alertasController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { requireModule } from '../config/plans.js';
 
 /**
  * ========================================
@@ -166,7 +167,7 @@ router.get('/eventos', listarEventos);
  *
  * Status: 200 OK | 400 Bad Request | 401 Unauthorized | 404 Not Found | 500 Internal Server Error
  */
-router.post('/preferencias', atualizarPreferencias);
+router.post('/preferencias', requireModule('alertas'), atualizarPreferencias);
 
 /**
  * POST /api/alertas/marcar-lido

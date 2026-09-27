@@ -17,6 +17,7 @@ import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import ContaCorrenteAluno from '../../../components/finance/ContaCorrenteAluno';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../utils/api';
 import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
+import { usePlan } from '../../../utils/plan';
 
 function formatDate(value) {
     if (!value) return '-';
@@ -95,6 +96,8 @@ function getAlunoProfileImage(aluno) {
 }
 
 export default function FichaAlunoPage() {
+    const { hasModule } = usePlan();
+    const canExport = hasModule('exportacoes');
     const navigate = useNavigate();
     const { id: alunoId } = useParams();
 
@@ -689,14 +692,16 @@ export default function FichaAlunoPage() {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        title="Download ficha"
-                        onClick={handleDownloadFicha}
-                    >
-                        <Download size={14} />
-                    </button>
+                    {canExport && (
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                            title="Download ficha"
+                            onClick={handleDownloadFicha}
+                        >
+                            <Download size={14} />
+                        </button>
+                    )}
                     <button
                         type="button"
                         className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
@@ -1148,7 +1153,9 @@ export default function FichaAlunoPage() {
             </div>
 
             {/* Conta corrente (financeiro) */}
-            {alunoId ? <ContaCorrenteAluno idAluno={alunoId} /> : null}
+            {alunoId && hasModule('financeiro') ? (
+                <ContaCorrenteAluno idAluno={alunoId} />
+            ) : null}
 
             {/* Encarregado de Educação */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

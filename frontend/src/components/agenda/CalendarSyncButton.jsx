@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CalendarPlus, Check, Copy, RefreshCw, X } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
+import { usePlan } from '../../utils/plan';
 
 const GUIAS = {
     google: {
@@ -35,7 +36,13 @@ const GUIAS = {
     },
 };
 
+// Só aparece se a sincronização de calendário estiver incluída no pacote.
 export default function CalendarSyncButton() {
+    const { hasModule } = usePlan();
+    return hasModule('calendario_sync') ? <CalendarSyncButtonContent /> : null;
+}
+
+function CalendarSyncButtonContent() {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [regenerating, setRegenerating] = useState(false);

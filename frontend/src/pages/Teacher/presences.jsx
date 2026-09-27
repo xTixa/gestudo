@@ -24,6 +24,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { apiGet, apiPost } from '../../utils/api';
 import UsersPageHeader from '../../components/layout/UsersPageHeader';
+import { usePlan } from '../../utils/plan';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -556,6 +557,7 @@ function AttendanceModal({
     saving,
     loading,
 }) {
+    const canExport = usePlan().hasModule('exportacoes');
     const [searchQuery, setSearchQuery] = useState('');
     const [showAddPanel, setShowAddPanel] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -850,14 +852,16 @@ function AttendanceModal({
                                 >
                                     Cancelar
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={handleExportPDF}
-                                    disabled={!students.length}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition active:scale-95"
-                                >
-                                    <Download size={14} /> Exportar PDF
-                                </button>
+                                {canExport && (
+                                    <button
+                                        type="button"
+                                        onClick={handleExportPDF}
+                                        disabled={!students.length}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition active:scale-95"
+                                    >
+                                        <Download size={14} /> Exportar PDF
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirm(true)}

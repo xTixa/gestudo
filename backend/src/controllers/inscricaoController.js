@@ -12,6 +12,7 @@ import {
     ativarContaAluno,
 } from '../models/renovacaoMatricula.js';
 import { getAnoLetivo } from './renovacaoMatriculaController.js';
+import { assertWithinLimit, isPlanError, sendPlanError } from '../config/plans.js';
 
 /**
  * ========================================
@@ -747,6 +748,9 @@ async function integrarInscricaoAprovada(inscricao) {
         }
 
         if (idUser == null) {
+            // Nova conta de aluno ativa: respeitar o limite do pacote.
+            await assertWithinLimit('alunos', client);
+
             temporaryPassword = gerarPasswordAleatoria();
             const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
@@ -1841,6 +1845,10 @@ export async function atualizarEstadoInscricaoPublica(req, res) {
         });
     } catch (error) {
         console.error('Erro ao atualizar estado da inscrição:', error.message);
+
+        if (isPlanError(error)) {
+            return sendPlanError(res, error);
+        }
 
         if (error?.code === '23505') {
             return res.status(400).json({

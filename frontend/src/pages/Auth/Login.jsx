@@ -8,6 +8,7 @@ import AuthLayout, {
     PasswordInput,
     authLinkCls,
 } from '../../components/auth/AuthLayout';
+import { usePlan } from '../../utils/plan';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const LOGIN_EMAIL_KEY = 'mc_login_email';
@@ -32,24 +33,7 @@ export default function Login({ onLogin }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-
-    /* useEffect(() => {
-        async function fetchCsrfToken() {
-            try {
-                const res = await fetch(`${API_URL}/api/auth/csrf-token`, {
-                    credentials: 'include', // necessário para receber cookie mc_csrf
-                });
-                const data = await res.json();
-                if (data.csrfToken) {
-                    window.csrfToken = data.csrfToken; // ou guarda num state
-                }
-            } catch (err) {
-                console.error('Falha ao obter CSRF token', err);
-            }
-        }
-
-        fetchCsrfToken();
-    }, []);*/
+    const showEnrollment = usePlan().hasModule('inscricoes_online');
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -112,25 +96,28 @@ export default function Login({ onLogin }) {
         }
     }
 
+    const enrollmentLink = showEnrollment ? (
+        <>
+            Novo aluno?{' '}
+            <Link to="/inscricao" className={authLinkCls}>
+                Fazer inscrição
+            </Link>
+        </>
+    ) : null;
+
     return (
         <AuthLayout
             title="Iniciar sessão"
             subtitle="Bem-vindo de volta. Introduza os seus dados para aceder à plataforma."
             topRight={
-                <p className="hidden text-sm text-slate-500 sm:block">
-                    Novo aluno?{' '}
-                    <Link to="/inscricao" className={authLinkCls}>
-                        Fazer inscrição
-                    </Link>
-                </p>
+                enrollmentLink && (
+                    <p className="hidden text-sm text-slate-500 sm:block">
+                        {enrollmentLink}
+                    </p>
+                )
             }
             footer={
-                <p className="sm:hidden">
-                    Novo aluno?{' '}
-                    <Link to="/inscricao" className={authLinkCls}>
-                        Fazer inscrição
-                    </Link>
-                </p>
+                enrollmentLink && <p className="sm:hidden">{enrollmentLink}</p>
             }
         >
             <form onSubmit={handleSubmit} className="space-y-5">

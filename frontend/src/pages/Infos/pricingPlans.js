@@ -1,5 +1,7 @@
 // Pacotes comerciais do Gestudo apresentados na homepage.
 // Preços em euros por mês, sem IVA. Valores provisórios — ajustar antes de publicar.
+// O que cada pacote desbloqueia na aplicação é definido em
+// backend/src/config/plans.js — manter os dois ficheiros alinhados.
 
 export const ANNUAL_MONTHS_CHARGED = 10; // anual = 12 meses pelo preço de 10
 
