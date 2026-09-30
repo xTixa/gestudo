@@ -166,6 +166,12 @@ export function validateRuntimeConfig() {
         );
     }
 
+    if (nodeEnv === 'production' && !isNonEmpty(process.env.COOKIE_DOMAIN)) {
+        warnings.push(
+            'COOKIE_DOMAIN não definido: os cookies de sessão ficam só no domínio da API. Se o frontend estiver noutro subdomínio, defina COOKIE_DOMAIN (ex.: .blocodenotas.pt).'
+        );
+    }
+
     return {
         ok: errors.length === 0,
         errors,

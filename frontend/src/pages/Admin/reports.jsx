@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { utils, writeFile } from 'xlsx';
+import { descarregarBlob, linhasParaXlsx } from '../../utils/excel';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
 import { apiGet } from '../../utils/api';
 
@@ -70,15 +70,13 @@ function exportToPDF(reportLabel, columns, rows) {
     doc.save(`relatorio-${reportLabel.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }
 
-function exportToExcel(reportLabel, columns, rows) {
+async function exportToExcel(reportLabel, columns, rows) {
     const data = [
         columns.map(formatColumnLabel),
         ...rows.map((row) => columns.map((col) => formatCellValue(row[col]))),
     ];
-    const ws = utils.aoa_to_sheet(data);
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, ws, 'Relatório');
-    writeFile(wb, `relatorio-${reportLabel.toLowerCase().replace(/\s+/g, '-')}.xlsx`);
+    const blob = await linhasParaXlsx(data, 'Relatório');
+    descarregarBlob(blob, `relatorio-${reportLabel.toLowerCase().replace(/\s+/g, '-')}.xlsx`);
 }
 
 export default function ReportsPage() {
@@ -161,7 +159,7 @@ export default function ReportsPage() {
         const rows = await loadAllForExport();
         if (!rows.length) return;
         const cols = Object.keys(rows[0]).filter((k) => !['id_presenca', 'id_inscricao', 'id_servico', 'id_inscricao_publica', 'id_aluno'].includes(k));
-        exportToExcel(selectedReport.label, cols, rows);
+        await exportToExcel(selectedReport.label, cols, rows);
     }
 
     return (

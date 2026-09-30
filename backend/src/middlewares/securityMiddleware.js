@@ -49,6 +49,16 @@ export function parseCookieHeader(cookieHeader) {
     }, {});
 }
 
+/**
+ * Domínio dos cookies de sessão (ex.: ".exemplo.pt" para partilhar entre
+ * app.exemplo.pt e api.exemplo.pt). Vazio = só o domínio da API.
+ * Tem de ser o mesmo ao criar e ao apagar um cookie, senão o browser não o
+ * apaga.
+ */
+export function getCookieDomain() {
+    return String(process.env.COOKIE_DOMAIN || '').trim() || undefined;
+}
+
 export function createCsrfToken() {
     return crypto.randomBytes(32).toString('hex');
 }
@@ -60,7 +70,7 @@ function getCsrfCookieOptions() {
         sameSite: 'lax',
         secure: isProduction,
         path: '/',
-        domain: isProduction ? '.blocodenotas.pt' : undefined,
+        domain: getCookieDomain(),
         maxAge: Number(
             process.env.JWT_COOKIE_MAX_AGE_MS || 12 * 60 * 60 * 1000
         ),
@@ -78,6 +88,7 @@ export function clearCsrfCookie(res) {
         sameSite: 'lax',
         secure: isProduction,
         path: '/',
+        domain: getCookieDomain(),
     });
 }
 
@@ -341,8 +352,13 @@ export function loggingMiddleware() {
 }
 
 /**
- * Middleware para sanitizar input - Remove caracteres perigosos
- * Protege contra SQL injection, XSS (primeira camada)
+ * Middleware para sanitizar input: remove caracteres de controlo invisíveis
+ * e espaços nas pontas.
+ *
+ * Não remove "<" nem ">": apagar caracteres estragava texto legítimo
+ * ("a < b", "<3") e não protege de nada. A proteção contra XSS está onde o
+ * texto é mostrado (o React escapa o conteúdo, os emails usam escapeHtml) e
+ * contra SQL injection nas queries parametrizadas.
  */
 export function sanitizeInputMiddleware() {
     return (req, res, next) => {
@@ -365,11 +381,10 @@ export function sanitizeInputMiddleware() {
 /**
  * Função auxiliar para sanitizar string
  */
-function sanitizeString(str) {
+export function sanitizeString(str) {
     if (typeof str !== 'string') return str;
 
     return str
-        .replace(/[<>]/g, '') // Remove tags simples
         .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '') // Remove control chars (mantem tab, LF e CR)
         .trim();
 }

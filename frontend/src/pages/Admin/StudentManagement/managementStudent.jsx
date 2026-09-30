@@ -22,7 +22,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Papa from 'papaparse';
-import { read, utils, write } from 'xlsx';
+import { lerPrimeiraFolha, linhasParaXlsx } from '../../../utils/excel';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
 import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
@@ -498,16 +498,9 @@ function parseCsvFile(file) {
     });
 }
 
-// função para parsear um arquivo Excel usando a biblioteca SheetJS (xlsx), lendo o conteúdo do arquivo como um array buffer, carregando o workbook, selecionando a primeira planilha, e convertendo os dados para uma lista de objetos usando os cabeçalhos da planilha como chaves, garantindo que os dados sejam processados corretamente mesmo que o arquivo Excel tenha variações de formatação ou estrutura
+// Lê a primeira folha de um .xlsx como lista de objetos (cabeçalhos da primeira linha como chaves).
 async function parseExcelFile(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = read(arrayBuffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-
-    return utils.sheet_to_json(worksheet, {
-        defval: '',
-    });
+    return lerPrimeiraFolha(await file.arrayBuffer());
 }
 
 // função para salvar um blob no disco do usuário, usando a API File System Access se disponível para oferecer uma experiência de salvamento mais integrada, e caindo para o método tradicional de criar um link de download caso a API não esteja disponível ou o usuário cancele a ação, garantindo que o arquivo seja salvo corretamente e que o nome sugerido seja usado
@@ -914,17 +907,8 @@ export default function GestaoAlunos() {
                 selectedColumns.map((column) => getExportValue(aluno, column.id))
             ),
         ];
-        const worksheet = utils.aoa_to_sheet(wsData);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, 'Alunos');
-        const excelArrayBuffer = write(workbook, {
-            bookType: 'xlsx',
-            type: 'array',
-        });
         const saveResult = await saveBlobToDisk(
-            new Blob([excelArrayBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            }),
+            await linhasParaXlsx(wsData, 'Alunos'),
             baseFileName,
             'xlsx',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1080,22 +1064,8 @@ export default function GestaoAlunos() {
             return;
         }
 
-        const worksheet = utils.aoa_to_sheet([
-            IMPORT_TEMPLATE_HEADERS,
-            sampleRow,
-        ]);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, 'Alunos');
-
-        const excelArrayBuffer = write(workbook, {
-            bookType: 'xlsx',
-            type: 'array',
-        });
-
         const saveResult = await saveBlobToDisk(
-            new Blob([excelArrayBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            }),
+            await linhasParaXlsx([IMPORT_TEMPLATE_HEADERS, sampleRow], 'Alunos'),
             'modelo-importacao-alunos',
             'xlsx',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1121,7 +1091,7 @@ export default function GestaoAlunos() {
 
         const fileName = selectedImportFile.name.toLowerCase();
         const isCsv = fileName.endsWith('.csv');
-        const isExcel = fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+        const isExcel = fileName.endsWith('.xlsx');
 
         if (importFormat === 'csv' && !isCsv) {
             setActionError('Formato invalido: escolha um ficheiro .csv.');
@@ -1130,7 +1100,9 @@ export default function GestaoAlunos() {
 
         if (importFormat === 'excel' && !isExcel) {
             setActionError(
-                'Formato invalido: escolha um ficheiro .xls ou .xlsx.'
+                fileName.endsWith('.xls')
+                    ? 'O formato .xls (Excel 97-2003) não é suportado. Abra o ficheiro no Excel e guarde-o como .xlsx.'
+                    : 'Formato invalido: escolha um ficheiro .xlsx.'
             );
             return;
         }

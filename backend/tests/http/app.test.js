@@ -118,6 +118,26 @@ describe('CSRF', () => {
     });
 });
 
+describe('Cookies de sessão', () => {
+    it('o logout apaga os cookies no domínio configurado', async () => {
+        process.env.COOKIE_DOMAIN = '.exemplo.pt';
+        try {
+            const res = await request(app).post('/api/auth/logout');
+            expect(res.status).toBe(200);
+            const cookies = res.headers['set-cookie'];
+            expect(cookies.find((c) => c.startsWith('mc_token=;'))).toContain('Domain=.exemplo.pt');
+            expect(cookies.find((c) => c.startsWith('mc_csrf=;'))).toContain('Domain=.exemplo.pt');
+        } finally {
+            delete process.env.COOKIE_DOMAIN;
+        }
+    });
+
+    it('sem COOKIE_DOMAIN não define Domain', async () => {
+        const res = await request(app).get('/api/auth/csrf-token');
+        expect(res.headers['set-cookie'].join(' ')).not.toContain('Domain=');
+    });
+});
+
 describe('Rate limit do login', () => {
     it('bloqueia com 429 depois de 10 tentativas', async () => {
         // O teste de validação acima já gastou uma tentativa neste processo.

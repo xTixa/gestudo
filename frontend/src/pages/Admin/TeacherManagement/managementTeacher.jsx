@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { read, utils, write } from 'xlsx';
+import { lerPrimeiraFolha, linhasParaXlsx } from '../../../utils/excel';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
 import { usePlan } from '../../../utils/plan';
@@ -297,11 +297,7 @@ function isValidEmail(value) {
 }
 
 async function parseExcelImportFile(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = read(arrayBuffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    const rawRows = utils.sheet_to_json(worksheet, { defval: '' });
+    const rawRows = await lerPrimeiraFolha(await file.arrayBuffer());
 
     return rawRows.map((row) =>
         Object.entries(row).reduce((acc, [key, value]) => {
@@ -1004,18 +1000,8 @@ export default function GestaoProfessores() {
                 prof.nivel || '',
             ]),
         ];
-        const worksheet = utils.aoa_to_sheet(wsData);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, 'Professores');
-        const excelArrayBuffer = write(workbook, {
-            bookType: 'xlsx',
-            type: 'array',
-        });
-
         const saveResult = await saveBlobToDisk(
-            new Blob([excelArrayBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            }),
+            await linhasParaXlsx(wsData, 'Professores'),
             baseFileName,
             'xlsx',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1047,8 +1033,7 @@ export default function GestaoProfessores() {
 
             const fileName = selectedImportFile.name.toLowerCase();
             const isCsv = fileName.endsWith('.csv');
-            const isExcel =
-                fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+            const isExcel = fileName.endsWith('.xlsx');
 
             if (importFormat === 'csv' && !isCsv) {
                 setActionError('Formato invalido: escolha um ficheiro .csv.');
@@ -1057,7 +1042,9 @@ export default function GestaoProfessores() {
 
             if (importFormat === 'excel' && !isExcel) {
                 setActionError(
-                    'Formato invalido: escolha um ficheiro .xls ou .xlsx.'
+                    fileName.endsWith('.xls')
+                        ? 'O formato .xls (Excel 97-2003) não é suportado. Abra o ficheiro no Excel e guarde-o como .xlsx.'
+                        : 'Formato invalido: escolha um ficheiro .xlsx.'
                 );
                 return;
             }
@@ -1264,22 +1251,8 @@ export default function GestaoProfessores() {
             return;
         }
 
-        const worksheet = utils.aoa_to_sheet([
-            IMPORT_TEMPLATE_HEADERS,
-            sampleRow,
-        ]);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, 'Professores');
-
-        const excelArrayBuffer = write(workbook, {
-            bookType: 'xlsx',
-            type: 'array',
-        });
-
         const saveResult = await saveBlobToDisk(
-            new Blob([excelArrayBuffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            }),
+            await linhasParaXlsx([IMPORT_TEMPLATE_HEADERS, sampleRow], 'Professores'),
             'modelo-importacao-professores',
             'xlsx',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

@@ -11,6 +11,7 @@ import {
     createCsrfToken,
     setCsrfCookie,
     clearCsrfCookie,
+    getCookieDomain,
 } from '../middlewares/securityMiddleware.js';
 import { notificarGestoresAtividadeSuspeita } from '../services/alertasDispatchService.js';
 
@@ -54,7 +55,7 @@ function getAuthCookieOptions() {
         sameSite: 'lax',
         secure: isProduction,
         path: '/',
-        domain: isProduction ? '.blocodenotas.pt' : undefined,
+        domain: getCookieDomain(),
         maxAge: Number(
             process.env.JWT_COOKIE_MAX_AGE_MS || 12 * 60 * 60 * 1000
         ),
@@ -71,6 +72,7 @@ function clearAuthCookie(res) {
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/',
+        domain: getCookieDomain(),
     });
 }
 
