@@ -108,6 +108,14 @@ cd frontend
 npm run dev
 ```
 
+### Migrações da base de dados
+
+As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por ordem alfabética quando a API arranca.
+
+- Cada ficheiro aplicado fica registado na tabela `schema_migrations` e não volta a correr.
+- Cada migração corre numa transação: se falhar, nada fica aplicado e o arranque é cancelado.
+- Não edite uma migração já aplicada. Para alterar o schema, crie um ficheiro novo com o número seguinte.
+
 ### Dashboard
 
 A aplicação inclui um dashboard para:
@@ -158,4 +166,4 @@ Notas importantes:
 - No logout, o token atual é removido do servidor.
 - Foi adicionado service worker em `frontend/public/firebase-messaging-sw.js` para suporte de push no browser.
 
-Projeto desenvolvido no para a unidade curricular de Projeto
+Projeto desenvolvido para Portfolio
