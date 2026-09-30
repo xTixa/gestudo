@@ -245,19 +245,24 @@ export function securityHeadersMiddleware() {
  *
  * @param {number} requestsPerWindow - Quantidade máxima de requisições
  * @param {number} windowMinutes - Janela de tempo em minutos
+ * @param {Object} [options]
+ * @param {Function} [options.keyFn] - Chave do contador (por omissão o IP).
+ *   Ex.: (req) => req.userId, para limitar por utilizador.
  *
  * Uso: app.use(rateLimitMiddleware(100, 15))  // 100 reqs por 15 min
  */
 export function rateLimitMiddleware(
     requestsPerWindow = 100,
-    windowMinutes = 15
+    windowMinutes = 15,
+    { keyFn = null } = {}
 ) {
     const store = new Map();
 
     const windowMs = windowMinutes * 60 * 1000;
 
     return (req, res, next) => {
-        const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+        const clientIP =
+            (keyFn && keyFn(req)) || req.ip || req.socket.remoteAddress || 'unknown';
         const now = Date.now();
 
         // Obter histórico de requisições do cliente

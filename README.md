@@ -140,6 +140,31 @@ A API corre sozinha as rotinas abaixo (código em `backend/src/scheduler/`). As 
 - Em Configurações → Tarefas automáticas o gestor vê o histórico e pode executar cada tarefa manualmente.
 - `JOBS_ENABLED=false` desliga o agendador numa instância.
 
+### Mensagens internas
+
+Conversas 1:1 ou em grupo (até 50 pessoas) entre gestores, professores, alunos e encarregados. Disponível a partir do pacote Plus (módulo `mensagens`).
+
+Quem pode escrever a quem:
+
+- Toda a gente pode escrever à gestão; o gestor pode escrever a qualquer utilizador ativo.
+- Professor ↔ alunos dos seus serviços (inscrições ativas) e os respetivos encarregados.
+- Encarregado ↔ professores dos seus educandos.
+
+API (`/api/mensagens`, autenticada):
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `/contactos?q=` | Pessoas a quem o utilizador pode escrever |
+| GET | `/conversas?arquivadas=` | Conversas com pré-visualização e nº de não lidas |
+| GET | `/nao-lidas` | Total de mensagens por ler (para o contador do menu) |
+| POST | `/conversas` | `{ participantes, assunto?, mensagem }`; uma conversa 1:1 sem assunto continua a existente |
+| GET | `/conversas/:id/mensagens?antes=&limit=` | Mensagens, paginadas para trás |
+| POST | `/conversas/:id/mensagens` | `{ corpo }` |
+| POST | `/conversas/:id/lida` | Marca a conversa como lida |
+| PATCH | `/conversas/:id` | `{ arquivada }` |
+
+Cada mensagem gera uma notificação push. Às 19:00, quem tem mensagens por ler há mais de 2 horas recebe um resumo por email (tarefa `mensagens-por-ler`).
+
 ### Migrações da base de dados
 
 As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por ordem alfabética quando a API arranca.

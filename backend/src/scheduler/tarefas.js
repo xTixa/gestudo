@@ -4,6 +4,7 @@ import { dispatchAlert } from '../services/alertasDispatchService.js';
 import { getFeatureFlagsMap } from '../services/featureFlagsService.js';
 import { runLogRetentionCleanup } from '../services/logRetentionService.js';
 import { gerarMensalidadesDoMes } from '../services/mensalidadesService.js';
+import { listarPendentesParaResumo, prefixoRota } from '../services/mensagensService.js';
 import { idsGestoresAtivos, registarTarefa } from './agendador.js';
 import { dataPt, euros, nomeMes, somarDias } from './tempo.js';
 
@@ -111,6 +112,16 @@ export function mensagemLembreteAulas({ papel, nomeAluno, aulas }) {
     return {
         titulo: `Tens ${n} ${plural} amanhã`,
         descricao: lista,
+    };
+}
+
+export function mensagemResumoMensagens({ total, autores }) {
+    const plural = total === 1 ? 'mensagem' : 'mensagens';
+    const lista = autores.slice(0, 3).join(', ');
+    const outros = autores.length > 3 ? ` e mais ${autores.length - 3}` : '';
+    return {
+        titulo: `Tem ${total} ${plural} por ler`,
+        descricao: lista ? `De: ${lista}${outros}.` : 'Abra a plataforma para as ler.',
     };
 }
 
@@ -369,5 +380,28 @@ registarTarefa({
             semPreco: resultado.semPreco.length,
             total: resultado.total,
         };
+    },
+});
+
+registarTarefa({
+    nome: 'mensagens-por-ler',
+    titulo: 'Resumo de mensagens por ler',
+    descricao: 'Envia por email a quem tem mensagens por ler há mais de 2 horas um resumo com o número de mensagens e quem as enviou.',
+    agenda: { tipo: 'diaria', hora: '19:00' },
+    requerModulo: 'mensagens',
+    async executar() {
+        const pendentes = await listarPendentesParaResumo({ horas: 2 });
+        let enviados = 0;
+        for (const pendente of pendentes) {
+            const resultado = await dispatchAlert({
+                codigo: 'mensagens-por-ler',
+                for_user_ids: [pendente.idUser],
+                ...mensagemResumoMensagens(pendente),
+                nivel: 'info',
+                pushLink: `${prefixoRota(pendente.papel)}/mensagens`,
+            });
+            if (resultado.success) enviados += 1;
+        }
+        return { destinatarios: pendentes.length, enviados };
     },
 });

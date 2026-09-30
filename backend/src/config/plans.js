@@ -29,6 +29,7 @@ export const MODULES = {
     calendario_sync: { nome: 'Sincronização de calendário', desde: 'plus' },
     inscricoes_online: { nome: 'Inscrições online', desde: 'plus' },
     notificacoes_push: { nome: 'Notificações push', desde: 'plus' },
+    mensagens: { nome: 'Mensagens internas', desde: 'plus' },
     renovacoes: { nome: 'Reinscrição e renovações online', desde: 'profissional' },
     textos_inscricao: { nome: 'Textos do formulário de inscrição', desde: 'profissional' },
     financeiro: { nome: 'Mensalidades e pagamentos', desde: 'profissional' },

@@ -87,6 +87,15 @@ describe('Autenticação', () => {
     });
 });
 
+describe('Mensagens', () => {
+    it('exigem sessão', async () => {
+        expect((await request(app).get('/api/mensagens/conversas')).status).toBe(401);
+        expect((await request(app).get('/api/mensagens/nao-lidas')).status).toBe(401);
+        const res = await request(app).post('/api/mensagens/conversas').send({ mensagem: 'olá' });
+        expect(res.status).toBe(401);
+    });
+});
+
 describe('CSRF', () => {
     const cookieToken = tokenFor({ id: 1, role: 'gestor' });
 
