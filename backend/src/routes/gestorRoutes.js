@@ -68,6 +68,10 @@ import {
     atualizarFeatureFlag,
 } from '../controllers/featureFlagsController.js';
 import {
+    listarTarefasAgendadas,
+    executarTarefaAgendada,
+} from '../controllers/tarefasAgendadasController.js';
+import {
     listarAlunosMatriculaExpirada,
     suspenderAlunosExpirados,
     renovarMatriculaAlunoPorGestor,
@@ -860,6 +864,14 @@ router.patch(
     validateParams({ key: 'string' }),
     validateBody({ ativo: { type: 'boolean', required: true } }),
     atualizarFeatureFlag
+);
+
+// Tarefas automáticas (lembretes, mensalidades, limpeza de logs)
+router.get('/tarefas-agendadas', listarTarefasAgendadas);
+router.post(
+    '/tarefas-agendadas/:nome/executar',
+    validateParams({ nome: 'string' }),
+    executarTarefaAgendada
 );
 
 // =============== GESTÃO DE RENOVAÇÕES DE MATRÍCULA ===============

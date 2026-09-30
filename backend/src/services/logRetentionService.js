@@ -7,7 +7,6 @@ const LOG_RETENTION_RULES = {
     info: "INTERVAL '1 month'",
 };
 
-let retentionTimer = null;
 let cleanupRunning = false;
 
 function buildRetentionDeleteQuery() {
@@ -37,31 +36,4 @@ export async function runLogRetentionCleanup() {
     } finally {
         cleanupRunning = false;
     }
-}
-
-export function startLogRetentionScheduler() {
-    if (retentionTimer) {
-        return;
-    }
-
-    const scheduleCleanup = async () => {
-        try {
-            const result = await runLogRetentionCleanup();
-            if (!result.skipped) {
-                console.log(
-                    `[Logs] Limpeza de retenção concluída: ${result.deleted} removidos.`
-                );
-            }
-        } catch (error) {
-            console.error(
-                '[Logs] Falha na limpeza de retenção:',
-                error.message
-            );
-        }
-    };
-
-    void scheduleCleanup();
-
-    retentionTimer = setInterval(scheduleCleanup, 24 * 60 * 60 * 1000);
-    retentionTimer.unref?.();
 }

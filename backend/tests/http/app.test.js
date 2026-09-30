@@ -50,6 +50,12 @@ describe('Autenticação', () => {
         expect(res.status).toBe(401);
     });
 
+    it('tarefas automáticas exigem sessão de gestor', async () => {
+        expect((await request(app).get('/api/gestor/tarefas-agendadas')).status).toBe(401);
+        const res = await request(app).post('/api/gestor/tarefas-agendadas/lembrete-aulas/executar');
+        expect(res.status).toBe(401);
+    });
+
     it('token com assinatura errada devolve 401', async () => {
         const forged = jwt.sign({ id: 1, role: 'gestor' }, 'outro-segredo');
         const res = await request(app)

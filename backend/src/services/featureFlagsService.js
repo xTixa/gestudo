@@ -7,6 +7,12 @@ export const DEFAULT_FEATURE_FLAGS = {
             'Mostra ou esconde o item "Reinscrição" no menu dos alunos.',
         ativo: true,
     },
+    gerar_mensalidades_auto: {
+        label: 'Gerar mensalidades automaticamente',
+        descricao:
+            'No dia 1 de cada mês gera as mensalidades do mês a partir das inscrições ativas (pacote Profissional ou superior).',
+        ativo: false,
+    },
 };
 
 async function ensureDefaultFeatureFlags() {

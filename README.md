@@ -122,6 +122,24 @@ npm run test:watch  # modo watch
 
 O workflow `.github/workflows/ci.yml` corre em cada push e pull request para `main`: testes, SAST e `npm audit` no backend, lint e build no frontend.
 
+### Tarefas automáticas
+
+A API corre sozinha as rotinas abaixo (código em `backend/src/scheduler/`). As horas são no fuso `APP_TIMEZONE` (Europe/Lisbon por omissão).
+
+| Tarefa | Quando | O que faz |
+| --- | --- | --- |
+| Lembrete de mensalidades a vencer | Diária, 09:00 | Avisa o encarregado (ou o aluno sem encarregado) 3 dias antes do vencimento |
+| Aviso de mensalidades em atraso | Diária, 09:05 | Avisa 1 e 8 dias depois do vencimento; resumo aos gestores |
+| Lembrete das aulas de amanhã | Diária, 18:00 | Alunos, encarregados e professores recebem as aulas do dia seguinte |
+| Geração de mensalidades | Dia 1, 07:00 | Gera as mensalidades do mês (desligada por omissão: Configurações → Funcionalidades) |
+| Limpeza de logs antigos | Diária, 03:30 | Aplica os prazos de retenção dos logs |
+
+- Cada execução fica registada em `tarefas_agendadas_execucoes`. Um período corre uma só vez, mesmo com várias instâncias da API.
+- Se a API estiver em baixo à hora marcada, a tarefa corre quando voltar (no mesmo dia ou mês).
+- Uma execução que falha é repetida até 3 vezes; à terceira falha os gestores recebem um alerta.
+- Em Configurações → Tarefas automáticas o gestor vê o histórico e pode executar cada tarefa manualmente.
+- `JOBS_ENABLED=false` desliga o agendador numa instância.
+
 ### Migrações da base de dados
 
 As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por ordem alfabética quando a API arranca.

@@ -417,38 +417,28 @@ export async function dispatchAlert({
 }
 
 /**
- * Dispara alerta de fatura vencida para todos os utilizadores
- * Usado quando uma fatura fica vencida
+ * Dispara alerta de pagamento recebido para os utilizadores indicados
+ * (ex.: o encarregado que pagou). Sem destinatários não envia nada — o
+ * dispatchAlert sem for_user_ids avisaria todos os utilizadores ativos.
  *
- * @param {Object} factura - Dados da fatura {id_fatura, montante, data_vencimento, ...}
+ * Os avisos de mensalidades a vencer e em atraso são enviados pelas
+ * tarefas agendadas (src/scheduler/tarefas.js).
+ *
+ * @param {Object} params
+ * @param {Array<number>} params.for_user_ids - IDs dos utilizadores a notificar
+ * @param {Object} params.pagamento - Dados do pagamento {id_pagamento, montante, ...}
  * @returns {Promise<Object>} resultado do dispatch
  */
-export async function dispatchAlertaFaturaVencida(factura) {
-    const { id_fatura, montante, data_vencimento } = factura;
-
-    return dispatchAlert({
-        codigo: 'faturas-vencidas',
-        titulo: `Fatura #${id_fatura} vencida`,
-        descricao: `Fatura de €${montante.toFixed(2)} vencida em ${data_vencimento}. Por favor procure resolver.`,
-        nivel: 'warning',
-        payload: factura,
-    });
-}
-
-/**
- * Dispara alerta de pagamento recebido
- * Usado quando um pagamento é processado
- *
- * @param {Object} pagamento - Dados do pagamento {id_pagamento, montante, ...}
- * @returns {Promise<Object>} resultado do dispatch
- */
-export async function dispatchAlertaPagamentoRecebido(pagamento) {
-    const { id_pagamento, montante } = pagamento;
+export async function dispatchAlertaPagamentoRecebido({ for_user_ids = [], pagamento }) {
+    if (!Array.isArray(for_user_ids) || for_user_ids.length === 0) {
+        return { success: false, eventos_criados: 0, erro: 'Sem destinatários.' };
+    }
 
     return dispatchAlert({
         codigo: 'pagamentos-recebidos',
+        for_user_ids,
         titulo: 'Pagamento recebido',
-        descricao: `Pagamento de €${montante.toFixed(2)} foi processado com sucesso.`,
+        descricao: `Pagamento de ${Number(pagamento.montante).toFixed(2)} € foi registado com sucesso.`,
         nivel: 'success',
         payload: pagamento,
     });

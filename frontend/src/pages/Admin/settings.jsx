@@ -14,6 +14,7 @@ import {
     FileText,
     SlidersHorizontal,
     Package,
+    Timer,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
@@ -23,6 +24,7 @@ import DataCleanupSettings from '../../components/settings/DataCleanupSettings';
 import EnrollmentFormTextsSettings from '../../components/settings/EnrollmentFormTextsSettings';
 import FeatureFlagsSettings from '../../components/settings/FeatureFlagsSettings';
 import PlanSettings from '../../components/settings/PlanSettings';
+import ScheduledTasksSettings from '../../components/settings/ScheduledTasksSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 import { usePlan } from '../../utils/plan';
 
@@ -121,6 +123,7 @@ export default function SettingsPage() {
         { id: 'alertas', label: 'Alertas e notificações', icon: Bell, module: 'alertas' },
         { id: 'emails', label: 'Templates de email', icon: Mail, module: 'modelos_email' },
         { id: 'gestores', label: 'Administradores', icon: Shield },
+        { id: 'tarefas', label: 'Tarefas automáticas', icon: Timer },
         { id: 'limpeza', label: 'Limpeza de dados', icon: DatabaseZap },
         { id: 'inscricao-textos', label: 'Formulário de inscrição', icon: FileText, module: 'textos_inscricao' },
         { id: 'funcionalidades', label: 'Funcionalidades', icon: SlidersHorizontal, module: 'renovacoes' },
@@ -174,6 +177,7 @@ export default function SettingsPage() {
                     {activeTab === 'pacote' && <PlanSettings />}
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
+                    {activeTab === 'tarefas' && <ScheduledTasksSettings />}
                     {activeTab === 'limpeza' && <DataCleanupSettings />}
                     {activeTab === 'inscricao-textos' && <EnrollmentFormTextsSettings />}
                     {activeTab === 'funcionalidades' && <FeatureFlagsSettings />}

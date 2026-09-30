@@ -5,7 +5,7 @@ import {
     printRuntimeConfigValidation,
 } from './config/runtimeConfig.js';
 import { runStartupMigrations } from './config/runMigrations.js';
-import { startLogRetentionScheduler } from './services/logRetentionService.js';
+import { iniciarAgendador } from './scheduler/index.js';
 
 // Valida configuração de runtime antes de iniciar o servidor
 const runtimeConfigCheck = validateRuntimeConfig();
@@ -47,7 +47,7 @@ async function bootstrapServer() {
     await runStartupMigrations();
 
     activeServer = app.listen(PORT, () => {
-        startLogRetentionScheduler();
+        iniciarAgendador();
 
         console.log(`
 ************************************
