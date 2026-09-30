@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Inbox, Loader2, MessageSquarePlus, MessagesSquare, Search } from 'lucide-react';
+import { MessageSquarePlus, MessagesSquare, Search } from 'lucide-react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
+import ConversationList from '../../components/messages/ConversationList';
 import ConversationView from '../../components/messages/ConversationView';
 import NewConversationModal from '../../components/messages/NewConversationModal';
-import { dataCurta, iniciais, listarConversas, tituloConversa } from '../../utils/messages';
+import { listarConversas } from '../../utils/messages';
 
 const POLL_MS = 20 * 1000;
 
@@ -161,85 +162,20 @@ export default function MessagesPage() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto">
-                        {loading ? (
-                            <div className="flex justify-center py-10 text-slate-400">
-                                <Loader2 size={20} className="animate-spin" />
-                            </div>
-                        ) : error ? (
-                            <p className="px-4 py-10 text-center text-sm text-red-600">{error}</p>
-                        ) : filtradas.length === 0 ? (
-                            <div className="flex flex-col items-center px-6 py-12 text-center text-slate-500">
-                                <Inbox size={28} className="mb-2 text-slate-300" />
-                                <p className="text-sm">
-                                    {filtro
-                                        ? 'Nenhuma conversa corresponde ao filtro.'
-                                        : vista === 'arquivo'
-                                          ? 'Não tem conversas arquivadas.'
-                                          : 'Ainda não tem conversas.'}
-                                </p>
-                            </div>
-                        ) : (
-                            <ul className="divide-y divide-slate-100">
-                                {filtradas.map((conversa) => {
-                                    const ativa = conversa.id === idAberta;
-                                    const naoLida = conversa.naoLidas > 0;
-                                    const titulo = tituloConversa(conversa);
-                                    return (
-                                        <li key={conversa.id}>
-                                            <button
-                                                type="button"
-                                                onClick={() => abrir(conversa.id)}
-                                                aria-current={ativa ? 'true' : undefined}
-                                                className={`flex w-full gap-3 px-4 py-3 text-left transition ${
-                                                    ativa ? 'bg-cyan-50' : 'hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
-                                                    {conversa.participantes.length > 1 ? (
-                                                        <MessagesSquare size={16} />
-                                                    ) : (
-                                                        iniciais(conversa.participantes[0]?.nome)
-                                                    )}
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="flex items-baseline justify-between gap-2">
-                                                        <span
-                                                            className={`truncate text-sm ${
-                                                                naoLida
-                                                                    ? 'font-semibold text-slate-900'
-                                                                    : 'font-medium text-slate-700'
-                                                            }`}
-                                                        >
-                                                            {titulo}
-                                                        </span>
-                                                        <span className="shrink-0 text-[11px] text-slate-400">
-                                                            {dataCurta(conversa.ultimaMensagemEm)}
-                                                        </span>
-                                                    </span>
-                                                    <span className="mt-0.5 flex items-center justify-between gap-2">
-                                                        <span
-                                                            className={`truncate text-xs ${
-                                                                naoLida ? 'text-slate-700' : 'text-slate-500'
-                                                            }`}
-                                                        >
-                                                            {conversa.ultimaMensagem
-                                                                ? `${conversa.ultimaMensagem.minha ? 'Eu: ' : ''}${conversa.ultimaMensagem.preview}`
-                                                                : ''}
-                                                        </span>
-                                                        {naoLida ? (
-                                                            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-cyan-600 px-1.5 text-[10px] font-semibold text-white">
-                                                                {conversa.naoLidas > 99 ? '99+' : conversa.naoLidas}
-                                                                <span className="sr-only"> por ler</span>
-                                                            </span>
-                                                        ) : null}
-                                                    </span>
-                                                </span>
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        )}
+                        <ConversationList
+                            conversas={filtradas}
+                            loading={loading}
+                            error={error}
+                            idAtiva={idAberta}
+                            onSelect={(conversa) => abrir(conversa.id)}
+                            emptyMessage={
+                                filtro
+                                    ? 'Nenhuma conversa corresponde ao filtro.'
+                                    : vista === 'arquivo'
+                                      ? 'Não tem conversas arquivadas.'
+                                      : 'Ainda não tem conversas.'
+                            }
+                        />
                     </div>
                 </aside>
 

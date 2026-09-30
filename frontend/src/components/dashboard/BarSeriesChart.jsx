@@ -114,8 +114,9 @@ export default function BarSeriesChart({
         );
     }
 
+    // relative: a tabela sr-only (absolute) tem de ficar dentro do gráfico.
     return (
-        <>
+        <div className="relative">
             <div className="mb-3">
                 <ChartLegend series={series} />
             </div>
@@ -192,6 +193,6 @@ export default function BarSeriesChart({
                     ))}
                 </tbody>
             </table>
-        </>
+        </div>
     );
 }

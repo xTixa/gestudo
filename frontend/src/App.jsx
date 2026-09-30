@@ -74,6 +74,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './pages/NotFound';
 import PlanGate from './components/plan/PlanGate';
 import MessagesPage from './pages/Messages/MessagesPage';
+import MessagesDock from './components/messages/MessagesDock';
 import { usePlan } from './utils/plan';
 
 const ROLE_HOME_PATH = {
@@ -555,6 +556,9 @@ function App() {
         [navigate]
     );
     const isAdminRole = currentRole === 'gestor';
+    // A doca não aparece na própria página de mensagens.
+    const showMessagesDock =
+        hasModule('mensagens') && !location.pathname.endsWith('/mensagens');
 
     if (!user) {
         return (
@@ -605,10 +609,14 @@ function App() {
                         onToggleSidebar={() => setSidebarOpen(true)}
                     />
 
-                    {/* Conteúdo da página */}
+                    {/* Conteúdo da página. "relative" prende elementos absolute
+                        (ex.: sr-only) ao scroll do main, em vez de alongarem a
+                        página inteira. */}
                     <main
                         data-admin-compact={isAdminRole ? 'true' : undefined}
-                        className="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8"
+                        className={`relative flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8 ${
+                            showMessagesDock ? 'lg:pb-20' : ''
+                        }`}
                     >
                         <ErrorBoundary>
                             <AuthenticatedRoutes
@@ -619,6 +627,10 @@ function App() {
                     </main>
                 </div>
             </div>
+
+            {showMessagesDock && user?.id ? (
+                <MessagesDock key={user.id} role={currentRole} userId={user.id} />
+            ) : null}
 
             {showEnrollmentsPopup && (
                 <PendingEnrollmentsPopup

@@ -169,7 +169,7 @@ Cada mensagem gera uma notificação push. Às 19:00, quem tem mensagens por ler
 
 As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por ordem alfabética quando a API arranca.
 
-- Cada ficheiro aplicado fica registado na tabela `schema_migrations` e não volta a correr.
+- Cada ficheiro aplicado fica registado na tabela `gestudo_migrations` e não volta a correr.
 - Cada migração corre numa transação: se falhar, nada fica aplicado e o arranque é cancelado.
 - Não edite uma migração já aplicada. Para alterar o schema, crie um ficheiro novo com o número seguinte.
 

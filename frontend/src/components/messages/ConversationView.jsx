@@ -29,8 +29,19 @@ function chaveDia(valor) {
  * Uma conversa aberta: histórico (com "carregar anteriores"), atualização
  * periódica e caixa de resposta. O pai usa `key={idConversa}` para que o
  * estado recomece ao mudar de conversa.
+ *
+ * `compact` + `headerActions` adaptam-na às janelas da doca de mensagens
+ * (os botões do cabeçalho substituem "Arquivar").
  */
-export default function ConversationView({ idConversa, arquivada, onBack, onChanged }) {
+export default function ConversationView({
+    idConversa,
+    arquivada,
+    onBack,
+    onChanged,
+    onTitle,
+    compact = false,
+    headerActions = null,
+}) {
     const [conversa, setConversa] = useState(null);
     const [mensagens, setMensagens] = useState([]);
     const [temMais, setTemMais] = useState(false);
@@ -70,6 +81,7 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
                 if (!ativo) return;
                 scrollPendente.current = { tipo: 'fundo' };
                 setConversa(data.conversa);
+                onTitle?.(tituloConversa(data.conversa));
                 setMensagens(data.mensagens);
                 setTemMais(data.temMais);
                 return marcarConversaLida(idConversa).then(() => onChanged?.());
@@ -83,7 +95,7 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
         return () => {
             ativo = false;
         };
-    }, [idConversa, onChanged]);
+    }, [idConversa, onChanged, onTitle]);
 
     // Atualização periódica: acrescenta mensagens novas no fim.
     useEffect(() => {
@@ -171,15 +183,21 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-                <button
-                    type="button"
-                    onClick={onBack}
-                    className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden"
-                    aria-label="Voltar às conversas"
-                >
-                    <ArrowLeft size={18} />
-                </button>
+            <header
+                className={`flex items-center border-b border-slate-200 ${
+                    compact ? 'gap-2 bg-white px-3 py-2' : 'gap-3 px-4 py-3'
+                }`}
+            >
+                {onBack ? (
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden"
+                        aria-label="Voltar às conversas"
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                ) : null}
                 <div className="min-w-0 flex-1">
                     <h2 className="truncate text-sm font-semibold text-slate-900">
                         {conversa ? tituloConversa(conversa) : ' '}
@@ -191,18 +209,23 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
                             .join(' · ')}
                     </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={alternarArquivo}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                    title={arquivada ? 'Voltar a mostrar na caixa de entrada' : 'Arquivar conversa'}
-                >
-                    {arquivada ? <ArchiveRestore size={16} /> : <Archive size={16} />}
-                    <span className="hidden sm:inline">{arquivada ? 'Desarquivar' : 'Arquivar'}</span>
-                </button>
+                {headerActions ?? (
+                    <button
+                        type="button"
+                        onClick={alternarArquivo}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                        title={arquivada ? 'Voltar a mostrar na caixa de entrada' : 'Arquivar conversa'}
+                    >
+                        {arquivada ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                        <span className="hidden sm:inline">{arquivada ? 'Desarquivar' : 'Arquivar'}</span>
+                    </button>
+                )}
             </header>
 
-            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4">
+            <div
+                ref={scrollRef}
+                className={`min-h-0 flex-1 overflow-y-auto bg-slate-50 ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}
+            >
                 {loading ? (
                     <div className="flex h-full items-center justify-center text-slate-400">
                         <Loader2 size={20} className="animate-spin" />
@@ -255,7 +278,9 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
                                                 </span>
                                             ) : null}
                                             <div
-                                                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm sm:max-w-[70%] ${
+                                                className={`rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
+                                                    compact ? 'max-w-[85%]' : 'max-w-[80%] sm:max-w-[70%]'
+                                                } ${
                                                     mensagem.minha
                                                         ? 'rounded-br-md bg-cyan-600 text-white'
                                                         : 'rounded-bl-md bg-white text-slate-800'
@@ -289,15 +314,15 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
                     event.preventDefault();
                     void enviar();
                 }}
-                className="border-t border-slate-200 bg-white p-3"
+                className={`border-t border-slate-200 bg-white ${compact ? 'p-2' : 'p-3'}`}
             >
                 {error ? <p className="mb-2 text-xs text-red-600">{error}</p> : null}
                 <div className="flex items-end gap-2">
-                    <label htmlFor="resposta" className="sr-only">
+                    <label htmlFor={`resposta-${idConversa}`} className="sr-only">
                         Escrever mensagem
                     </label>
                     <textarea
-                        id="resposta"
+                        id={`resposta-${idConversa}`}
                         ref={textareaRef}
                         value={texto}
                         onChange={(event) => setTexto(event.target.value)}
@@ -316,9 +341,11 @@ export default function ConversationView({ idConversa, arquivada, onBack, onChan
                         {sending ? <Loader2 size={18} className="animate-spin" /> : <SendHorizontal size={18} />}
                     </button>
                 </div>
-                <p className="mt-1.5 hidden text-[11px] text-slate-400 sm:block">
-                    Enter para enviar · Shift+Enter para mudar de linha
-                </p>
+                {compact ? null : (
+                    <p className="mt-1.5 hidden text-[11px] text-slate-400 sm:block">
+                        Enter para enviar · Shift+Enter para mudar de linha
+                    </p>
+                )}
             </form>
         </div>
     );

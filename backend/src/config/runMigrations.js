@@ -28,7 +28,7 @@ async function listMigrationFiles() {
 }
 
 /**
- * Aplica apenas as migrações ainda não registadas em schema_migrations,
+ * Aplica apenas as migrações ainda não registadas em gestudo_migrations,
  * cada uma na sua transação. Uma migração já aplicada cujo conteúdo mudou
  * não volta a correr — é só avisado, porque alterar uma migração aplicada
  * deve ser feito com um ficheiro novo.
@@ -43,7 +43,7 @@ export async function runStartupMigrations() {
         await client.query('SELECT pg_advisory_lock($1)', [MIGRATIONS_LOCK_KEY]);
 
         await client.query(`
-            CREATE TABLE IF NOT EXISTS public.schema_migrations (
+            CREATE TABLE IF NOT EXISTS public.gestudo_migrations (
                 filename TEXT PRIMARY KEY,
                 checksum TEXT NOT NULL,
                 applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -51,7 +51,7 @@ export async function runStartupMigrations() {
         `);
 
         const { rows } = await client.query(
-            'SELECT filename, checksum FROM public.schema_migrations'
+            'SELECT filename, checksum FROM public.gestudo_migrations'
         );
         const applied = new Map(rows.map((row) => [row.filename, row.checksum]));
 
@@ -75,7 +75,7 @@ export async function runStartupMigrations() {
                     await client.query(sql);
                 }
                 await client.query(
-                    'INSERT INTO public.schema_migrations (filename, checksum) VALUES ($1, $2)',
+                    'INSERT INTO public.gestudo_migrations (filename, checksum) VALUES ($1, $2)',
                     [fileName, checksum]
                 );
                 await client.query('COMMIT');
