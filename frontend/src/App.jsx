@@ -73,6 +73,7 @@ import PendingEnrollmentsPopup from './components/enrollments/PendingEnrollments
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './pages/NotFound';
 import PlanGate from './components/plan/PlanGate';
+import MessagesPage from './pages/Messages/MessagesPage';
 import { usePlan } from './utils/plan';
 
 const ROLE_HOME_PATH = {
@@ -213,6 +214,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<SettingsPage />}
                     />
                     <Route
+                        path="/gestor/mensagens"
+                        element={gate('mensagens', <MessagesPage />)}
+                    />
+                    <Route
                         path="/gestor/relatorios"
                         element={gate('relatorios', <ReportsPage />)}
                     />
@@ -242,6 +247,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/professor/assiduidade"
                         element={gate('assiduidade', <AssiduidadeProfessorPage />)}
+                    />
+                    <Route
+                        path="/professor/mensagens"
+                        element={gate('mensagens', <MessagesPage />)}
                     />
                     <Route
                         path="/professor/notificacoes"
@@ -284,6 +293,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                         element={<PresencasAlunoPage />}
                     />
                     <Route
+                        path="/aluno/mensagens"
+                        element={gate('mensagens', <MessagesPage />)}
+                    />
+                    <Route
                         path="/aluno/notificacoes"
                         element={<NotificationsAlunoPage />}
                     />
@@ -314,6 +327,10 @@ const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
                     <Route
                         path="/encarregado/pagamentos"
                         element={gate('financeiro', <PagamentosEncarregadoPage />)}
+                    />
+                    <Route
+                        path="/encarregado/mensagens"
+                        element={gate('mensagens', <MessagesPage />)}
                     />
                     <Route
                         path="/encarregado/notificacoes"

@@ -2,6 +2,7 @@ import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import markLogo from '../../assets/img/gestudo-mark.png';
 import { apiGet } from '../../utils/api';
+import { useUnreadMessages } from '../../utils/messages';
 import { usePlan } from '../../utils/plan';
 import { isPathActive, menuByRole, ROLE_LABEL } from './menuConfig';
 
@@ -15,6 +16,8 @@ export default function Sidebar({
 }) {
     const [reinscricaoAtiva, setReinscricaoAtiva] = useState(true);
     const { hasModule } = usePlan();
+    const mensagensPorLer = useUnreadMessages(hasModule('mensagens'));
+    const badges = { mensagens: mensagensPorLer };
 
     useEffect(() => {
         if (role !== 'aluno') return;
@@ -151,6 +154,7 @@ export default function Sidebar({
                                 {group.items.map((item) => {
                                     const Icon = item.icon;
                                     const active = isPathActive(currentPath, item.path, item.exact);
+                                    const badge = item.badge ? badges[item.badge] : 0;
 
                                     return (
                                         <li key={item.key}>
@@ -185,6 +189,16 @@ export default function Sidebar({
                                                 <span className={`truncate ${expanded ? '' : 'lg:hidden'}`}>
                                                     {item.label}
                                                 </span>
+                                                {badge > 0 ? (
+                                                    <span
+                                                        className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-500 px-1.5 text-[10px] font-semibold text-white ${
+                                                            expanded ? '' : 'lg:absolute lg:right-1.5 lg:top-0.5 lg:ml-0 lg:h-4 lg:min-w-4 lg:px-1'
+                                                        }`}
+                                                    >
+                                                        {badge > 99 ? '99+' : badge}
+                                                        <span className="sr-only"> por ler</span>
+                                                    </span>
+                                                ) : null}
                                             </button>
                                         </li>
                                     );

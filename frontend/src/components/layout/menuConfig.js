@@ -22,6 +22,7 @@ import {
     Receipt,
     Banknote,
     HandCoins,
+    MessagesSquare,
 } from 'lucide-react';
 
 export function isPathActive(currentPath, itemPath, exact = false) {
@@ -46,6 +47,7 @@ export const menuByRole = {
                 { key: 'dashboard', label: 'Dashboard', path: '/gestor/dashboard', icon: LayoutDashboard },
                 { key: 'agenda', label: 'Agenda', path: '/gestor/agenda', icon: Calendar },
                 { key: 'presencas', label: 'Presenças', path: '/gestor/presencas', icon: ClipboardCheck },
+                { key: 'mensagens', label: 'Mensagens', path: '/gestor/mensagens', icon: MessagesSquare, module: 'mensagens', badge: 'mensagens' },
             ],
         },
         {
@@ -106,6 +108,7 @@ export const menuByRole = {
                 { key: 'subscricao-servicos', label: 'Subscrição de serviços', path: '/aluno/subscricao-servicos', icon: BookOpenCheck },
                 { key: 'reinscricao', label: 'Reinscrição', path: '/aluno/reinscricao', icon: ClipboardEdit, module: 'renovacoes' },
                 { key: 'presencas', label: 'Presenças', path: '/aluno/presencas', icon: ClipboardCheck },
+                { key: 'mensagens', label: 'Mensagens', path: '/aluno/mensagens', icon: MessagesSquare, module: 'mensagens', badge: 'mensagens' },
             ],
         },
     ],
@@ -117,6 +120,7 @@ export const menuByRole = {
                 { key: 'meus-servicos', label: 'Os meus serviços', path: '/professor/servicos', icon: BookOpen },
                 { key: 'presencas', label: 'Presenças', path: '/professor/presencas', icon: ClipboardCheck },
                 { key: 'assiduidade', label: 'Assiduidade', path: '/professor/assiduidade', icon: BarChart3, module: 'assiduidade' },
+                { key: 'mensagens', label: 'Mensagens', path: '/professor/mensagens', icon: MessagesSquare, module: 'mensagens', badge: 'mensagens' },
                 { key: 'notificacoes', label: 'Notificações', path: '/professor/notificacoes', icon: Bell },
             ],
         },
@@ -128,6 +132,7 @@ export const menuByRole = {
                 { key: 'agenda', label: 'Agenda', path: '/encarregado/agenda', icon: Calendar },
                 { key: 'presencas', label: 'Presenças', path: '/encarregado/presencas', icon: ClipboardCheck },
                 { key: 'pagamentos', label: 'Pagamentos', path: '/encarregado/pagamentos', icon: Wallet, module: 'financeiro' },
+                { key: 'mensagens', label: 'Mensagens', path: '/encarregado/mensagens', icon: MessagesSquare, module: 'mensagens', badge: 'mensagens' },
                 { key: 'notificacoes', label: 'Notificações', path: '/encarregado/notificacoes', icon: Bell },
             ],
         },

@@ -28,6 +28,7 @@ export const PLANS = [
         highlights: [
             'Até 120 alunos ativos',
             'Inscrições online',
+            'Mensagens com professores e famílias',
             'Notificações push',
             'Sincronização com Google, Outlook e Apple',
         ],
@@ -112,6 +113,7 @@ export const FEATURE_GROUPS = [
         rows: [
             { label: 'Notificações na plataforma', from: 'basico' },
             { label: 'Notificações push', from: 'plus' },
+            { label: 'Mensagens internas (gestão, professores, alunos e famílias)', from: 'plus' },
             { label: 'Alertas configuráveis', from: 'profissional' },
             { label: 'Modelos de email personalizáveis', from: 'completo' },
         ],
