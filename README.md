@@ -108,6 +108,20 @@ cd frontend
 npm run dev
 ```
 
+### Testes e CI
+
+```
+cd backend
+npm test            # corre uma vez
+npm run test:watch  # modo watch
+```
+
+- `tests/unit/`: funções e middlewares isolados.
+- `tests/http/`: pedidos à API com supertest (autenticação, CORS, CSRF, validação, rate limit).
+- Os testes não usam a base de dados: `tests/setupEnv.js` aponta a ligação para um endereço inválido.
+
+O workflow `.github/workflows/ci.yml` corre em cada push e pull request para `main`: testes, SAST e `npm audit` no backend, lint e build no frontend.
+
 ### Migrações da base de dados
 
 As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por ordem alfabética quando a API arranca.
