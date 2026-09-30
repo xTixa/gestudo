@@ -107,7 +107,7 @@ function InscricaoForm() {
     const [tipoServicoOptions, setTipoServicoOptions] = useState([]);
     const [pacotesOptions, setPacotesOptions] = useState([]);
     const [selectedNivel, setSelectedNivel] = useState('');
-    const [selectedAnoEscolar, setSelectedAnoEscolar] = useState('');
+    const [anoEscolarEscolhido, setSelectedAnoEscolar] = useState('');
     const [loadingOpcoes, setLoadingOpcoes] = useState(true);
     const [erroOpcoes, setErroOpcoes] = useState('');
     const [liveErrors, setLiveErrors] = useState({});
@@ -211,11 +211,12 @@ function InscricaoForm() {
         );
     });
 
-    useEffect(() => {
-        if (selectedAnoEscolar && (!anosEscolaresOptions.includes(selectedAnoEscolar) || isEnsinoSuperior)) {
-            setSelectedAnoEscolar('');
-        }
-    }, [anosEscolaresOptions, isEnsinoSuperior, selectedAnoEscolar]);
+    // O ano escolhido só conta se existir no nível atual (ao mudar de nível
+    // fica vazio automaticamente, sem um efeito a apagá-lo).
+    const selectedAnoEscolar =
+        anoEscolarEscolhido && anosEscolaresOptions.includes(anoEscolarEscolhido) && !isEnsinoSuperior
+            ? anoEscolarEscolhido
+            : '';
 
     // ── Plan helpers ─────────────────────────────────────────────────────────
 

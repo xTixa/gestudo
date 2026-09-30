@@ -233,19 +233,17 @@ export default function UpdatePerfilAlunoPage() {
         };
     }, [storedUser]);
 
+    // A pré-visualização é criada quando a imagem é escolhida; o efeito só
+    // liberta o URL anterior (recurso do browser) quando muda ou ao sair.
+    function escolherImagem(file) {
+        setSelectedImageFile(file);
+        setPreviewUrl(file ? URL.createObjectURL(file) : '');
+    }
+
     useEffect(() => {
-        if (!selectedImageFile) {
-            setPreviewUrl('');
-            return undefined;
-        }
-
-        const objectUrl = URL.createObjectURL(selectedImageFile);
-        setPreviewUrl(objectUrl);
-
-        return () => {
-            URL.revokeObjectURL(objectUrl);
-        };
-    }, [selectedImageFile]);
+        if (!previewUrl) return undefined;
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [previewUrl]);
 
     function updateField(field, value) {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -254,7 +252,7 @@ export default function UpdatePerfilAlunoPage() {
     function handleImageSelection(event) {
         const file = event.target.files?.[0];
         if (!file) {
-            setSelectedImageFile(null);
+            escolherImagem(null);
             setPhotoName('');
             return;
         }
@@ -263,13 +261,13 @@ export default function UpdatePerfilAlunoPage() {
             setError(
                 'Selecione um ficheiro de imagem válido (PNG, JPG, WebP, etc.).'
             );
-            setSelectedImageFile(null);
+            escolherImagem(null);
             setPhotoName('');
             return;
         }
 
         setError('');
-        setSelectedImageFile(file);
+        escolherImagem(file);
         setPhotoName(file.name);
     }
 

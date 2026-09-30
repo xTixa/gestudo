@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Navigate,
     Route,
@@ -6,76 +6,87 @@ import {
     useLocation,
     useNavigate,
 } from 'react-router-dom';
-import Login from './pages/Auth/Login';
-import RecoverPassword from './pages/Auth/RecoverPassword';
-import AlterarPasswordObrigatorio from './pages/Auth/AlterPassword';
-import InfosInscricaoPage from './pages/Infos/enrollment';
-import HomePage from './pages/Infos/home';
 import Navbar from './components/layout/navbar';
 import Sidebar from './components/layout/sidebar';
-import DashboardGestor from './pages/Admin/dashboard';
-import ReportsPage from './pages/Admin/reports';
-import AuditLogs from './pages/Admin/LogsPage';
-import AlertsPage from './pages/Admin/alerts';
-import NotificationsPage from './pages/Admin/notifications';
-import SettingsPage from './pages/Admin/settings';
-import PublicEnrollmentsPage from './pages/Admin/PublicEnrollments';
-import RenewalsPage from './pages/Admin/renewals';
-import FinanceOverview from './pages/Admin/Finance/FinanceOverview';
-import MensalidadesPage from './pages/Admin/Finance/Mensalidades';
-import PagamentosPage from './pages/Admin/Finance/Pagamentos';
-import CustosProfessoresPage from './pages/Admin/Finance/CustosProfessores';
-import AgendaPage from './pages/Admin/agenda';
-import PresencasGestorPage from './pages/Admin/presences';
-import DisciplinasPage from './pages/Admin/InternalManagement/disciplines';
-import SalasPage from './pages/Admin/InternalManagement/rooms';
-import ModalidadePage from './pages/Admin/InternalManagement/modality';
-import PacotesPage from './pages/Admin/InternalManagement/packs';
-import TipoServicoPage from './pages/Admin/InternalManagement/serviceTypes';
-import GestaoCurricularPage from './pages/Admin/ServicesManagement/Curricular/managementCurricular';
-import GestaoExtraPage from './pages/Admin/ServicesManagement/ExtraCurricular/managementExtra';
-import GestaoAlunosPage from './pages/Admin/StudentManagement/managementStudent';
-import AddAlunoPage from './pages/Admin/StudentManagement/addStudent';
-import UpdateAlunoPage from './pages/Admin/StudentManagement/updateStudent';
-import GestaoProfsPage from './pages/Admin/TeacherManagement/managementTeacher';
-import AddProfPage from './pages/Admin/TeacherManagement/addTeacher';
-import UpdateProfPage from './pages/Admin/TeacherManagement/updateTeacher';
-import FichaAlunoPage from './pages/Admin/StudentManagement/recordStudent';
-import FichaProfPage from './pages/Admin/TeacherManagement/recordTeacher';
-import DashboardProfessorPage from './pages/Teacher/dashboard';
-import AgendaProfessorPage from './pages/Teacher/agenda';
-import ServicosProfessorPage from './pages/Teacher/services';
-import PresencasProfessorPage from './pages/Teacher/presences';
-import AssiduidadeProfessorPage from './pages/Teacher/attendance';
-import NotificationsProfessorPage from './pages/Teacher/notifications';
-import DashboardAlunoPage from './pages/Student/dashboard';
-import AgendaAlunoPage from './pages/Student/agenda';
-import ReinscricaoAlunoPage from './pages/Student/reinscricao';
-import ServicosAlunoPage from './pages/Student/services';
-import PresencasAlunoPage from './pages/Student/presences';
-import NotificationsAlunoPage from './pages/Student/notifications';
-import DashboardEncarregadoPage from './pages/Guardian/dashboard';
-import AgendaEncarregadoPage from './pages/Guardian/agenda';
-import PresencasEncarregadoPage from './pages/Guardian/presences';
-import PagamentosEncarregadoPage from './pages/Guardian/payments';
-import NotificacoesEncarregadoPage from './pages/Guardian/notifications';
-import PerfilEncarregadoPage from './pages/Guardian/profile';
-import PerfilAlunoPage from './pages/Student/Profile/profile';
-import UpdatePerfilAlunoPage from './pages/Student/Profile/updateProfile';
-import PerfilProfessorPage from './pages/Teacher/Profile/profile';
-import UpdatePerfilProfessorPage from './pages/Teacher/Profile/updateProfile';
 import { apiGet, apiPost } from './utils/api';
-import {
-    iniciarNotificacoesFirebase,
-    removerTokenFirebaseAtual,
-} from './services/firebaseMessaging';
+import { lazyPage } from './utils/lazyPage';
 import PendingEnrollmentsPopup from './components/enrollments/PendingEnrollmentsPopup';
 import ErrorBoundary from './components/ErrorBoundary';
-import NotFound from './pages/NotFound';
 import PlanGate from './components/plan/PlanGate';
-import MessagesPage from './pages/Messages/MessagesPage';
 import MessagesDock from './components/messages/MessagesDock';
 import { usePlan } from './utils/plan';
+
+// Páginas carregadas a pedido (cada uma é um ficheiro JS à parte).
+const Login = lazyPage(() => import('./pages/Auth/Login'));
+const RecoverPassword = lazyPage(() => import('./pages/Auth/RecoverPassword'));
+const AlterarPasswordObrigatorio = lazyPage(() => import('./pages/Auth/AlterPassword'));
+const InfosInscricaoPage = lazyPage(() => import('./pages/Infos/enrollment'));
+const HomePage = lazyPage(() => import('./pages/Infos/home'));
+const DashboardGestor = lazyPage(() => import('./pages/Admin/dashboard'));
+const ReportsPage = lazyPage(() => import('./pages/Admin/reports'));
+const AuditLogs = lazyPage(() => import('./pages/Admin/LogsPage'));
+const AlertsPage = lazyPage(() => import('./pages/Admin/alerts'));
+const NotificationsPage = lazyPage(() => import('./pages/Admin/notifications'));
+const SettingsPage = lazyPage(() => import('./pages/Admin/settings'));
+const PublicEnrollmentsPage = lazyPage(() => import('./pages/Admin/PublicEnrollments'));
+const RenewalsPage = lazyPage(() => import('./pages/Admin/renewals'));
+const FinanceOverview = lazyPage(() => import('./pages/Admin/Finance/FinanceOverview'));
+const MensalidadesPage = lazyPage(() => import('./pages/Admin/Finance/Mensalidades'));
+const PagamentosPage = lazyPage(() => import('./pages/Admin/Finance/Pagamentos'));
+const CustosProfessoresPage = lazyPage(() => import('./pages/Admin/Finance/CustosProfessores'));
+const AgendaPage = lazyPage(() => import('./pages/Admin/agenda'));
+const PresencasGestorPage = lazyPage(() => import('./pages/Admin/presences'));
+const DisciplinasPage = lazyPage(() => import('./pages/Admin/InternalManagement/disciplines'));
+const SalasPage = lazyPage(() => import('./pages/Admin/InternalManagement/rooms'));
+const ModalidadePage = lazyPage(() => import('./pages/Admin/InternalManagement/modality'));
+const PacotesPage = lazyPage(() => import('./pages/Admin/InternalManagement/packs'));
+const TipoServicoPage = lazyPage(() => import('./pages/Admin/InternalManagement/serviceTypes'));
+const GestaoCurricularPage = lazyPage(() => import('./pages/Admin/ServicesManagement/Curricular/managementCurricular'));
+const GestaoExtraPage = lazyPage(() => import('./pages/Admin/ServicesManagement/ExtraCurricular/managementExtra'));
+const GestaoAlunosPage = lazyPage(() => import('./pages/Admin/StudentManagement/managementStudent'));
+const AddAlunoPage = lazyPage(() => import('./pages/Admin/StudentManagement/addStudent'));
+const UpdateAlunoPage = lazyPage(() => import('./pages/Admin/StudentManagement/updateStudent'));
+const GestaoProfsPage = lazyPage(() => import('./pages/Admin/TeacherManagement/managementTeacher'));
+const AddProfPage = lazyPage(() => import('./pages/Admin/TeacherManagement/addTeacher'));
+const UpdateProfPage = lazyPage(() => import('./pages/Admin/TeacherManagement/updateTeacher'));
+const FichaAlunoPage = lazyPage(() => import('./pages/Admin/StudentManagement/recordStudent'));
+const FichaProfPage = lazyPage(() => import('./pages/Admin/TeacherManagement/recordTeacher'));
+const DashboardProfessorPage = lazyPage(() => import('./pages/Teacher/dashboard'));
+const AgendaProfessorPage = lazyPage(() => import('./pages/Teacher/agenda'));
+const ServicosProfessorPage = lazyPage(() => import('./pages/Teacher/services'));
+const PresencasProfessorPage = lazyPage(() => import('./pages/Teacher/presences'));
+const AssiduidadeProfessorPage = lazyPage(() => import('./pages/Teacher/attendance'));
+const NotificationsProfessorPage = lazyPage(() => import('./pages/Teacher/notifications'));
+const DashboardAlunoPage = lazyPage(() => import('./pages/Student/dashboard'));
+const AgendaAlunoPage = lazyPage(() => import('./pages/Student/agenda'));
+const ReinscricaoAlunoPage = lazyPage(() => import('./pages/Student/reinscricao'));
+const ServicosAlunoPage = lazyPage(() => import('./pages/Student/services'));
+const PresencasAlunoPage = lazyPage(() => import('./pages/Student/presences'));
+const NotificationsAlunoPage = lazyPage(() => import('./pages/Student/notifications'));
+const DashboardEncarregadoPage = lazyPage(() => import('./pages/Guardian/dashboard'));
+const AgendaEncarregadoPage = lazyPage(() => import('./pages/Guardian/agenda'));
+const PresencasEncarregadoPage = lazyPage(() => import('./pages/Guardian/presences'));
+const PagamentosEncarregadoPage = lazyPage(() => import('./pages/Guardian/payments'));
+const NotificacoesEncarregadoPage = lazyPage(() => import('./pages/Guardian/notifications'));
+const PerfilEncarregadoPage = lazyPage(() => import('./pages/Guardian/profile'));
+const PerfilAlunoPage = lazyPage(() => import('./pages/Student/Profile/profile'));
+const UpdatePerfilAlunoPage = lazyPage(() => import('./pages/Student/Profile/updateProfile'));
+const PerfilProfessorPage = lazyPage(() => import('./pages/Teacher/Profile/profile'));
+const UpdatePerfilProfessorPage = lazyPage(() => import('./pages/Teacher/Profile/updateProfile'));
+const NotFound = lazyPage(() => import('./pages/NotFound'));
+const MessagesPage = lazyPage(() => import('./pages/Messages/MessagesPage'));
+
+function PageLoader({ fullScreen = false }) {
+    return (
+        <div
+            className={`flex items-center justify-center text-slate-400 ${fullScreen ? 'h-screen' : 'py-24'}`}
+            role="status"
+            aria-label="A carregar"
+        >
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-600" />
+        </div>
+    );
+}
 
 const ROLE_HOME_PATH = {
     gestor: '/gestor/dashboard',
@@ -91,6 +102,19 @@ const ROLE_PREFIX_PATH = {
     encarregado: '/encarregado',
 };
 
+function limparSessaoLocal() {
+    localStorage.removeItem('mc_user');
+    localStorage.removeItem('mc_token');
+    localStorage.removeItem('mc_csrf_token');
+    window.csrfToken = undefined;
+}
+
+function isKnownUser(user) {
+    return Boolean(user && ROLE_HOME_PATH[user.role]);
+}
+
+// Um utilizador guardado com um papel desconhecido é tratado como sessão
+// inválida logo aqui, em vez de ser limpo depois por um efeito.
 function getStoredUser() {
     const stored = localStorage.getItem('mc_user');
 
@@ -99,11 +123,13 @@ function getStoredUser() {
     }
 
     try {
-        return JSON.parse(stored);
+        const user = JSON.parse(stored);
+        if (isKnownUser(user)) return user;
     } catch {
-        localStorage.removeItem('mc_user');
-        return null;
+        // JSON inválido: limpa abaixo.
     }
+    limparSessaoLocal();
+    return null;
 }
 
 const AuthenticatedRoutes = memo(function AuthenticatedRoutes({
@@ -390,6 +416,12 @@ function App() {
     const pushEnabled = !planLoading && hasModule('notificacoes_push');
 
     function handleLogin(loggedUser, csrfToken) {
+        if (!isKnownUser(loggedUser)) {
+            limparSessaoLocal();
+            navigate('/login', { replace: true });
+            return;
+        }
+
         setUser(loggedUser);
         localStorage.setItem('mc_user', JSON.stringify(loggedUser));
 
@@ -440,25 +472,9 @@ function App() {
     }, [currentRole, isKnownRole, location.pathname, navigate, user]);
 
     useEffect(() => {
-        if (!user || isKnownRole) {
-            return;
-        }
-
-        setUser(null);
-        localStorage.removeItem('mc_user');
-        localStorage.removeItem('mc_token');
-        localStorage.removeItem('mc_csrf_token');
-        window.csrfToken = undefined;
-        navigate('/login', { replace: true });
-    }, [isKnownRole, navigate, user]);
-
-    useEffect(() => {
         function handleUnauthorized() {
             setUser(null);
-            localStorage.removeItem('mc_user');
-            localStorage.removeItem('mc_token');
-            localStorage.removeItem('mc_csrf_token');
-            window.csrfToken = undefined;
+            limparSessaoLocal();
             navigate('/login', { replace: true });
         }
 
@@ -471,7 +487,7 @@ function App() {
     useEffect(() => {
         function handleUserUpdated(event) {
             const nextUser = event?.detail;
-            if (nextUser && typeof nextUser === 'object') {
+            if (isKnownUser(nextUser)) {
                 setUser(nextUser);
             }
         }
@@ -507,6 +523,8 @@ function App() {
         async function setupPush() {
             try {
                 await apiGet('/api/auth/csrf-token');
+                // Firebase só é descarregado quando as notificações push estão ativas.
+                const { iniciarNotificacoesFirebase } = await import('./services/firebaseMessaging');
                 const result = await iniciarNotificacoesFirebase();
                 if (!active || !result?.success) {
                     return;
@@ -530,6 +548,7 @@ function App() {
 
     const handleLogout = useCallback(async () => {
         try {
+            const { removerTokenFirebaseAtual } = await import('./services/firebaseMessaging');
             await removerTokenFirebaseAtual();
         } catch {
             // Falha no cleanup do token não bloqueia logout.
@@ -542,10 +561,7 @@ function App() {
         }
 
         setUser(null);
-        localStorage.removeItem('mc_user');
-        localStorage.removeItem('mc_token');
-        localStorage.removeItem('mc_csrf_token');
-        window.csrfToken = undefined;
+        limparSessaoLocal();
         navigate('/login', { replace: true });
     }, [navigate]);
 
@@ -562,23 +578,25 @@ function App() {
 
     if (!user) {
         return (
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/inscricao" element={<InfosInscricaoPage />} />
-                <Route
-                    path="/login"
-                    element={<Login onLogin={handleLogin} />}
-                />
-                <Route
-                    path="/recuperar-password"
-                    element={<RecoverPassword />}
-                />
-                <Route
-                    path="/auth/alterar-password-obrigatorio"
-                    element={<AlterarPasswordObrigatorio />}
-                />
-                <Route path="*" element={<NotFound homePath="/" />} />
-            </Routes>
+            <Suspense fallback={<PageLoader fullScreen />}>
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/inscricao" element={<InfosInscricaoPage />} />
+                    <Route
+                        path="/login"
+                        element={<Login onLogin={handleLogin} />}
+                    />
+                    <Route
+                        path="/recuperar-password"
+                        element={<RecoverPassword />}
+                    />
+                    <Route
+                        path="/auth/alterar-password-obrigatorio"
+                        element={<AlterarPasswordObrigatorio />}
+                    />
+                    <Route path="*" element={<NotFound homePath="/" />} />
+                </Routes>
+            </Suspense>
         );
     }
 
@@ -619,10 +637,12 @@ function App() {
                         }`}
                     >
                         <ErrorBoundary>
-                            <AuthenticatedRoutes
-                                currentRole={currentRole}
-                                user={user}
-                            />
+                            <Suspense fallback={<PageLoader />}>
+                                <AuthenticatedRoutes
+                                    currentRole={currentRole}
+                                    user={user}
+                                />
+                            </Suspense>
                         </ErrorBoundary>
                     </main>
                 </div>

@@ -41,36 +41,42 @@ export default function TipoServicoPage() {
 
     const getRowId = useCallback((row) => row?.id ?? null, []);
 
-    const carregar = useCallback(async () => {
-        setLoading(true);
-        setError('');
-
-        try {
-            const response = await apiGet(config.endpoint);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || `Erro ao carregar ${config.entityLabel}s.`
-                );
-            }
-
-            setRows(Array.isArray(data?.[config.listKey]) ? data[config.listKey] : []);
-        } catch (fetchError) {
-            setError(fetchError.message || `Erro ao carregar ${config.entityLabel}s.`);
-        } finally {
-            setLoading(false);
-        }
-    }, [config.endpoint, config.entityLabel, config.listKey]);
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregar = useCallback(
+        () =>
+            apiGet(config.endpoint)
+                .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || `Erro ao carregar ${config.entityLabel}s.`);
+                    }
+                    setRows(Array.isArray(data?.[config.listKey]) ? data[config.listKey] : []);
+                    setError('');
+                })
+                .catch((fetchError) => {
+                    setError(fetchError.message || `Erro ao carregar ${config.entityLabel}s.`);
+                })
+                .finally(() => setLoading(false)),
+        [config.endpoint, config.entityLabel, config.listKey]
+    );
 
     useEffect(() => {
+        carregar();
+    }, [carregar]);
+
+    function mudarModo(proximo) {
+        if (proximo === mode) return;
+        setMode(proximo);
+        setRows([]);
+        setLoading(true);
+        setError('');
         setSearchTerm('');
         setIsFormOpen(false);
         setEditingId(null);
         setFormData({ nome: '', descricao: '' });
         setFormError('');
-        carregar();
-    }, [carregar]);
+    }
 
     const filteredRows = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
@@ -206,7 +212,7 @@ export default function TipoServicoPage() {
                     <button
                         key={key}
                         type="button"
-                        onClick={() => setMode(key)}
+                        onClick={() => mudarModo(key)}
                         className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                             mode === key
                                 ? 'bg-[#06b6d4] text-white shadow-sm'

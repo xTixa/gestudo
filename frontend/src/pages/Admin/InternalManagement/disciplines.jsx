@@ -149,6 +149,30 @@ function getNivelSortRank(label) {
     return 99;
 }
 
+// Disciplinas (obrigatórias) e níveis de ensino (opcionais: se falharem, a
+// página funciona na mesma sem os nomes dos níveis).
+async function buscarDisciplinasENiveis() {
+    const response = await apiGet(`${API_URL}/api/gestor/disciplinas`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Erro ao carregar disciplinas.');
+    }
+    const disciplinas = Array.isArray(data?.disciplinas) ? data.disciplinas : [];
+
+    let niveisEnsino = [];
+    try {
+        const niveisResponse = await apiGet(`${API_URL}/api/public/inscricao-opcoes`);
+        if (niveisResponse.ok) {
+            const niveisData = await niveisResponse.json();
+            niveisEnsino = Array.isArray(niveisData?.niveisEnsino) ? niveisData.niveisEnsino : [];
+        }
+    } catch {
+        niveisEnsino = [];
+    }
+
+    return { disciplinas, niveisEnsino };
+}
+
 export default function DisciplinasPage() {
     const [rows, setRows] = useState([]);
     const [niveisMap, setNiveisMap] = useState({});
@@ -163,64 +187,30 @@ export default function DisciplinasPage() {
     const [formError, setFormError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const carregar = useCallback(async () => {
-        setLoading(true);
-        setError('');
-
-        try {
-            const response = await apiGet(`${API_URL}/api/gestor/disciplinas`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || 'Erro ao carregar disciplinas.'
-                );
-            }
-
-            setRows(Array.isArray(data?.disciplinas) ? data.disciplinas : []);
-
-            try {
-                const niveisResponse = await apiGet(
-                    `${API_URL}/api/public/inscricao-opcoes`
-                );
-
-                if (!niveisResponse.ok) {
-                    throw new Error(
-                        'Nao foi possivel carregar niveis de ensino.'
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregar = useCallback(
+        () =>
+            buscarDisciplinasENiveis()
+                .then(({ disciplinas, niveisEnsino }) => {
+                    setRows(disciplinas);
+                    setError('');
+                    setNiveisMap(buildNiveisMap(niveisEnsino));
+                    setNiveisOptions(
+                        niveisEnsino
+                            .map((nivel) => ({
+                                value: String(nivel?.id ?? nivel?.value ?? '').trim(),
+                                label: String(nivel?.label || nivel?.nome || nivel?.value || '').trim(),
+                            }))
+                            .filter((item) => item.value && item.label)
                     );
-                }
-
-                const niveisData = await niveisResponse.json();
-                const niveisEnsino = Array.isArray(niveisData?.niveisEnsino)
-                    ? niveisData.niveisEnsino
-                    : [];
-
-                setNiveisMap(buildNiveisMap(niveisEnsino));
-                setNiveisOptions(
-                    niveisEnsino
-                        .map((nivel) => ({
-                            value: String(
-                                nivel?.id ?? nivel?.value ?? ''
-                            ).trim(),
-                            label: String(
-                                nivel?.label ||
-                                    nivel?.nome ||
-                                    nivel?.value ||
-                                    ''
-                            ).trim(),
-                        }))
-                        .filter((item) => item.value && item.label)
-                );
-            } catch {
-                setNiveisMap({});
-                setNiveisOptions([]);
-            }
-        } catch (fetchError) {
-            setError(fetchError.message || 'Erro ao carregar disciplinas.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+                })
+                .catch((fetchError) => {
+                    setError(fetchError.message || 'Erro ao carregar disciplinas.');
+                })
+                .finally(() => setLoading(false)),
+        []
+    );
 
     useEffect(() => {
         carregar();

@@ -84,10 +84,8 @@ export default function ReportsPage() {
     const [items, setItems] = useState([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [filterValue, setFilterValue] = useState('');
-    const [allRows, setAllRows] = useState([]);
     const [loadingAll, setLoadingAll] = useState(false);
 
     const selectedReport = REPORTS.find((r) => r.key === selectedKey) || REPORTS[0];
@@ -99,41 +97,46 @@ export default function ReportsPage() {
         return keys.filter((k) => !['id_presenca', 'id_inscricao', 'id_servico', 'id_inscricao_publica', 'id_aluno'].includes(k));
     }, [items]);
 
-    useEffect(() => {
+    // Mudar de relatório repõe página e filtro no próprio clique (antes era um
+    // efeito, que fazia um pedido a mais com a página/filtro antigos).
+    function escolherRelatorio(key) {
+        if (key === selectedKey) return;
+        setSelectedKey(key);
         setPage(1);
         setFilterValue('');
-        setAllRows([]);
-    }, [selectedKey]);
+    }
+
+    // "A carregar" enquanto o último pedido concluído não é o atual.
+    const requestKey = `${selectedKey}|${page}|${filterValue}`;
+    const [loadedKey, setLoadedKey] = useState(null);
+    const loading = loadedKey !== requestKey;
 
     useEffect(() => {
         let isMounted = true;
-        async function loadReport() {
-            setLoading(true);
-            setError('');
-            try {
-                const params = new URLSearchParams({
-                    page: String(page),
-                    limit: String(PAGE_SIZE),
-                });
-                if (filterValue && selectedReport.filter) {
-                    params.set(selectedReport.filter.key, filterValue);
-                }
-                const response = await apiGet(`/api/gestor/relatorios/${selectedKey}?${params}`);
+        const params = new URLSearchParams({
+            page: String(page),
+            limit: String(PAGE_SIZE),
+        });
+        if (filterValue && selectedReport.filter) {
+            params.set(selectedReport.filter.key, filterValue);
+        }
+        apiGet(`/api/gestor/relatorios/${selectedKey}?${params}`)
+            .then(async (response) => {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Erro ao carregar relatório.');
-                if (isMounted) {
-                    setItems(Array.isArray(data.items) ? data.items : []);
-                    setTotal(Number(data.total || 0));
-                }
-            } catch (err) {
+                if (!isMounted) return;
+                setItems(Array.isArray(data.items) ? data.items : []);
+                setTotal(Number(data.total || 0));
+                setError('');
+            })
+            .catch((err) => {
                 if (isMounted) setError(err.message || 'Erro ao carregar relatório.');
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        }
-        loadReport();
+            })
+            .finally(() => {
+                if (isMounted) setLoadedKey(requestKey);
+            });
         return () => { isMounted = false; };
-    }, [selectedKey, page, filterValue, selectedReport.filter]);
+    }, [selectedKey, page, filterValue, selectedReport.filter, requestKey]);
 
     async function loadAllForExport() {
         setLoadingAll(true);
@@ -183,7 +186,7 @@ export default function ReportsPage() {
                                 <button
                                     key={r.key}
                                     type="button"
-                                    onClick={() => setSelectedKey(r.key)}
+                                    onClick={() => escolherRelatorio(r.key)}
                                     className={`w-full text-left px-4 py-3 text-sm font-medium transition ${
                                         selectedKey === r.key
                                             ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500'

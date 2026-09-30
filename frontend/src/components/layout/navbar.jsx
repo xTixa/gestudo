@@ -92,12 +92,20 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
         (notification) => !notification.lido
     ).length;
 
+    // Hora de referência para "há X min", atualizada a cada minuto (ler
+    // Date.now() durante o render tornava o componente impuro).
+    const [agora, setAgora] = useState(() => Date.now());
+    useEffect(() => {
+        const id = setInterval(() => setAgora(Date.now()), 60 * 1000);
+        return () => clearInterval(id);
+    }, []);
+
     function getRelativeTime(isoDate) {
         if (!isoDate) {
             return 'agora';
         }
 
-        const diffMs = Date.now() - new Date(isoDate).getTime();
+        const diffMs = agora - new Date(isoDate).getTime();
         const diffMin = Math.max(1, Math.floor(diffMs / 60000));
 
         if (diffMin < 60) {
@@ -213,6 +221,15 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
             )
         );
         handleMenuNavigation(notificationsPath);
+    }
+
+    // Limpar a pesquisa fecha os resultados logo no evento, não num efeito.
+    function alterarPesquisa(valor) {
+        setSearch(valor);
+        if (!valor.trim()) {
+            setSearchResults([]);
+            setIsSearchDropdownOpen(false);
+        }
     }
 
     const triggerSearch = useCallback(
@@ -357,13 +374,9 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
             clearTimeout(debounceTimerRef.current);
         }
 
-        const normalized = search.trim();
-
-        if (!normalized) {
+        if (!search.trim()) {
             lastSearchRef.current = '';
-            setSearchResults([]);
-            setIsSearchDropdownOpen(false);
-            return;
+            return undefined;
         }
 
         debounceTimerRef.current = setTimeout(() => {
@@ -447,7 +460,7 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
 
         if (path) {
             onNavigate?.(path);
-            setSearch('');
+            alterarPesquisa('');
             setSearchResults([]);
             setIsSearchDropdownOpen(false);
         }
@@ -519,7 +532,7 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
                                 }
                                 value={search}
                                 onChange={(event) =>
-                                    setSearch(event.target.value)
+                                    alterarPesquisa(event.target.value)
                                 }
                                 onFocus={() =>
                                     search.trim() &&

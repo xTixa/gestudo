@@ -364,16 +364,6 @@ export default function GestaoExtraPage() {
         setFormData((prev) => ({ ...prev, [key]: value }));
     }
 
-    function toggleWeekDay(dayKey) {
-        setFormData((prev) => {
-            const exists = prev.diasSemana.includes(dayKey);
-            const diasSemana = exists
-                ? prev.diasSemana.filter((item) => item !== dayKey)
-                : [...prev.diasSemana, dayKey];
-            return { ...prev, diasSemana };
-        });
-    }
-
     function updateSessao(index, key, value) {
         setFormData((prev) => ({
             ...prev,

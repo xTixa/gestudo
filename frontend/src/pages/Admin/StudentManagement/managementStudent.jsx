@@ -263,16 +263,6 @@ const EXPORTABLE_FIELDS = [
     { id: 'data_inicio', label: 'Data Início' },
 ];
 
-// função para escapar caracteres especiais em uma string, substituindo caracteres como &, <, >, " e ' por suas entidades HTML correspondentes, garantindo que os dados sejam exibidos corretamente em contextos HTML e evitando problemas de formatação ou segurança
-function escapeHtml(value) {
-    return String(value || '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
 // função para normalizar um nome de arquivo, removendo espaços em branco, substituindo caracteres inválidos por hífens e garantindo que o nome resultante seja seguro para uso como nome de arquivo, retornando 'alunos' como nome padrão caso o resultado seja vazio ou inválido
 function normalizeFileName(fileName) {
     const clean = (fileName || 'alunos').trim().replace(/[^a-zA-Z0-9-_]/g, '-');
@@ -606,8 +596,12 @@ export default function GestaoAlunos() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [alunoSelecionado, setAlunoSelecionado] = useState(null);
-    const [alunoFullData, setAlunoFullData] = useState(null);
-    const [loadingModalData, setLoadingModalData] = useState(false);
+    // Ficha completa do aluno aberto, guardada junto do aluno a que pertence;
+    // os dados e o "a carregar" derivam de comparar com o aluno selecionado.
+    const [fichaCarregada, setFichaCarregada] = useState(null);
+    const fichaAtual = Boolean(alunoSelecionado) && fichaCarregada?.para === alunoSelecionado;
+    const alunoFullData = fichaAtual ? fichaCarregada.dados : null;
+    const loadingModalData = Boolean(alunoSelecionado) && !fichaAtual;
     const [alunos, setAlunos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -633,11 +627,11 @@ export default function GestaoAlunos() {
         keyword: '',
     });
     const [rowActionLoading, setRowActionLoading] = useState(false);
-    const [filters, setFilters] = useState({
-        search: '',
+    const [filters, setFilters] = useState(() => ({
+        search: searchParams.get('q') || '',
         ano: 'Todos',
         escola: 'Todos',
-    });
+    }));
     const [sort, setSort] = useState({ field: null, dir: 'asc' });
 
     function handleSort(field) {
@@ -660,42 +654,32 @@ export default function GestaoAlunos() {
         setFilters((prev) => ({ ...prev, [key]: value }));
     }
 
-    useEffect(() => {
-        updateFilter('search', searchParams.get('q') || '');
-    }, [searchParams]);
+    // A pesquisa global abre esta página com ?q=; o filtro acompanha o URL
+    // (ajuste durante o render em vez de num efeito).
+    const pesquisaUrl = searchParams.get('q') || '';
+    const [pesquisaUrlAnterior, setPesquisaUrlAnterior] = useState(pesquisaUrl);
+    if (pesquisaUrl !== pesquisaUrlAnterior) {
+        setPesquisaUrlAnterior(pesquisaUrl);
+        setFilters((prev) => ({ ...prev, search: pesquisaUrl }));
+    }
 
     useEffect(() => {
         let isMounted = true;
 
-        async function carregarAlunos() {
-            setLoading(true);
-            setError('');
-
-            try {
-                const response = await apiGet('/api/gestor/alunos');
+        apiGet('/api/gestor/alunos')
+            .then(async (response) => {
                 const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(
-                        data.message || 'Não foi possível obter alunos.'
-                    );
+                    throw new Error(data.message || 'Não foi possível obter alunos.');
                 }
-
-                if (isMounted) {
-                    setAlunos(data.alunos || []);
-                }
-            } catch (fetchError) {
-                if (isMounted) {
-                    setError(fetchError.message || 'Erro ao carregar alunos.');
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        carregarAlunos();
+                if (isMounted) setAlunos(data.alunos || []);
+            })
+            .catch((fetchError) => {
+                if (isMounted) setError(fetchError.message || 'Erro ao carregar alunos.');
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
 
         return () => {
             isMounted = false;
@@ -739,43 +723,22 @@ export default function GestaoAlunos() {
     }, [alunos, filters, sort]);
 
     useEffect(() => {
-        if (!alunoSelecionado) {
-            setAlunoFullData(null);
-            return;
-        }
-
+        if (!alunoSelecionado) return undefined;
         let isMounted = true;
 
-        async function loadFullAlunoData() {
-            setLoadingModalData(true);
-            try {
-                const response = await apiGet(
-                    `/api/gestor/alunos/${alunoSelecionado.id_aluno}`
-                );
+        apiGet(`/api/gestor/alunos/${alunoSelecionado.id_aluno}`)
+            .then(async (response) => {
                 const data = await response.json();
-
                 if (!response.ok) {
                     throw new Error('Erro ao carregar dados do aluno');
                 }
-
-                if (isMounted) {
-                    setAlunoFullData({
-                        ...alunoSelecionado,
-                        ...(data.aluno || {}),
-                    });
-                }
-            } catch {
-                if (isMounted) {
-                    setAlunoFullData(alunoSelecionado);
-                }
-            } finally {
-                if (isMounted) {
-                    setLoadingModalData(false);
-                }
-            }
-        }
-
-        loadFullAlunoData();
+                return { ...alunoSelecionado, ...(data.aluno || {}) };
+            })
+            // Sem a ficha completa, mostra-se o que já se sabe do aluno.
+            .catch(() => alunoSelecionado)
+            .then((dados) => {
+                if (isMounted) setFichaCarregada({ para: alunoSelecionado, dados });
+            });
 
         return () => {
             isMounted = false;

@@ -21,27 +21,25 @@ export default function ModalidadePage() {
 
     const getRowId = useCallback((row) => row?.id ?? null, []);
 
-    const carregar = useCallback(async () => {
-        setLoading(true);
-        setError('');
-
-        try {
-            const response = await apiGet('/api/gestor/modalidades');
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || 'Erro ao carregar modalidades.'
-                );
-            }
-
-            setRows(Array.isArray(data?.modalidades) ? data.modalidades : []);
-        } catch (fetchError) {
-            setError(fetchError.message || 'Erro ao carregar modalidades.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregar = useCallback(
+        () =>
+            apiGet('/api/gestor/modalidades')
+                .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Erro ao carregar modalidades.');
+                    }
+                    setRows(Array.isArray(data?.modalidades) ? data.modalidades : []);
+                    setError('');
+                })
+                .catch((fetchError) => {
+                    setError(fetchError.message || 'Erro ao carregar modalidades.');
+                })
+                .finally(() => setLoading(false)),
+        []
+    );
 
     useEffect(() => {
         carregar();

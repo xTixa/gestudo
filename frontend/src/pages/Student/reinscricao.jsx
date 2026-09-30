@@ -69,7 +69,7 @@ export default function ReinscricaoAlunoPage() {
     const [tipoServicoOptions, setTipoServicoOptions] = useState([]);
     const [pacotesOptions, setPacotesOptions] = useState([]);
     const [selectedNivel, setSelectedNivel] = useState('');
-    const [selectedAnoEscolar, setSelectedAnoEscolar] = useState('');
+    const [anoEscolarEscolhido, setSelectedAnoEscolar] = useState('');
     const [turma, setTurma] = useState('');
     const [obs, setObs] = useState('');
     const [loadingOpcoes, setLoadingOpcoes] = useState(true);
@@ -139,11 +139,12 @@ export default function ReinscricaoAlunoPage() {
         );
     });
 
-    useEffect(() => {
-        if (selectedAnoEscolar && (!anosEscolaresOptions.includes(selectedAnoEscolar) || isEnsinoSuperior)) {
-            setSelectedAnoEscolar('');
-        }
-    }, [anosEscolaresOptions, isEnsinoSuperior, selectedAnoEscolar]);
+    // O ano escolhido só conta se existir no nível atual (ao mudar de nível
+    // fica vazio automaticamente, sem um efeito a apagá-lo).
+    const selectedAnoEscolar =
+        anoEscolarEscolhido && anosEscolaresOptions.includes(anoEscolarEscolhido) && !isEnsinoSuperior
+            ? anoEscolarEscolhido
+            : '';
 
     function isModalidadeIndividual(modalidadeId) {
         if (!modalidadeId) return false;

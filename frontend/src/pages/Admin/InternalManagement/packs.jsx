@@ -49,43 +49,39 @@ export default function PacotesPage() {
 
     const getRowId = useCallback((row) => row?.id ?? null, []);
 
-    const carregar = useCallback(async () => {
-        setLoading(true);
-        setError('');
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregar = useCallback(
+        () =>
+            Promise.all([
+                apiGet('/api/gestor/pacotes'),
+                apiGet('/api/gestor/modalidades'),
+                apiGet('/api/gestor/disciplinas'),
+            ])
+                .then(async ([pacotesResponse, modalidadesResponse, disciplinasResponse]) => {
+                    const data = await pacotesResponse.json();
+                    const modalidadesData = await modalidadesResponse.json();
+                    const disciplinasData = await disciplinasResponse.json();
 
-        try {
-            const [pacotesResponse, modalidadesResponse, disciplinasResponse] =
-                await Promise.all([
-                    apiGet('/api/gestor/pacotes'),
-                    apiGet('/api/gestor/modalidades'),
-                    apiGet('/api/gestor/disciplinas'),
-                ]);
+                    if (!pacotesResponse.ok) {
+                        throw new Error(data.message || 'Erro ao carregar pacotes.');
+                    }
 
-            const data = await pacotesResponse.json();
-            const modalidadesData = await modalidadesResponse.json();
-            const disciplinasData = await disciplinasResponse.json();
-
-            if (!pacotesResponse.ok) {
-                throw new Error(data.message || 'Erro ao carregar pacotes.');
-            }
-
-            setRows(Array.isArray(data?.pacotes) ? data.pacotes : []);
-            setModalidades(
-                Array.isArray(modalidadesData?.modalidades)
-                    ? modalidadesData.modalidades
-                    : []
-            );
-            setDisciplinas(
-                Array.isArray(disciplinasData?.disciplinas)
-                    ? disciplinasData.disciplinas
-                    : []
-            );
-        } catch (fetchError) {
-            setError(fetchError.message || 'Erro ao carregar pacotes.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+                    setRows(Array.isArray(data?.pacotes) ? data.pacotes : []);
+                    setError('');
+                    setModalidades(
+                        Array.isArray(modalidadesData?.modalidades) ? modalidadesData.modalidades : []
+                    );
+                    setDisciplinas(
+                        Array.isArray(disciplinasData?.disciplinas) ? disciplinasData.disciplinas : []
+                    );
+                })
+                .catch((fetchError) => {
+                    setError(fetchError.message || 'Erro ao carregar pacotes.');
+                })
+                .finally(() => setLoading(false)),
+        []
+    );
 
     useEffect(() => {
         carregar();

@@ -67,15 +67,6 @@ function uniqueValues(array, field) {
     return ['Todos', ...values];
 }
 
-function escapeHtml(value) {
-    return String(value || '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
 function normalizeFileName(fileName) {
     const clean = (fileName || 'professores')
         .trim()
@@ -625,11 +616,11 @@ export default function GestaoProfessores() {
         keyword: '',
     });
     const [rowActionLoading, setRowActionLoading] = useState(false);
-    const [filters, setFilters] = useState({
-        search: '',
+    const [filters, setFilters] = useState(() => ({
+        search: searchParams.get('q') || '',
         area_ensino: 'Todos',
         nivel: 'Todos',
-    });
+    }));
     const [sort, setSort] = useState({ field: null, dir: 'asc' });
     const [openDropdown, setOpenDropdown] = useState(null);
 
@@ -655,46 +646,38 @@ export default function GestaoProfessores() {
         setFilters((prev) => ({ ...prev, [key]: value }));
     }
 
-    useEffect(() => {
-        updateFilter('search', searchParams.get('q') || '');
-    }, [searchParams]);
+    // A pesquisa global abre esta página com ?q=; o filtro acompanha o URL
+    // (ajuste durante o render em vez de num efeito).
+    const pesquisaUrl = searchParams.get('q') || '';
+    const [pesquisaUrlAnterior, setPesquisaUrlAnterior] = useState(pesquisaUrl);
+    if (pesquisaUrl !== pesquisaUrlAnterior) {
+        setPesquisaUrlAnterior(pesquisaUrl);
+        setFilters((prev) => ({ ...prev, search: pesquisaUrl }));
+    }
 
     useEffect(() => {
         let isMounted = true;
 
-        async function carregarProfessores() {
-            setLoading(true);
-            setError('');
-
-            try {
-                const response = await apiGet('/api/gestor/professores');
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message || 'Não foi possível obter professores.'
-                    );
-                }
-
-                if (isMounted) {
+        function carregarProfessores() {
+            apiGet('/api/gestor/professores')
+                .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Não foi possível obter professores.');
+                    }
+                    if (!isMounted) return;
                     const storedImported = readImportedProfessoresStorage();
-                    const apiRows = Array.isArray(data.professores)
-                        ? data.professores
-                        : [];
-                    const merged = mergeUniqueByKey(apiRows, storedImported);
-                    setProfessores(merged);
-                }
-            } catch (fetchError) {
-                if (isMounted) {
-                    setError(
-                        fetchError.message || 'Erro ao carregar professores.'
-                    );
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
+                    const apiRows = Array.isArray(data.professores) ? data.professores : [];
+                    setProfessores(mergeUniqueByKey(apiRows, storedImported));
+                })
+                .catch((fetchError) => {
+                    if (isMounted) {
+                        setError(fetchError.message || 'Erro ao carregar professores.');
+                    }
+                })
+                .finally(() => {
+                    if (isMounted) setLoading(false);
+                });
         }
 
         carregarProfessores();

@@ -108,7 +108,6 @@ export default function LogsTable({ filters, onOptionsChange }) {
         total: 0,
         totalPages: 1,
     });
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     const queryKey = JSON.stringify({
@@ -119,53 +118,51 @@ export default function LogsTable({ filters, onOptionsChange }) {
         period: filters?.period || 'all',
     });
 
-    useEffect(() => {
+    // Filtros novos → volta à página 1. Ajuste feito durante o render (padrão
+    // recomendado pelo React) em vez de num efeito.
+    const [queryKeyAnterior, setQueryKeyAnterior] = useState(queryKey);
+    if (queryKey !== queryKeyAnterior) {
+        setQueryKeyAnterior(queryKey);
         setPagination((prev) => ({ ...prev, page: 1 }));
-    }, [queryKey]);
+    }
+
+    // "A carregar" enquanto o último pedido concluído não é o atual.
+    const requestKey = `${queryKey}|${pagination.page}`;
+    const [loadedKey, setLoadedKey] = useState(null);
+    const loading = loadedKey !== requestKey;
 
     useEffect(() => {
         let isMounted = true;
+        const params = buildQueryParams(pagination.page, filters);
 
-        async function carregarLogs() {
-            setLoading(true);
-            setError('');
-
-            try {
-                const params = buildQueryParams(pagination.page, filters);
-                const response = await apiGet(
-                    `${API_URL}/api/gestor/logs?${params.toString()}`
-                );
+        apiGet(`${API_URL}/api/gestor/logs?${params.toString()}`)
+            .then(async (response) => {
                 const data = await response.json();
-
                 if (!response.ok) {
                     throw new Error(data.message || 'Erro ao carregar logs.');
                 }
-
-                if (isMounted) {
-                    setLogs(Array.isArray(data?.logs) ? data.logs : []);
-                    setPagination((prev) => ({
-                        ...prev,
-                        ...(data?.pagination || {}),
-                        limit: LOGS_PAGE_SIZE,
-                    }));
-                }
-            } catch (fetchError) {
+                if (!isMounted) return;
+                setLogs(Array.isArray(data?.logs) ? data.logs : []);
+                setPagination((prev) => ({
+                    ...prev,
+                    ...(data?.pagination || {}),
+                    limit: LOGS_PAGE_SIZE,
+                }));
+                setError('');
+            })
+            .catch((fetchError) => {
                 if (isMounted) {
                     setError(fetchError.message || 'Erro ao carregar logs.');
                 }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        carregarLogs();
+            })
+            .finally(() => {
+                if (isMounted) setLoadedKey(requestKey);
+            });
 
         return () => {
             isMounted = false;
         };
-    }, [filters, pagination.page]);
+    }, [filters, pagination.page, requestKey]);
 
     useEffect(() => {
         if (!onOptionsChange) {

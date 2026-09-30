@@ -17,6 +17,8 @@ import ServicePreviewDrawer from '../../../../components/services/ServicePreview
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../../utils/api.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Lista vazia estável (evita recalcular memos que dependem das salas).
+const EMPTY_LIST = [];
 
 // mensagens de erro de rede do browser (ex: "Load failed", "Failed to fetch")
 // não são compreensíveis para o utilizador; traduzimos para algo claro
@@ -251,10 +253,9 @@ export default function GestaoCurricularPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [previewService, setPreviewService] = useState(null);
-    const [loadingSalas, setLoadingSalas] = useState(false);
-    const [salasDisponiveis, setSalasDisponiveis] = useState([]);
-    const [salasDisponiveisReady, setSalasDisponiveisReady] = useState(false);
-    const [salasError, setSalasError] = useState('');
+    // Resultado da última consulta de salas livres, marcado com a chave da
+    // consulta. loading/ready/erro derivam de comparar com a consulta atual.
+    const [salasConsulta, setSalasConsulta] = useState({ chave: null, salas: [], erro: '' });
     const [deletingServiceId, setDeletingServiceId] = useState(null);
     const [pendingDeleteServiceId, setPendingDeleteServiceId] = useState(null);
     const [opcoes, setOpcoes] = useState({
@@ -362,6 +363,13 @@ export default function GestaoCurricularPage() {
         );
     }, [formData.nivelEnsino, opcoes.alunos, opcoes.niveisEnsino]);
 
+    // Só contam os alunos selecionados que passam o filtro de nível atual
+    // (derivado em vez de apagar a seleção com um efeito).
+    const alunosIdsValidos = useMemo(() => {
+        const permitidos = new Set(alunosFiltrados.map((aluno) => aluno.id));
+        return formData.alunosIds.filter((id) => permitidos.has(id));
+    }, [alunosFiltrados, formData.alunosIds]);
+
     const previewServiceWithNames = useMemo(() => {
         if (!previewService) return null;
         if (!Array.isArray(previewService.alunosIds)) return previewService;
@@ -375,6 +383,56 @@ export default function GestaoCurricularPage() {
 
         return { ...previewService, alunosNomes };
     }, [previewService, opcoes.alunos]);
+
+    const consultaSalas = useMemo(() => {
+        const dataReferencia = isEditing
+            ? formData.aplicarDesde || formData.dataInicio
+            : formData.dataInicio;
+        const horaFim = addMinutesToTime(formData.horaInicio, formData.duracao);
+        const diasParaConsulta =
+            formData.serviceType === 'unico'
+                ? dataReferencia
+                    ? [getWeekDayKeyFromDate(dataReferencia)]
+                    : []
+                : formData.diasSemana;
+
+        if (
+            !isModalOpen ||
+            !dataReferencia ||
+            !formData.horaInicio ||
+            !horaFim ||
+            !diasParaConsulta.length
+        ) {
+            return null;
+        }
+
+        const params = new URLSearchParams({
+            data: dataReferencia,
+            horaInicio: formData.horaInicio,
+            horaFim,
+            diasSemana: JSON.stringify(diasParaConsulta),
+        });
+        if (editingServiceId) {
+            params.set('excluirIdServico', String(editingServiceId));
+        }
+        return params.toString();
+    }, [
+        editingServiceId,
+        formData.aplicarDesde,
+        formData.dataInicio,
+        formData.diasSemana,
+        formData.duracao,
+        formData.horaInicio,
+        formData.serviceType,
+        isEditing,
+        isModalOpen,
+    ]);
+
+    const salasConsultaAtual = consultaSalas !== null && salasConsulta.chave === consultaSalas;
+    const loadingSalas = consultaSalas !== null && !salasConsultaAtual;
+    const salasDisponiveisReady = salasConsultaAtual && !salasConsulta.erro;
+    const salasDisponiveis = salasDisponiveisReady ? salasConsulta.salas : EMPTY_LIST;
+    const salasError = salasConsultaAtual ? salasConsulta.erro : '';
 
     const salasParaSelecionar = useMemo(() => {
         if (!salasDisponiveisReady) {
@@ -513,133 +571,43 @@ export default function GestaoCurricularPage() {
     }, []);
 
     useEffect(() => {
-        if (!formData.alunosIds.length) {
-            return;
-        }
-
-        const allowedIds = new Set(alunosFiltrados.map((aluno) => aluno.id));
-        setFormData((prev) => ({
-            ...prev,
-            alunosIds: prev.alunosIds.filter((id) => allowedIds.has(id)),
-        }));
-    }, [alunosFiltrados, formData.alunosIds.length]);
-
-    useEffect(() => {
+        if (consultaSalas === null) return undefined;
         let isMounted = true;
-        const dataReferencia = isEditing
-            ? formData.aplicarDesde || formData.dataInicio
-            : formData.dataInicio;
-        const horaFim = addMinutesToTime(formData.horaInicio, formData.duracao);
 
-        const diasParaConsulta =
-            formData.serviceType === 'unico'
-                ? dataReferencia
-                    ? [getWeekDayKeyFromDate(dataReferencia)]
-                    : []
-                : formData.diasSemana;
-
-        if (
-            !isModalOpen ||
-            !dataReferencia ||
-            !formData.horaInicio ||
-            !horaFim ||
-            !diasParaConsulta.length
-        ) {
-            setSalasDisponiveis([]);
-            setSalasDisponiveisReady(false);
-            setSalasError('');
-            setLoadingSalas(false);
-            return () => {
-                isMounted = false;
-            };
-        }
-
-        async function carregarSalasDisponiveis() {
-            setLoadingSalas(true);
-            setSalasError('');
-
-            try {
-                const params = new URLSearchParams({
-                    data: dataReferencia,
-                    horaInicio: formData.horaInicio,
-                    horaFim,
-                    diasSemana: JSON.stringify(diasParaConsulta),
-                });
-
-                if (editingServiceId) {
-                    params.set('excluirIdServico', String(editingServiceId));
-                }
-
-                const response = await apiGet(
-                    `${API_URL}/api/gestor/servicos/salas-disponiveis?${params.toString()}`
-                );
+        apiGet(`${API_URL}/api/gestor/servicos/salas-disponiveis?${consultaSalas}`)
+            .then(async (response) => {
                 const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(
-                        data.message || 'Erro ao carregar salas disponiveis.'
-                    );
+                    throw new Error(data.message || 'Erro ao carregar salas disponiveis.');
                 }
-
-                if (isMounted) {
-                    const salas = Array.isArray(data?.salas) ? data.salas : [];
-                    setSalasDisponiveis(
-                        salas.map((sala) => ({
-                            id: String(sala.id_sala ?? sala.id),
-                            nome: String(sala.nome || sala.sala || 'Sala'),
-                            capacidade: sala.capacidade,
-                        }))
-                    );
-                    setSalasDisponiveisReady(true);
-                }
-            } catch (error) {
-                if (isMounted) {
-                    setSalasDisponiveis([]);
-                    setSalasDisponiveisReady(false);
-                    setSalasError(
-                        friendlyErrorMessage(
-                            error,
-                            'Erro ao carregar salas disponiveis.'
-                        )
-                    );
-                }
-            } finally {
-                if (isMounted) {
-                    setLoadingSalas(false);
-                }
-            }
-        }
-
-        carregarSalasDisponiveis();
+                if (!isMounted) return;
+                const salas = Array.isArray(data?.salas) ? data.salas : [];
+                setSalasConsulta({
+                    chave: consultaSalas,
+                    erro: '',
+                    salas: salas.map((sala) => ({
+                        id: String(sala.id_sala ?? sala.id),
+                        nome: String(sala.nome || sala.sala || 'Sala'),
+                        capacidade: sala.capacidade,
+                    })),
+                });
+            })
+            .catch((error) => {
+                if (!isMounted) return;
+                setSalasConsulta({
+                    chave: consultaSalas,
+                    salas: [],
+                    erro: friendlyErrorMessage(error, 'Erro ao carregar salas disponiveis.'),
+                });
+            });
 
         return () => {
             isMounted = false;
         };
-    }, [
-        editingServiceId,
-        formData.aplicarDesde,
-        formData.dataInicio,
-        formData.diasSemana,
-        formData.duracao,
-        formData.horaInicio,
-        formData.serviceType,
-        isEditing,
-        isModalOpen,
-    ]);
+    }, [consultaSalas]);
 
     function updateFormField(key, value) {
         setFormData((prev) => ({ ...prev, [key]: value }));
-    }
-
-    function toggleWeekDay(dayKey) {
-        setFormData((prev) => {
-            const exists = prev.diasSemana.includes(dayKey);
-            const diasSemana = exists
-                ? prev.diasSemana.filter((item) => item !== dayKey)
-                : [...prev.diasSemana, dayKey];
-
-            return { ...prev, diasSemana };
-        });
     }
 
     function toggleAluno(alunoId) {
@@ -736,9 +704,6 @@ export default function GestaoCurricularPage() {
         setIsModalOpen(false);
         setEditingServiceId(null);
         setFormError('');
-        setSalasDisponiveis([]);
-        setSalasDisponiveisReady(false);
-        setSalasError('');
     }
 
     function handleDeleteService(id) {
@@ -844,7 +809,7 @@ export default function GestaoCurricularPage() {
                 duracao: sessoesParaEnviar[0]?.duracao,
                 diasSemana: diasParaEnviar,
                 sessoes: sessoesParaEnviar,
-                alunosIds: formData.alunosIds,
+                alunosIds: alunosIdsValidos,
                 aplicarDesde: editingServiceId
                     ? formData.aplicarDesde || getTomorrowDateKey()
                     : undefined,
@@ -1427,7 +1392,7 @@ export default function GestaoCurricularPage() {
                                                         >
                                                             <input
                                                                 type="checkbox"
-                                                                checked={formData.alunosIds.includes(
+                                                                checked={alunosIdsValidos.includes(
                                                                     aluno.id
                                                                 )}
                                                                 onChange={() =>

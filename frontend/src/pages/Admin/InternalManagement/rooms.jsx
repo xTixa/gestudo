@@ -23,25 +23,25 @@ export default function SalasPage() {
 
     const getRowId = useCallback((row) => row?.id ?? null, []);
 
-    const carregar = useCallback(async () => {
-        setLoading(true);
-        setError('');
-
-        try {
-            const response = await apiGet(`${API_URL}/api/gestor/salas`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao carregar salas.');
-            }
-
-            setRows(Array.isArray(data?.salas) ? data.salas : []);
-        } catch (fetchError) {
-            setError(fetchError.message || 'Erro ao carregar salas.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregar = useCallback(
+        () =>
+            apiGet(`${API_URL}/api/gestor/salas`)
+                .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Erro ao carregar salas.');
+                    }
+                    setRows(Array.isArray(data?.salas) ? data.salas : []);
+                    setError('');
+                })
+                .catch((fetchError) => {
+                    setError(fetchError.message || 'Erro ao carregar salas.');
+                })
+                .finally(() => setLoading(false)),
+        []
+    );
 
     useEffect(() => {
         carregar();

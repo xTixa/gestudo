@@ -40,92 +40,97 @@ function getProfessorProfileImage(professor) {
     return `${API_URL}/${value}`;
 }
 
+// Ficha do professor; se o endpoint de detalhe não existir (API antiga),
+// usa o resumo da lista de professores. Não mexe em estado.
+async function buscarProfessor(profId) {
+    const detailsResponse = await apiGet(
+        `${API_URL}/api/gestor/professores/${profId}`
+    );
+    const detailsData = await detailsResponse.json();
+
+    if (detailsResponse.ok) {
+        return detailsData.professor;
+    }
+
+    const endpointMissing =
+        detailsResponse.status === 404 &&
+        String(detailsData?.message || '').includes(
+            'não existe neste servidor'
+        );
+
+    if (endpointMissing) {
+        const listResponse = await apiGet(
+            `${API_URL}/api/gestor/professores`
+        );
+        const listData = await listResponse.json();
+
+        if (!listResponse.ok) {
+            throw new Error(
+                listData.message ||
+                    'Erro ao carregar lista de professores.'
+            );
+        }
+
+        const profResumo = Array.isArray(listData?.professores)
+            ? listData.professores.find(
+                  (item) => Number(item.id_professor) === Number(profId)
+              )
+            : null;
+
+        if (!profResumo) {
+            throw new Error('Professor não encontrado.');
+        }
+
+        return {
+            id_professor: profResumo.id_professor,
+            habilitacao: profResumo.habilitacao,
+            area_ensino: profResumo.area_ensino,
+            nivel: profResumo.nivel,
+            pessoa: {
+                nome: profResumo.nome,
+                nif: profResumo.nif,
+                telemovel: profResumo.contacto,
+                user: {
+                    email: profResumo.email,
+                    status: profResumo.status,
+                },
+            },
+        };
+    }
+
+    throw new Error(
+        detailsData.message || 'Erro ao carregar dados do professor'
+    );
+}
+
 export default function FichaProfPage() {
     const canExport = usePlan().hasModule('exportacoes');
     const navigate = useNavigate();
     const { id: profId } = useParams();
 
     const [prof, setProf] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [loadingFicha, setLoading] = useState(true);
+    const [erroFicha, setError] = useState('');
+    // Sem id no URL não há nada a carregar: erro imediato.
+    const loading = profId ? loadingFicha : false;
+    const error = profId ? erroFicha : 'ID do professor não especificado';
     const [actionLoading, setActionLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState('');
 
-    const carregarProf = useCallback(async function carregarProf() {
-        if (!profId) {
-            setError('ID do professor não especificado');
-            setLoading(false);
-            return;
-        }
-
-        try {
-            setError('');
-            const detailsResponse = await apiGet(
-                `${API_URL}/api/gestor/professores/${profId}`
-            );
-            const detailsData = await detailsResponse.json();
-
-            if (detailsResponse.ok) {
-                setProf(detailsData.professor);
-                return;
-            }
-
-            const endpointMissing =
-                detailsResponse.status === 404 &&
-                String(detailsData?.message || '').includes(
-                    'não existe neste servidor'
-                );
-
-            if (endpointMissing) {
-                const listResponse = await apiGet(
-                    `${API_URL}/api/gestor/professores`
-                );
-                const listData = await listResponse.json();
-
-                if (!listResponse.ok) {
-                    throw new Error(
-                        listData.message ||
-                            'Erro ao carregar lista de professores.'
-                    );
-                }
-
-                const profResumo = Array.isArray(listData?.professores)
-                    ? listData.professores.find(
-                          (item) => Number(item.id_professor) === Number(profId)
-                      )
-                    : null;
-
-                if (!profResumo) {
-                    throw new Error('Professor não encontrado.');
-                }
-
-                setProf({
-                    id_professor: profResumo.id_professor,
-                    habilitacao: profResumo.habilitacao,
-                    area_ensino: profResumo.area_ensino,
-                    nivel: profResumo.nivel,
-                    pessoa: {
-                        nome: profResumo.nome,
-                        nif: profResumo.nif,
-                        telemovel: profResumo.contacto,
-                        user: {
-                            email: profResumo.email,
-                            status: profResumo.status,
-                        },
-                    },
-                });
-                return;
-            }
-
-            throw new Error(
-                detailsData.message || 'Erro ao carregar dados do professor'
-            );
-        } catch (err) {
-            setError(err.message || 'Erro ao carregar ficha do professor');
-            console.error('Erro ao carregar professor:', err);
-        } finally {
-            setLoading(false);
-        }
+    // setState só nos callbacks da promise (a regra react-hooks/set-state-in-effect
+    // não aceita setState síncrono quando isto é chamado a partir do useEffect).
+    const carregarProf = useCallback(() => {
+        if (!profId) return Promise.resolve();
+        return buscarProfessor(profId)
+            .then((professor) => {
+                setProf(professor);
+                setError('');
+            })
+            .catch((err) => {
+                setError(err.message || 'Erro ao carregar ficha do professor');
+                console.error('Erro ao carregar professor:', err);
+            })
+            .finally(() => setLoading(false));
     }, [profId]);
 
     useEffect(() => {
