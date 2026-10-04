@@ -179,6 +179,17 @@ function variaveisTemas() {
             ...variaveis('s', 'accent', superficieEscura(paleta)),
             ...variaveis('t', 'accent', conteudoEscuro(paleta)),
         };
+        // Fundo da barra lateral (bg-slate-900 dentro de .zona-escura) num tom
+        // escuro da cor do centro. O ciano mantém o azul-marinho da marca.
+        if (id === TEMA_CENTRO_POR_OMISSAO) continue;
+        resultado[`[data-tema='${id}'] .zona-escura`] = {
+            '--s-slate-900': canais(misturar(paleta[900], '#0a0a0a', 0.5)),
+        };
+        resultado[
+            `.dark[data-tema='${id}'] .zona-escura, .dark [data-tema='${id}'] .zona-escura`
+        ] = {
+            '--s-slate-900': canais(misturar(paleta[900], '#0a0a0a', 0.25)),
+        };
     }
     return resultado;
 }
