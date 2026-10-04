@@ -213,14 +213,14 @@ export default function SettingsPage() {
                                         placeholder="Email *"
                                         value={novoGestor.email}
                                         onChange={(e) => setNovoGestor({ ...novoGestor, email: e.target.value })}
-                                        className="px-4 py-3 text-base rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#06b6d4]/50"
+                                        className="px-4 py-3 text-base rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                                     />
                                     <input
                                         type="text"
                                         placeholder="Nome (opcional)"
                                         value={novoGestor.nome}
                                         onChange={(e) => setNovoGestor({ ...novoGestor, nome: e.target.value })}
-                                        className="px-4 py-3 text-base rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#06b6d4]/50"
+                                        className="px-4 py-3 text-base rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                                     />
                                 </div>
                                 <p className="text-sm text-slate-500 mt-3 mb-4">
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                                 <button
                                     onClick={handleCreateGestor}
                                     disabled={gestoresLoading}
-                                    className={`flex items-center gap-2 px-6 py-3 text-white text-base rounded-lg transition font-semibold ${gestoresLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#06b6d4] hover:bg-[#0891b2]'}`}
+                                    className={`flex items-center gap-2 px-6 py-3 text-white text-base rounded-lg transition font-semibold ${gestoresLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'}`}
                                 >
                                     <Plus size={20} />
                                     {gestoresLoading ? 'A criar...' : 'Criar Administrador'}
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                                                             <td className="px-6 py-4 text-slate-800 font-medium">
                                                                 {gestor.email}
                                                                 {isCurrentUser && (
-                                                                    <span className="ml-2 text-xs text-[#06b6d4] font-normal">(você)</span>
+                                                                    <span className="ml-2 text-xs text-emerald-500 font-normal">(você)</span>
                                                                 )}
                                                             </td>
                                                             <td className="px-6 py-4">
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                                                                         <button
                                                                             onClick={() => handleToggleGestor(gestor)}
                                                                             title={gestor.status ? 'Desativar' : 'Ativar'}
-                                                                            className="p-2 text-slate-500 hover:text-[#06b6d4] hover:bg-slate-100 rounded-lg transition"
+                                                                            className="p-2 text-slate-500 hover:text-emerald-500 hover:bg-slate-100 rounded-lg transition"
                                                                         >
                                                                             {gestor.status
                                                                                 ? <ToggleRight size={22} className="text-green-600" />

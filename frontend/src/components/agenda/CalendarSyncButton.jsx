@@ -139,7 +139,7 @@ function CalendarSyncButtonContent() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <button
                         type="button"
-                        className="absolute inset-0 bg-slate-900/45"
+                        className="absolute inset-0 bg-slate-950/45"
                         onClick={fecharModal}
                         aria-label="Fechar"
                     />

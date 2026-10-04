@@ -197,7 +197,7 @@ export default function SalasPage() {
                 <button
                     type="button"
                     onClick={abrirCriacao}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#0891b2]"
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-600"
                 >
                     <Plus size={16} />
                     Inserir Sala
@@ -209,7 +209,7 @@ export default function SalasPage() {
                     <button
                         type="button"
                         onClick={fecharFormulario}
-                        className="absolute inset-0 bg-slate-900/45"
+                        className="absolute inset-0 bg-slate-950/45"
                         aria-label="Fechar modal"
                     />
 
@@ -254,7 +254,7 @@ export default function SalasPage() {
                                             nome: event.target.value,
                                         }))
                                     }
-                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#06b6d4] focus:ring-2 focus:ring-[#cffafe]"
+                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                                     placeholder="Ex: Sala A"
                                 />
                             </label>
@@ -273,7 +273,7 @@ export default function SalasPage() {
                                             capacidade: event.target.value,
                                         }))
                                     }
-                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-[#06b6d4] focus:ring-2 focus:ring-[#cffafe]"
+                                    className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                                     placeholder="Ex: 30"
                                 />
                             </label>
@@ -296,7 +296,7 @@ export default function SalasPage() {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="rounded-xl bg-[#06b6d4] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0891b2] disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {submitting
                                     ? 'A guardar...'

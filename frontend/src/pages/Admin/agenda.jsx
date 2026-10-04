@@ -691,14 +691,14 @@ function WeekView({
                                 <div
                                     key={dateKey}
                                     className={`border-r border-slate-200 relative ${
-                                        isToday ? 'bg-[#eaf9f5]' : 'bg-white'
+                                        isToday ? 'bg-emerald-50' : 'bg-white'
                                     }`}
                                 >
                                     {/* Day header */}
                                     <div
                                         className={`sticky top-0 z-30 h-12 border-b border-slate-200 p-2 text-center cursor-pointer transition ${
                                             isToday
-                                                ? 'bg-[#06b6d4] text-white font-semibold'
+                                                ? 'bg-emerald-500 text-white font-semibold'
                                                 : 'bg-white hover:bg-slate-50'
                                         }`}
                                         onClick={() => setSelectedDate(date)}
@@ -929,7 +929,7 @@ function MonthView({
                                     goToMonth(year, month - 1);
                                 }
                             }}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#06b6d4]"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition hover:border-slate-300 focus:border-emerald-500"
                             aria-label="Escolher mês do histórico"
                         />
 
@@ -989,9 +989,9 @@ function MonthView({
                                 onClick={() => setSelectedDate(date)}
                                 className={`relative rounded-xl h-[74px] p-2 text-sm border transition ${
                                     isSelected
-                                        ? 'border-[#06b6d4] bg-[#06b6d4] text-white font-semibold'
+                                        ? 'border-emerald-500 bg-emerald-500 text-white font-semibold'
                                         : isToday
-                                          ? 'border-[#a5f3fc] bg-[#eaf9f5] text-slate-700'
+                                          ? 'border-emerald-200 bg-emerald-50 text-slate-700'
                                           : 'border-slate-200 hover:bg-slate-50'
                                 } ${!isCurrentMonth ? 'text-slate-400 bg-slate-50/40' : 'text-slate-700'}`}
                             >
@@ -1125,7 +1125,7 @@ function AtividadeModal({ atividade, onClose }) {
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 z-40 bg-slate-900/45 backdrop-blur-sm transition"
+                className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm transition"
                 onClick={onClose}
             />
 

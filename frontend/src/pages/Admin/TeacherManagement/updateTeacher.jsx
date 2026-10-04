@@ -288,7 +288,7 @@ export default function UpdateProfPage() {
                         )}
                     </div>
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#06b6d4]">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500">
                         <Upload size={16} />
                         Alterar Foto
                         <input

@@ -12,17 +12,72 @@ import {
     Check,
     ExternalLink,
     Loader,
+    Sun,
+    Moon,
+    Monitor,
 } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 import { listarEventos, marcarAlertalido } from '../../utils/api';
 import defaultAvatar from '../../assets/img/default-avatar.svg';
 import { getMenuTrail } from './menuConfig';
+import { definirModoTema, useModoTema } from '../../theme/modoTema';
 
 const ROLE_LABEL = {
     gestor: 'Administrador',
     professor: 'Professor',
     aluno: 'Aluno',
 };
+
+const OPCOES_MODO_TEMA = [
+    { valor: 'claro', rotulo: 'Claro', Icone: Sun },
+    { valor: 'escuro', rotulo: 'Escuro', Icone: Moon },
+    { valor: 'sistema', rotulo: 'Sistema', Icone: Monitor },
+];
+
+function SeletorModoTema() {
+    const { modo } = useModoTema();
+    return (
+        <div className="border-t border-slate-100 px-3 py-2.5">
+            <p
+                id="navbar-modo-tema"
+                className="mb-1.5 text-xs font-medium text-slate-500"
+            >
+                Aparência
+            </p>
+            <div
+                role="radiogroup"
+                aria-labelledby="navbar-modo-tema"
+                className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-0.5"
+            >
+                {OPCOES_MODO_TEMA.map(({ valor, rotulo, Icone }) => {
+                    const IconeModo = Icone;
+                    const ativo = modo === valor;
+                    return (
+                        <button
+                            key={valor}
+                            type="button"
+                            role="radio"
+                            aria-checked={ativo}
+                            onClick={() => definirModoTema(valor)}
+                            className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium transition ${
+                                ativo
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                        >
+                            <IconeModo
+                                size={13}
+                                className="shrink-0"
+                                aria-hidden="true"
+                            />
+                            {rotulo}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -790,7 +845,7 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
                     {isDropdownOpen ? (
                         <div
                             role="menu"
-                            className="fixed inset-x-4 top-[4.5rem] z-[100] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-60"
+                            className="fixed inset-x-4 top-[4.5rem] z-[100] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64"
                         >
                             <div className="border-b border-slate-100 px-3 pb-2.5 pt-1.5">
                                 <p className="truncate text-sm font-medium text-slate-800">
@@ -839,6 +894,7 @@ export default function Navbar({ user, onLogout, onNavigate, onToggleSidebar }) 
                                     </button>
                                 )}
                             </div>
+                            <SeletorModoTema />
                             <div className="border-t border-slate-100 pt-1">
                                 <button
                                     type="button"

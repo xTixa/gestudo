@@ -161,7 +161,7 @@ function buildServiceGroups(atividadesPorDia) {
 
 function SummaryCard({ icon, value, label }) {
     return (
-        <article className="rounded-xl bg-[#f8fafc] px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+        <article className="rounded-xl bg-slate-50 px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
             <div className="flex justify-center text-slate-500">
                 {createElement(icon, { size: 13 })}
             </div>
@@ -178,7 +178,7 @@ function SummaryCard({ icon, value, label }) {
 function ServiceCard({ service }) {
     const badgeClasses =
         service.categoria === 'extra'
-            ? 'bg-[#f3e8ff] text-[#a855f7]'
+            ? 'bg-purple-100 text-purple-500'
             : 'bg-emerald-50 text-emerald-700';
 
     return (

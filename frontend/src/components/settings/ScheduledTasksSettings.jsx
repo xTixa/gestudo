@@ -220,7 +220,7 @@ export default function ScheduledTasksSettings() {
                                         type="button"
                                         onClick={() => handleRun(tarefa)}
                                         disabled={!tarefa.moduloDisponivel || Boolean(runningName)}
-                                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0891b2] disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         {isRunning ? (
                                             <Loader2 size={16} className="animate-spin" />
@@ -236,7 +236,7 @@ export default function ScheduledTasksSettings() {
                                         <button
                                             type="button"
                                             onClick={() => setExpanded(isExpanded ? null : tarefa.nome)}
-                                            className="text-sm font-medium text-[#0891b2] hover:underline"
+                                            className="text-sm font-medium text-emerald-600 hover:underline"
                                         >
                                             {isExpanded ? 'Esconder histórico' : 'Ver histórico'}
                                         </button>

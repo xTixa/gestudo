@@ -274,7 +274,7 @@ function ToggleSwitch({ checked, onChange, loading }) {
             } ${loading ? 'cursor-not-allowed opacity-50' : ''}`}
         >
             <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-branco shadow-sm transition ${
                     checked ? 'left-[18px]' : 'left-0.5'
                 }`}
             />

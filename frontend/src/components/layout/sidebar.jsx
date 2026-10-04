@@ -81,7 +81,7 @@ export default function Sidebar({
             ) : null}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900 text-slate-300 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:transition-[width] ${
+                className={`fixed inset-y-0 left-0 z-40 zona-escura flex w-64 flex-col bg-slate-900 text-slate-300 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:transition-[width] ${
                     isOpen ? 'translate-x-0' : '-translate-x-full'
                 } ${expanded ? 'lg:w-64' : 'lg:w-[72px]'}`}
                 aria-label="Menu principal"

@@ -82,7 +82,7 @@ export default function ServicePreviewDrawer({ service, kind, onClose }) {
         <>
             <div
                 onClick={onClose}
-                className="fixed inset-0 z-40 bg-slate-900/35 backdrop-blur-sm transition-opacity"
+                className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm transition-opacity"
             />
 
             <aside className="fixed bottom-3 left-3 right-3 top-3 z-50 flex max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-2xl bg-white shadow-2xl sm:left-auto sm:w-full sm:max-w-[460px]">

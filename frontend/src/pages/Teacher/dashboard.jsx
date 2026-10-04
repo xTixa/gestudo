@@ -261,9 +261,9 @@ function TodaySessionsCard({ sessions }) {
                     sessions.map((session) => (
                         <div
                             key={session.key}
-                            className="flex items-center gap-3 rounded-xl bg-[#f8fafc] px-4 py-3"
+                            className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3"
                         >
-                            <span className="min-w-[44px] rounded-lg bg-[#d9e8f0] px-2 py-2 text-center text-xs font-semibold text-[#64748b]">
+                            <span className="min-w-[44px] rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-semibold text-slate-500">
                                 {session.hour}
                             </span>
 
@@ -299,7 +299,7 @@ function DisciplineCard({ service }) {
                 <h3 className="text-sm font-semibold text-slate-700">
                     {service.title}
                 </h3>
-                <span className="rounded-full bg-[#f2ecfb] px-2 py-1 text-[11px] font-semibold text-[#a855f7]">
+                <span className="rounded-full bg-purple-50 px-2 py-1 text-[11px] font-semibold text-purple-500">
                     Curricular
                 </span>
             </div>

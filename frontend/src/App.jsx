@@ -15,6 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PlanGate from './components/plan/PlanGate';
 import MessagesDock from './components/messages/MessagesDock';
 import { usePlan } from './utils/plan';
+import { useAplicarModoTema } from './theme/modoTema';
 
 // Páginas carregadas a pedido (cada uma é um ficheiro JS à parte).
 const Login = lazyPage(() => import('./pages/Auth/Login'));
@@ -410,6 +411,7 @@ function App() {
         () => Boolean(currentRole && ROLE_HOME_PATH[currentRole]),
         [currentRole]
     );
+    useAplicarModoTema(Boolean(user) && isKnownRole);
 
     const prevUserRef = useRef(null);
     const { hasModule, loading: planLoading } = usePlan();

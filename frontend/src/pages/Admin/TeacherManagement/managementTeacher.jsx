@@ -1283,7 +1283,7 @@ export default function GestaoProfessores() {
                             onClick={() =>
                                 navigate('/gestor/professores/addProf')
                             }
-                            className="flex items-center gap-2 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm text-white hover:bg-[#0891b2]"
+                            className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm text-white hover:bg-emerald-600"
                         >
                             <Plus size={16} />
                             Novo Professor
@@ -1942,7 +1942,7 @@ export default function GestaoProfessores() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <button
                         type="button"
-                        className="absolute inset-0 bg-slate-900/45"
+                        className="absolute inset-0 bg-slate-950/45"
                         onClick={fecharConfirmacaoLinha}
                         aria-label="Fechar confirmação"
                     />

@@ -480,7 +480,7 @@ export default function GestaoExtraPage() {
                     <button
                         type="button"
                         onClick={openModal}
-                        className="inline-flex items-center gap-2 rounded-md bg-[#06b6d4] px-4 py-2 text-sm font-medium text-white hover:bg-[#0891b2]"
+                        className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
                     >
                         <Plus size={14} />
                         Novo Serviço
@@ -618,7 +618,7 @@ export default function GestaoExtraPage() {
                     <button
                         type="button"
                         onClick={closeModal}
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
+                        className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
                         aria-label="Fechar modal"
                     />
 
@@ -921,7 +921,7 @@ export default function GestaoExtraPage() {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="rounded-xl bg-[#06b6d4] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0891b2]"
+                                className="rounded-xl bg-emerald-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
                             >
                                 {submitting
                                     ? editingServiceId
@@ -941,7 +941,7 @@ export default function GestaoExtraPage() {
                     <button
                         type="button"
                         onClick={closeDeleteModal}
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
+                        className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
                         aria-label="Fechar confirmação"
                     />
 
