@@ -115,6 +115,7 @@ import { roleMiddleware } from '../middlewares/roleMiddleware.js';
 import financeiroRoutes from './financeiroRoutes.js';
 import { requireModule } from '../config/plans.js';
 import { obterPlanoGestor } from '../controllers/planoController.js';
+import { atualizarAparencia } from '../controllers/aparenciaController.js';
 import {
     validateBody,
     validateParams,
@@ -864,6 +865,13 @@ router.patch(
     validateParams({ key: 'string' }),
     validateBody({ ativo: { type: 'boolean', required: true } }),
     atualizarFeatureFlag
+);
+
+// Cor do tema do centro (vale para todos os utilizadores)
+router.patch(
+    '/aparencia',
+    validateBody({ tema: { type: 'string', required: true } }),
+    atualizarAparencia
 );
 
 // Tarefas automáticas (lembretes, mensalidades, limpeza de logs)

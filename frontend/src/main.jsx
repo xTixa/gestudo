@@ -6,9 +6,13 @@ import './index.css';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { aplicarModoTemaInicial } from './theme/modoTema.js';
+import { aplicarTemaCentroInicial } from './theme/aparenciaCentro.js';
 
-// Aplica o modo escuro antes do primeiro render (só há tema escuro com sessão).
-aplicarModoTemaInicial(Boolean(localStorage.getItem('mc_user')));
+// Aplica o modo escuro e a cor do centro antes do primeiro render (só na área
+// autenticada).
+const comSessao = Boolean(localStorage.getItem('mc_user'));
+aplicarModoTemaInicial(comSessao);
+aplicarTemaCentroInicial(comSessao);
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>

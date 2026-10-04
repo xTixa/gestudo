@@ -16,18 +16,27 @@
  * classe .zona-escura, que repõe as cores originais dentro dela.
  */
 import colors from 'tailwindcss/colors';
+import {
+    TEMA_CENTRO_POR_OMISSAO,
+    TEMAS_CENTRO,
+} from '../src/theme/temasCentro.js';
 
 export const TONS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
 // Fundo dos cartões no modo escuro (bg-white). Serve de base às misturas.
 const CARTAO_ESCURO = '#1c1c1c';
 
-// Paletas com variáveis. "accent" é o ciano da marca (no código aparece como
-// emerald, cyan, spindle e cruise).
+// Paleta de destaque de cada tema do centro (ver src/theme/temasCentro.js).
+const PALETA_TEMA = Object.fromEntries(
+    TEMAS_CENTRO.map((tema) => [tema.id, colors[tema.paleta]])
+);
+
+// Paletas com variáveis. "accent" é a cor do tema do centro (no código aparece
+// como emerald, cyan, spindle e cruise); por omissão é o ciano da marca.
 const PALETAS = {
     slate: colors.slate,
     gray: colors.slate,
-    accent: colors.cyan,
+    accent: PALETA_TEMA[TEMA_CENTRO_POR_OMISSAO],
     red: colors.red,
     rose: colors.rose,
     orange: colors.orange,
@@ -155,16 +164,38 @@ function variaveisEscuras() {
     return resultado;
 }
 
+// Cada tema só troca as variáveis "accent". Funciona no <html> (a app toda) e
+// em qualquer elemento (pré-visualização nas Configurações). Vem depois de
+// :root, e a versão escura (.dark[data-tema]) tem mais especificidade do que
+// html.dark, por isso ganha nos dois modos.
+function variaveisTemas() {
+    const resultado = {};
+    for (const [id, paleta] of Object.entries(PALETA_TEMA)) {
+        resultado[`[data-tema='${id}']`] = {
+            ...variaveis('s', 'accent', paleta),
+            ...variaveis('t', 'accent', paleta),
+        };
+        resultado[`.dark[data-tema='${id}'], .dark [data-tema='${id}']`] = {
+            ...variaveis('s', 'accent', superficieEscura(paleta)),
+            ...variaveis('t', 'accent', conteudoEscuro(paleta)),
+        };
+    }
+    return resultado;
+}
+
 /** CSS base com as variáveis dos dois modos (para addBase de um plugin). */
 export function cssVariaveisTema() {
-    const claras = variaveisClaras();
     return {
-        ':root': claras,
+        ':root': variaveisClaras(),
         'html.dark': variaveisEscuras(),
+        ...variaveisTemas(),
+        // Só os neutros: as cores de destaque seguem o tema do centro.
         'html.dark .zona-escura': {
-            ...claras,
+            '--s-white': canais('#ffffff'),
             ...variaveis('s', 'slate', NEUTRO_ZONA_ESCURA),
             ...variaveis('t', 'slate', NEUTRO_ZONA_ESCURA),
+            ...variaveis('s', 'gray', NEUTRO_ZONA_ESCURA),
+            ...variaveis('t', 'gray', NEUTRO_ZONA_ESCURA),
         },
     };
 }

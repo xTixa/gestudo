@@ -15,6 +15,7 @@ import {
     SlidersHorizontal,
     Package,
     Timer,
+    Palette,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AdminPageHeader from '../../components/layout/AdminPageHeader';
@@ -25,6 +26,7 @@ import EnrollmentFormTextsSettings from '../../components/settings/EnrollmentFor
 import FeatureFlagsSettings from '../../components/settings/FeatureFlagsSettings';
 import PlanSettings from '../../components/settings/PlanSettings';
 import ScheduledTasksSettings from '../../components/settings/ScheduledTasksSettings';
+import AparenciaSettings from '../../components/settings/AparenciaSettings';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../utils/api';
 import { usePlan } from '../../utils/plan';
 
@@ -120,6 +122,7 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: 'pacote', label: 'Pacote', icon: Package },
+        { id: 'aparencia', label: 'Aparência', icon: Palette },
         { id: 'alertas', label: 'Alertas e notificações', icon: Bell, module: 'alertas' },
         { id: 'emails', label: 'Templates de email', icon: Mail, module: 'modelos_email' },
         { id: 'gestores', label: 'Administradores', icon: Shield },
@@ -175,6 +178,7 @@ export default function SettingsPage() {
                 <div className="p-5 sm:p-6 lg:p-8">
 
                     {activeTab === 'pacote' && <PlanSettings />}
+                    {activeTab === 'aparencia' && <AparenciaSettings />}
                     {activeTab === 'alertas' && <AlertsPage />}
                     {activeTab === 'emails' && <EmailTemplatesSettings />}
                     {activeTab === 'tarefas' && <ScheduledTasksSettings />}

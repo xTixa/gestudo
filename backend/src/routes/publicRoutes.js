@@ -12,6 +12,7 @@ import { validateBody } from '../middlewares/validationMiddleware.js';
 import { rateLimitMiddleware } from '../middlewares/securityMiddleware.js';
 import { requireModule } from '../config/plans.js';
 import { obterPlanoPublico } from '../controllers/planoController.js';
+import { obterAparencia } from '../controllers/aparenciaController.js';
 
 /**
  * ========================================
@@ -48,6 +49,7 @@ router.get('/inscricao-opcoes', listarOpcoesInscricao);
 router.get('/inscricao-textos', obterInscricaoTextosPublico);
 router.get('/feature-flags', obterFeatureFlagsPublico);
 router.get('/plano', obterPlanoPublico);
+router.get('/aparencia', obterAparencia);
 router.post(
     '/inscricao',
     requireModule('inscricoes_online'),

@@ -16,6 +16,7 @@ import PlanGate from './components/plan/PlanGate';
 import MessagesDock from './components/messages/MessagesDock';
 import { usePlan } from './utils/plan';
 import { useAplicarModoTema } from './theme/modoTema';
+import { useAplicarTemaCentro } from './theme/aparenciaCentro';
 
 // Páginas carregadas a pedido (cada uma é um ficheiro JS à parte).
 const Login = lazyPage(() => import('./pages/Auth/Login'));
@@ -412,6 +413,7 @@ function App() {
         [currentRole]
     );
     useAplicarModoTema(Boolean(user) && isKnownRole);
+    useAplicarTemaCentro(Boolean(user) && isKnownRole);
 
     const prevUserRef = useRef(null);
     const { hasModule, loading: planLoading } = usePlan();
