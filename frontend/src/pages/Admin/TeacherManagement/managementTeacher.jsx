@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Search,
@@ -6,23 +6,20 @@ import {
     FileSearch,
     Upload,
     Plus,
-    Eye,
-    EyeOff,
-    Trash,
     MoreVertical,
-    Pencil,
     X,
     UserRound,
     GraduationCap,
     Funnel,
-    ChevronUp,
-    ChevronDown,
-    ChevronsUpDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { lerPrimeiraFolha, linhasParaXlsx } from '../../../utils/excel';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
+import SortableTableHead from '../../../components/people/SortableTableHead';
+import RowActionsMenu from '../../../components/people/RowActionsMenu';
+import ConfirmRowActionModal from '../../../components/people/ConfirmRowActionModal';
+import { useRowActionsMenu } from '../../../components/people/useRowActionsMenu';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
 import { usePlan } from '../../../utils/plan';
 
@@ -591,6 +588,16 @@ function getProfessorNif(professor) {
     return String(professor?.nif || professor?.pessoa?.nif || '').trim() || '-';
 }
 
+const COLUNAS = [
+    { label: 'Nome Completo', field: 'nome' },
+    { label: 'NIF', field: 'nif' },
+    { label: 'Área Ensino', field: 'area_ensino' },
+    { label: 'Contacto', field: null },
+    { label: 'Email', field: 'email' },
+    { label: 'Nível', field: 'nivel' },
+    { label: 'Data Entrada', field: 'data_entrada' },
+];
+
 export default function GestaoProfessores() {
     const canExport = usePlan().hasModule('exportacoes');
     const navigate = useNavigate();
@@ -616,13 +623,13 @@ export default function GestaoProfessores() {
         keyword: '',
     });
     const [rowActionLoading, setRowActionLoading] = useState(false);
+    const linhaMenu = useRowActionsMenu();
     const [filters, setFilters] = useState(() => ({
         search: searchParams.get('q') || '',
         area_ensino: 'Todos',
         nivel: 'Todos',
     }));
     const [sort, setSort] = useState({ field: null, dir: 'asc' });
-    const [openDropdown, setOpenDropdown] = useState(null);
 
     function handleSort(field) {
         setSort((prev) =>
@@ -631,8 +638,6 @@ export default function GestaoProfessores() {
                 : { field, dir: 'asc' }
         );
     }
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-    const dropdownRef = useRef(null);
 
     const filterOptions = useMemo(
         () => ({
@@ -722,59 +727,6 @@ export default function GestaoProfessores() {
         });
     }, [professores, filters, sort]);
 
-    useEffect(() => {
-        if (openDropdown === null) return;
-
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setOpenDropdown(null);
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [openDropdown]);
-
-    function handleOpenDropdown(event, prof) {
-        if (openDropdown?.id === prof.id_professor) {
-            setOpenDropdown(null);
-            return;
-        }
-        const rect = event.currentTarget.getBoundingClientRect();
-        const dropdownWidth = 192; // w-48
-        const left =
-            rect.left + dropdownWidth > window.innerWidth
-                ? Math.max(8, rect.right - dropdownWidth)
-                : rect.left;
-        setDropdownPos({
-            top: rect.bottom + 4,
-            left,
-            triggerTop: rect.top,
-            triggerBottom: rect.bottom,
-        });
-        setOpenDropdown({ id: prof.id_professor, prof });
-    }
-
-    useLayoutEffect(() => {
-        if (openDropdown === null || !dropdownRef.current) return;
-
-        const height = dropdownRef.current.getBoundingClientRect().height;
-
-        setDropdownPos((prev) => {
-            if (prev.triggerBottom == null) return prev;
-
-            const spaceBelow = window.innerHeight - prev.triggerBottom;
-            const fitsBelow = spaceBelow >= height + 8;
-
-            if (fitsBelow) return prev;
-
-            const openUpwardTop = prev.triggerTop - height - 4;
-            return {
-                ...prev,
-                top: Math.max(8, openUpwardTop),
-            };
-        });
-    }, [openDropdown]);
 
     function abrirConfirmacaoLinha(mode, prof) {
         setRowConfirmModal({ open: true, mode, prof, keyword: '' });
@@ -1393,39 +1345,11 @@ export default function GestaoProfessores() {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="text-gray-500 border-b">
-                            <tr>
-                                {[
-                                    { label: 'Nome Completo', field: 'nome' },
-                                    { label: 'NIF', field: 'nif' },
-                                    { label: 'Área Ensino', field: 'area_ensino' },
-                                    { label: 'Contacto', field: null },
-                                    { label: 'Email', field: 'email' },
-                                    { label: 'Nível', field: 'nivel' },
-                                    { label: 'Data Entrada', field: 'data_entrada' },
-                                ].map(({ label, field }) =>
-                                    field ? (
-                                        <th
-                                            key={label}
-                                            className="py-3 cursor-pointer select-none hover:text-gray-700 whitespace-nowrap"
-                                            onClick={() => handleSort(field)}
-                                        >
-                                            <span className="flex items-center gap-1">
-                                                {label}
-                                                {sort.field === field ? (
-                                                    sort.dir === 'asc' ? <ChevronUp size={13} className="text-indigo-500 shrink-0" /> : <ChevronDown size={13} className="text-indigo-500 shrink-0" />
-                                                ) : (
-                                                    <ChevronsUpDown size={13} className="opacity-30 shrink-0" />
-                                                )}
-                                            </span>
-                                        </th>
-                                    ) : (
-                                        <th key={label} className="py-3">{label}</th>
-                                    )
-                                )}
-                                <th className="text-center py-3">Ações</th>
-                            </tr>
-                        </thead>
+                        <SortableTableHead
+                            colunas={COLUNAS}
+                            sort={sort}
+                            onSort={handleSort}
+                        />
 
                         <tbody>
                             {loading ? (
@@ -1480,7 +1404,9 @@ export default function GestaoProfessores() {
                                         <button
                                             className="text-gray-500 hover:text-indigo-600"
                                             title="Ações"
-                                            onClick={(e) => handleOpenDropdown(e, prof)}
+                                            onClick={(e) =>
+                                                linhaMenu.abrir(e, prof.id_professor, prof)
+                                            }
                                         >
                                             <MoreVertical size={16} />
                                         </button>
@@ -1868,174 +1794,35 @@ export default function GestaoProfessores() {
                 </div>
             ) : null}
 
-            {openDropdown !== null && (
-                <div
-                    ref={dropdownRef}
-                    style={{
-                        position: 'fixed',
-                        top: `${dropdownPos.top}px`,
-                        left: `${dropdownPos.left}px`,
-                        zIndex: 9999,
-                    }}
-                    className="w-48 rounded-md border border-slate-200 bg-white shadow-lg py-1"
-                >
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            navigate(`/gestor/professores/ficha/${openDropdown.id}`);
-                            setOpenDropdown(null);
-                        }}
-                    >
-                        <UserRound size={14} />
-                        Ver ficha completa
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            navigate(`/gestor/professores/update/${openDropdown.id}`);
-                            setOpenDropdown(null);
-                        }}
-                    >
-                        <Pencil size={14} />
-                        Editar
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            downloadProfFichaPdf(openDropdown.prof);
-                            setOpenDropdown(null);
-                        }}
-                    >
-                        <Download size={14} />
-                        Download
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            const prof = openDropdown.prof;
-                            setOpenDropdown(null);
-                            abrirConfirmacaoLinha('status', prof);
-                        }}
-                    >
-                        {openDropdown.prof.status ? (
-                            <EyeOff size={14} />
-                        ) : (
-                            <Eye size={14} />
-                        )}
-                        {openDropdown.prof.status ? 'Desativar' : 'Ativar'}
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                            const prof = openDropdown.prof;
-                            setOpenDropdown(null);
-                            abrirConfirmacaoLinha('delete', prof);
-                        }}
-                    >
-                        <Trash size={14} />
-                        Eliminar definitivamente
-                    </button>
-                </div>
-            )}
+            <RowActionsMenu
+                menu={linhaMenu.menu}
+                pos={linhaMenu.pos}
+                menuRef={linhaMenu.menuRef}
+                onFechar={linhaMenu.fechar}
+                onVerFicha={(prof) =>
+                    navigate(`/gestor/professores/ficha/${prof.id_professor}`)
+                }
+                onEditar={(prof) =>
+                    navigate(`/gestor/professores/update/${prof.id_professor}`)
+                }
+                onDownload={(prof) => downloadProfFichaPdf(prof)}
+                onAlterarEstado={(prof) => abrirConfirmacaoLinha('status', prof)}
+                onEliminar={(prof) => abrirConfirmacaoLinha('delete', prof)}
+            />
 
             {rowConfirmModal.open ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <button
-                        type="button"
-                        className="absolute inset-0 bg-slate-950/45"
-                        onClick={fecharConfirmacaoLinha}
-                        aria-label="Fechar confirmação"
-                    />
-
-                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                        <div className="border-b border-slate-200 px-6 py-4">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Confirmação
-                            </p>
-                            <h3
-                                className={`mt-1 text-lg font-semibold ${
-                                    rowConfirmModal.mode === 'delete'
-                                        ? 'text-red-700'
-                                        : 'text-slate-800'
-                                }`}
-                            >
-                                {rowConfirmModal.mode === 'delete'
-                                    ? 'Eliminar professor definitivamente?'
-                                    : rowConfirmModal.prof?.status
-                                      ? 'Colocar professor em stand by?'
-                                      : 'Reativar professor?'}
-                            </h3>
-                        </div>
-
-                        <div className="space-y-4 px-6 py-5">
-                            <p className="text-sm text-slate-600">
-                                {rowConfirmModal.mode === 'delete'
-                                    ? 'Esta ação é irreversível e remove os dados do professor. Para continuar, confirma explicitamente abaixo.'
-                                    : rowConfirmModal.prof?.status
-                                      ? 'O professor ficará inativo e deixará de aceder à plataforma até ser reativado.'
-                                      : 'O professor volta a ter acesso à plataforma.'}
-                            </p>
-
-                            {rowConfirmModal.mode === 'delete' ? (
-                                <div className="space-y-2">
-                                    <label
-                                        htmlFor="confirmar-eliminar-professor-linha"
-                                        className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-                                    >
-                                        Escreve ELIMINAR para confirmar
-                                    </label>
-                                    <input
-                                        id="confirmar-eliminar-professor-linha"
-                                        type="text"
-                                        value={rowConfirmModal.keyword}
-                                        onChange={(event) =>
-                                            setRowConfirmModal((prev) => ({
-                                                ...prev,
-                                                keyword: event.target.value || '',
-                                            }))
-                                        }
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                                        placeholder="ELIMINAR"
-                                        autoComplete="off"
-                                    />
-                                </div>
-                            ) : null}
-                        </div>
-
-                        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-                            <button
-                                type="button"
-                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                onClick={fecharConfirmacaoLinha}
-                                disabled={rowActionLoading}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
-                                    rowConfirmModal.mode === 'delete'
-                                        ? 'bg-red-600 hover:bg-red-700'
-                                        : 'bg-amber-600 hover:bg-amber-700'
-                                } disabled:cursor-not-allowed disabled:opacity-60`}
-                                onClick={confirmarAcaoLinha}
-                                disabled={
-                                    rowActionLoading ||
-                                    (rowConfirmModal.mode === 'delete' &&
-                                        rowConfirmModal.keyword !== 'ELIMINAR')
-                                }
-                            >
-                                {rowActionLoading
-                                    ? 'A processar...'
-                                    : rowConfirmModal.mode === 'delete'
-                                      ? 'Eliminar definitivamente'
-                                      : rowConfirmModal.prof?.status
-                                        ? 'Confirmar stand by'
-                                        : 'Confirmar reativação'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmRowActionModal
+                    modo={rowConfirmModal.mode}
+                    ativo={rowConfirmModal.prof?.status}
+                    entidade="professor"
+                    keyword={rowConfirmModal.keyword}
+                    onKeywordChange={(keyword) =>
+                        setRowConfirmModal((prev) => ({ ...prev, keyword }))
+                    }
+                    onCancelar={fecharConfirmacaoLinha}
+                    onConfirmar={confirmarAcaoLinha}
+                    aProcessar={rowActionLoading}
+                />
             ) : null}
         </div>
     );

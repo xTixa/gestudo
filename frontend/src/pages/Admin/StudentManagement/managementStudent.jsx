@@ -1,22 +1,15 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Search,
     Download,
     FileSearch,
     Upload,
     Plus,
-    Eye,
-    EyeOff,
-    Trash,
     MoreVertical,
-    Pencil,
     X,
     UserRound,
     Users,
     Funnel,
-    ChevronUp,
-    ChevronDown,
-    ChevronsUpDown,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -26,6 +19,10 @@ import { lerPrimeiraFolha, linhasParaXlsx } from '../../../utils/excel';
 import AdminPageHeader from '../../../components/layout/AdminPageHeader';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../../utils/api';
 import { gerarFichaAlunoPdf } from '../../../utils/fichaAlunoPdf';
+import SortableTableHead from '../../../components/people/SortableTableHead';
+import RowActionsMenu from '../../../components/people/RowActionsMenu';
+import ConfirmRowActionModal from '../../../components/people/ConfirmRowActionModal';
+import { useRowActionsMenu } from '../../../components/people/useRowActionsMenu';
 import { usePlan } from '../../../utils/plan';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -591,6 +588,16 @@ async function downloadAlunoFichaPdf(aluno) {
     gerarFichaAlunoPdf(data.aluno);
 }
 
+const COLUNAS = [
+    { label: 'Nome Completo', field: 'nome' },
+    { label: 'NIF', field: 'nif' },
+    { label: 'Ano Escolar', field: 'ano' },
+    { label: 'Escola', field: 'escola' },
+    { label: 'Encarregado Educação', field: null },
+    { label: 'Contacto', field: null },
+    { label: 'Data Início', field: 'data_inicio' },
+];
+
 export default function GestaoAlunos() {
     const canExport = usePlan().hasModule('exportacoes');
     const navigate = useNavigate();
@@ -607,9 +614,6 @@ export default function GestaoAlunos() {
     const [error, setError] = useState('');
     const [showExportModal, setShowExportModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
-    const [openDropdown, setOpenDropdown] = useState(null);
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-    const dropdownRef = useRef(null);
     const [exportFormat, setExportFormat] = useState('csv');
     const [importFormat, setImportFormat] = useState('csv');
     const [selectedExportFields, setSelectedExportFields] = useState(
@@ -627,6 +631,7 @@ export default function GestaoAlunos() {
         keyword: '',
     });
     const [rowActionLoading, setRowActionLoading] = useState(false);
+    const linhaMenu = useRowActionsMenu();
     const [filters, setFilters] = useState(() => ({
         search: searchParams.get('q') || '',
         ano: 'Todos',
@@ -745,59 +750,6 @@ export default function GestaoAlunos() {
         };
     }, [alunoSelecionado]);
 
-    useEffect(() => {
-        if (openDropdown === null) return;
-
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setOpenDropdown(null);
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [openDropdown]);
-
-    function handleOpenDropdown(event, aluno) {
-        if (openDropdown?.id === aluno.id_aluno) {
-            setOpenDropdown(null);
-            return;
-        }
-        const rect = event.currentTarget.getBoundingClientRect();
-        const dropdownWidth = 192; // w-48
-        const left =
-            rect.left + dropdownWidth > window.innerWidth
-                ? Math.max(8, rect.right - dropdownWidth)
-                : rect.left;
-        setDropdownPos({
-            top: rect.bottom + 4,
-            left,
-            triggerTop: rect.top,
-            triggerBottom: rect.bottom,
-        });
-        setOpenDropdown({ id: aluno.id_aluno, aluno });
-    }
-
-    useLayoutEffect(() => {
-        if (openDropdown === null || !dropdownRef.current) return;
-
-        const height = dropdownRef.current.getBoundingClientRect().height;
-
-        setDropdownPos((prev) => {
-            if (prev.triggerBottom == null) return prev;
-
-            const spaceBelow = window.innerHeight - prev.triggerBottom;
-            const fitsBelow = spaceBelow >= height + 8;
-
-            if (fitsBelow) return prev;
-
-            const openUpwardTop = prev.triggerTop - height - 4;
-            return {
-                ...prev,
-                top: Math.max(8, openUpwardTop),
-            };
-        });
-    }, [openDropdown]);
 
     const modalAluno = alunoFullData || alunoSelecionado;
     const modalAlunoImage = getAlunoProfileImage(modalAluno);
@@ -1294,39 +1246,11 @@ export default function GestaoAlunos() {
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="text-gray-500 border-b">
-                            <tr>
-                                {[
-                                    { label: 'Nome Completo', field: 'nome' },
-                                    { label: 'NIF', field: 'nif' },
-                                    { label: 'Ano Escolar', field: 'ano' },
-                                    { label: 'Escola', field: 'escola' },
-                                    { label: 'Encarregado Educação', field: null },
-                                    { label: 'Contacto', field: null },
-                                    { label: 'Data Início', field: 'data_inicio' },
-                                ].map(({ label, field }) =>
-                                    field ? (
-                                        <th
-                                            key={label}
-                                            className="py-3 cursor-pointer select-none hover:text-gray-700 whitespace-nowrap"
-                                            onClick={() => handleSort(field)}
-                                        >
-                                            <span className="flex items-center gap-1">
-                                                {label}
-                                                {sort.field === field ? (
-                                                    sort.dir === 'asc' ? <ChevronUp size={13} className="text-indigo-500 shrink-0" /> : <ChevronDown size={13} className="text-indigo-500 shrink-0" />
-                                                ) : (
-                                                    <ChevronsUpDown size={13} className="opacity-30 shrink-0" />
-                                                )}
-                                            </span>
-                                        </th>
-                                    ) : (
-                                        <th key={label} className="py-3">{label}</th>
-                                    )
-                                )}
-                                <th className="text-center py-3">Ações</th>
-                            </tr>
-                        </thead>
+                        <SortableTableHead
+                            colunas={COLUNAS}
+                            sort={sort}
+                            onSort={handleSort}
+                        />
 
                         <tbody>
                             {loading ? (
@@ -1386,7 +1310,9 @@ export default function GestaoAlunos() {
                                               <button
                                                   className="text-gray-500 hover:text-indigo-600"
                                                   title="Ações"
-                                                  onClick={(e) => handleOpenDropdown(e, aluno)}
+                                                  onClick={(e) =>
+                                                      linhaMenu.abrir(e, aluno.id_aluno, aluno)
+                                                  }
                                               >
                                                   <MoreVertical size={16} />
                                               </button>
@@ -1919,182 +1845,44 @@ export default function GestaoAlunos() {
                 </div>
             ) : null}
 
-            {openDropdown !== null && (
-                <div
-                    ref={dropdownRef}
-                    style={{
-                        position: 'fixed',
-                        top: `${dropdownPos.top}px`,
-                        left: `${dropdownPos.left}px`,
-                        zIndex: 9999,
-                    }}
-                    className="w-48 rounded-md border border-slate-200 bg-white shadow-lg py-1"
-                >
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            navigate(`/gestor/alunos/ficha/${openDropdown.id}`);
-                            setOpenDropdown(null);
-                        }}
-                    >
-                        <UserRound size={14} />
-                        Ver ficha completa
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            navigate(`/gestor/alunos/update/${openDropdown.id}`);
-                            setOpenDropdown(null);
-                        }}
-                    >
-                        <Pencil size={14} />
-                        Editar
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={async () => {
-                            const aluno = openDropdown.aluno;
-                            setOpenDropdown(null);
-                            try {
-                                await downloadAlunoFichaPdf(aluno);
-                            } catch (err) {
-                                setActionError(
-                                    err?.message ||
-                                        'Não foi possível gerar o PDF da ficha.'
-                                );
-                            }
-                        }}
-                    >
-                        <Download size={14} />
-                        Download
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                        onClick={() => {
-                            const aluno = openDropdown.aluno;
-                            setOpenDropdown(null);
-                            abrirConfirmacaoLinha('status', aluno);
-                        }}
-                    >
-                        {openDropdown.aluno.status ? (
-                            <EyeOff size={14} />
-                        ) : (
-                            <Eye size={14} />
-                        )}
-                        {openDropdown.aluno.status ? 'Desativar' : 'Ativar'}
-                    </button>
-                    <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                            const aluno = openDropdown.aluno;
-                            setOpenDropdown(null);
-                            abrirConfirmacaoLinha('delete', aluno);
-                        }}
-                    >
-                        <Trash size={14} />
-                        Eliminar definitivamente
-                    </button>
-                </div>
-            )}
+            <RowActionsMenu
+                menu={linhaMenu.menu}
+                pos={linhaMenu.pos}
+                menuRef={linhaMenu.menuRef}
+                onFechar={linhaMenu.fechar}
+                onVerFicha={(aluno) =>
+                    navigate(`/gestor/alunos/ficha/${aluno.id_aluno}`)
+                }
+                onEditar={(aluno) =>
+                    navigate(`/gestor/alunos/update/${aluno.id_aluno}`)
+                }
+                onDownload={async (aluno) => {
+                    try {
+                        await downloadAlunoFichaPdf(aluno);
+                    } catch (err) {
+                        setActionError(
+                            err?.message ||
+                                'Não foi possível gerar o PDF da ficha.'
+                        );
+                    }
+                }}
+                onAlterarEstado={(aluno) => abrirConfirmacaoLinha('status', aluno)}
+                onEliminar={(aluno) => abrirConfirmacaoLinha('delete', aluno)}
+            />
 
             {rowConfirmModal.open ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <button
-                        type="button"
-                        className="absolute inset-0 bg-slate-950/45"
-                        onClick={fecharConfirmacaoLinha}
-                        aria-label="Fechar confirmação"
-                    />
-
-                    <div className="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
-                        <div className="border-b border-slate-200 px-6 py-4">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Confirmação
-                            </p>
-                            <h3
-                                className={`mt-1 text-lg font-semibold ${
-                                    rowConfirmModal.mode === 'delete'
-                                        ? 'text-red-700'
-                                        : 'text-slate-800'
-                                }`}
-                            >
-                                {rowConfirmModal.mode === 'delete'
-                                    ? 'Eliminar aluno definitivamente?'
-                                    : rowConfirmModal.aluno?.status
-                                      ? 'Colocar aluno em stand by?'
-                                      : 'Reativar aluno?'}
-                            </h3>
-                        </div>
-
-                        <div className="space-y-4 px-6 py-5">
-                            <p className="text-sm text-slate-600">
-                                {rowConfirmModal.mode === 'delete'
-                                    ? 'Esta ação é irreversível e remove os dados do aluno. Para continuar, confirma explicitamente abaixo.'
-                                    : rowConfirmModal.aluno?.status
-                                      ? 'O aluno ficará inativo e deixará de aceder à plataforma até ser reativado.'
-                                      : 'O aluno volta a ter acesso à plataforma.'}
-                            </p>
-
-                            {rowConfirmModal.mode === 'delete' ? (
-                                <div className="space-y-2">
-                                    <label
-                                        htmlFor="confirmar-eliminar-aluno-linha"
-                                        className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-                                    >
-                                        Escreve ELIMINAR para confirmar
-                                    </label>
-                                    <input
-                                        id="confirmar-eliminar-aluno-linha"
-                                        type="text"
-                                        value={rowConfirmModal.keyword}
-                                        onChange={(event) =>
-                                            setRowConfirmModal((prev) => ({
-                                                ...prev,
-                                                keyword: event.target.value || '',
-                                            }))
-                                        }
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                                        placeholder="ELIMINAR"
-                                        autoComplete="off"
-                                    />
-                                </div>
-                            ) : null}
-                        </div>
-
-                        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-                            <button
-                                type="button"
-                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                onClick={fecharConfirmacaoLinha}
-                                disabled={rowActionLoading}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
-                                    rowConfirmModal.mode === 'delete'
-                                        ? 'bg-red-600 hover:bg-red-700'
-                                        : 'bg-amber-600 hover:bg-amber-700'
-                                } disabled:cursor-not-allowed disabled:opacity-60`}
-                                onClick={confirmarAcaoLinha}
-                                disabled={
-                                    rowActionLoading ||
-                                    (rowConfirmModal.mode === 'delete' &&
-                                        rowConfirmModal.keyword !== 'ELIMINAR')
-                                }
-                            >
-                                {rowActionLoading
-                                    ? 'A processar...'
-                                    : rowConfirmModal.mode === 'delete'
-                                      ? 'Eliminar definitivamente'
-                                      : rowConfirmModal.aluno?.status
-                                        ? 'Confirmar stand by'
-                                        : 'Confirmar reativação'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmRowActionModal
+                    modo={rowConfirmModal.mode}
+                    ativo={rowConfirmModal.aluno?.status}
+                    entidade="aluno"
+                    keyword={rowConfirmModal.keyword}
+                    onKeywordChange={(keyword) =>
+                        setRowConfirmModal((prev) => ({ ...prev, keyword }))
+                    }
+                    onCancelar={fecharConfirmacaoLinha}
+                    onConfirmar={confirmarAcaoLinha}
+                    aProcessar={rowActionLoading}
+                />
             ) : null}
         </div>
     );

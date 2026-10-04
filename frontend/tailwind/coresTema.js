@@ -37,6 +37,8 @@ const PALETAS = {
     slate: colors.slate,
     gray: colors.slate,
     accent: PALETA_TEMA[TEMA_CENTRO_POR_OMISSAO],
+    // Ciano fixo, que não segue o tema do centro (ex.: cor de um professor).
+    ciano: colors.cyan,
     red: colors.red,
     rose: colors.rose,
     orange: colors.orange,
@@ -264,6 +266,7 @@ export function coresTema(prefixo) {
         lavender: s('slate'),
         emerald: s('accent'),
         cyan: s('accent'),
+        ciano: s('ciano'),
         red: s('red'),
         rose: s('rose'),
         orange: s('orange'),

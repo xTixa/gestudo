@@ -10,41 +10,24 @@ import {
     formatDateKey,
     getAgendaCardTitle,
     getAtividadeCategoria,
-    getAtividadeColors,
-    getProfessorColor,
+    getCoresAtividade,
     isAtividadeReposta,
     monthNames,
     weekDayNames,
 } from './agendaUtils';
 
-// Cartão da lista do dia. Modo equipa: fundo e barra na cor do professor,
-// letra C/E. Modo aluno: fundo branco, letra C/E/R na cor do tipo e aviso de
-// aula reposta.
+// Cartão da lista do dia. Modo equipa: fundo e barra na cor do professor.
+// Modo aluno: fundo branco. Em ambos, a letra C/E/R na cor da atividade.
 function estiloCartaoDia(atividade, modo) {
-    const extra = getAtividadeCategoria(atividade) === 'extra';
-    if (modo === 'equipa') {
-        const cor = getProfessorColor(atividade);
-        return {
-            cartao: {
-                className: '',
-                style: {
-                    backgroundColor: cor.bg,
-                    borderLeftWidth: 4,
-                    borderLeftColor: cor.border,
-                },
-            },
-            badge: { className: '', style: { backgroundColor: cor.badge } },
-            letra: extra ? 'E' : 'C',
-            reposta: false,
-        };
-    }
+    const cor = getCoresAtividade(atividade, modo);
     const reposta = isAtividadeReposta(atividade);
+    const extra = getAtividadeCategoria(atividade) === 'extra';
     return {
-        cartao: { className: 'bg-white', style: undefined },
-        badge: {
-            className: getAtividadeColors(atividade).badge,
-            style: undefined,
-        },
+        cartao:
+            modo === 'equipa'
+                ? `${cor.bg} border-l-4 ${cor.borderL}`
+                : 'bg-white',
+        badge: cor.badge,
         letra: reposta ? 'R' : extra ? 'E' : 'C',
         reposta,
     };
@@ -170,7 +153,6 @@ export default function AgendaMonthView({
                                 getAtividadeCategoria(atividade) === 'extra'
                         );
                         const hasReposta =
-                            modo === 'aluno' &&
                             atividadesDia.some(isAtividadeReposta);
 
                         return (
@@ -216,12 +198,10 @@ export default function AgendaMonthView({
                         <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
                         <span>Extra-Curricular</span>
                     </div>
-                    {modo === 'aluno' ? (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                            <span>Reposta</span>
-                        </div>
-                    ) : null}
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        <span>Reposta</span>
+                    </div>
                 </div>
             </article>
 
@@ -249,8 +229,7 @@ export default function AgendaMonthView({
                             return (
                                 <article
                                     key={`${atividade.hora}-${index}`}
-                                    className={`rounded-xl border border-slate-200 p-3 cursor-pointer transition hover:shadow-md hover:border-slate-300 ${cor.cartao.className}`}
-                                    style={cor.cartao.style}
+                                    className={`rounded-xl border border-slate-200 p-3 cursor-pointer transition hover:shadow-md hover:border-slate-300 ${cor.cartao}`}
                                     onClick={() =>
                                         setSelectedAtividade(atividade)
                                     }
@@ -260,8 +239,7 @@ export default function AgendaMonthView({
                                             {getAgendaCardTitle(atividade)}
                                         </p>
                                         <span
-                                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${cor.badge.className}`}
-                                            style={cor.badge.style}
+                                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold text-white ${cor.badge}`}
                                         >
                                             {cor.letra}
                                         </span>

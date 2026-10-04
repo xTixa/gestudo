@@ -10,33 +10,12 @@ import {
     detectAtividadeColisoes,
     formatDateKey,
     getAgendaCardTitle,
-    getAtividadeColors,
-    getProfessorColor,
+    getCoresAtividade,
     getProfessorName,
+    isAtividadeReposta,
     timeToMinutes,
     weekDayNamesLong,
 } from './agendaUtils';
-
-// Cor do cartão: por professor (hex) no modo equipa, por tipo (classes) no
-// modo aluno.
-function estiloCartaoSemana(atividade, modo) {
-    if (modo === 'equipa') {
-        const cor = getProfessorColor(atividade);
-        return {
-            className: '',
-            style: {
-                backgroundColor: cor.bg,
-                borderLeftColor: cor.border,
-                color: cor.text,
-            },
-        };
-    }
-    const cor = getAtividadeColors(atividade);
-    return {
-        className: `${cor.bg} ${cor.border} ${cor.text}`,
-        style: undefined,
-    };
-}
 
 // Vista semanal: grelha de horas com as atividades posicionadas por hora.
 export default function AgendaWeekView({
@@ -284,7 +263,7 @@ export default function AgendaWeekView({
                                                     100) /
                                                 14;
 
-                                            const cor = estiloCartaoSemana(
+                                            const cor = getCoresAtividade(
                                                 atividade,
                                                 modo
                                             );
@@ -314,10 +293,21 @@ export default function AgendaWeekView({
                                                     }
                                                 >
                                                     <div
-                                                        className={`h-full rounded border-l-4 px-2 py-1 text-xs overflow-hidden flex flex-col transition hover:shadow-lg hover:z-20 ${cor.className}`}
-                                                        style={cor.style}
+                                                        className={`h-full rounded border-l-4 px-2 py-1 text-xs overflow-hidden flex flex-col transition hover:shadow-lg hover:z-20 ${cor.bg} ${cor.borderL} ${cor.text}`}
                                                     >
                                                         <p className="font-semibold truncate">
+                                                            {isAtividadeReposta(
+                                                                atividade
+                                                            ) ? (
+                                                                <span
+                                                                    className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle"
+                                                                    title="Aula reposta"
+                                                                >
+                                                                    <span className="sr-only">
+                                                                        Aula reposta:
+                                                                    </span>
+                                                                </span>
+                                                            ) : null}
                                                             {getAgendaCardTitle(
                                                                 atividade
                                                             )}

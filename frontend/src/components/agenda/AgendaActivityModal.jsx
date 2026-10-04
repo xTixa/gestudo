@@ -3,45 +3,17 @@ import {
     getAgendaCardTitle,
     getAlunosList,
     getAtividadeCategoria,
-    getAtividadeColors,
-    getProfessorColor,
+    getCoresAtividade,
     isAtividadeReposta,
 } from './agendaUtils';
-
-// Cabeçalho na cor do professor (modo equipa) ou do tipo de atividade (modo
-// aluno).
-function estiloCabecalho(atividade, modo) {
-    if (modo === 'equipa') {
-        const cor = getProfessorColor(atividade);
-        return {
-            cabecalho: {
-                className: '',
-                style: {
-                    backgroundColor: cor.bg,
-                    borderColor: cor.border,
-                    color: cor.text,
-                },
-            },
-            titulo: '',
-            badge: { className: '', style: { backgroundColor: cor.badge } },
-        };
-    }
-    const cor = getAtividadeColors(atividade);
-    return {
-        cabecalho: { className: `${cor.bg} ${cor.border}`, style: undefined },
-        titulo: cor.text,
-        badge: { className: cor.badge, style: undefined },
-    };
-}
 
 // Modal de Detalhes da Atividade
 export default function AgendaActivityModal({ atividade, modo, onClose }) {
     const categoria = getAtividadeCategoria(atividade);
-    const equipa = modo === 'equipa';
-    const reposta = !equipa && isAtividadeReposta(atividade);
-    const cor = estiloCabecalho(atividade, modo);
+    const reposta = isAtividadeReposta(atividade);
+    const cor = getCoresAtividade(atividade, modo);
     // A lista de alunos só aparece a quem gere a sessão.
-    const alunos = equipa ? getAlunosList(atividade) : [];
+    const alunos = modo === 'equipa' ? getAlunosList(atividade) : [];
     const badgeLabel = reposta
         ? 'Reposta'
         : categoria === 'extra'
@@ -61,19 +33,17 @@ export default function AgendaActivityModal({ atividade, modo, onClose }) {
                 <article className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                     {/* Header com cor */}
                     <div
-                        className={`border-b-2 px-6 py-4 ${cor.cabecalho.className}`}
-                        style={cor.cabecalho.style}
+                        className={`border-b-2 px-6 py-4 ${cor.bg} ${cor.border}`}
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <h2
-                                    className={`text-2xl font-bold ${cor.titulo}`}
+                                    className={`text-2xl font-bold ${cor.text}`}
                                 >
                                     {getAgendaCardTitle(atividade)}
                                 </h2>
                                 <span
-                                    className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${cor.badge.className}`}
-                                    style={cor.badge.style}
+                                    className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${cor.badge}`}
                                 >
                                     {badgeLabel}
                                 </span>

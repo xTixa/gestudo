@@ -34,31 +34,86 @@ export const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => {
     return `${String(hour).padStart(2, '0')}:00`;
 });
 
+// Cores da agenda em classes da paleta (acompanham o modo escuro). Cada cor
+// tem fundo, borda, borda esquerda, texto e badge; as classes estão escritas
+// por extenso para o Tailwind as encontrar.
+//
+// Cores dos professores, pela ordem da paleta do backend
+// (PROFESSOR_COLOR_PALETTE em professorController.js). "hex" lista os valores
+// guardados na BD que correspondem a cada cor, incluindo os da migração 012.
 const PROFESSOR_COLORS = [
-    { bg: '#eaf9f5', border: '#06b6d4', text: '#0e7490', badge: '#06b6d4' },
-    { bg: '#f8fafc', border: '#1e293b', text: '#0f172a', badge: '#1e293b' },
-    { bg: '#f8fafc', border: '#64748b', text: '#0f172a', badge: '#64748b' },
-    { bg: '#fff7ed', border: '#f97316', text: '#9a3412', badge: '#f97316' },
-    { bg: '#f5f3ff', border: '#8b5cf6', text: '#5b21b6', badge: '#8b5cf6' },
-    { bg: '#fefce8', border: '#eab308', text: '#854d0e', badge: '#eab308' },
+    {
+        hex: ['#14ad81', '#06b6d4'],
+        bg: 'bg-ciano-50',
+        border: 'border-ciano-500',
+        borderL: 'border-l-ciano-500',
+        text: 'text-ciano-700',
+        badge: 'bg-ciano-500',
+    },
+    {
+        hex: ['#1e3a5f', '#1e293b'],
+        bg: 'bg-slate-50',
+        border: 'border-slate-800',
+        borderL: 'border-l-slate-800',
+        text: 'text-slate-900',
+        badge: 'bg-slate-800',
+    },
+    {
+        hex: ['#63738c', '#64748b'],
+        bg: 'bg-slate-50',
+        border: 'border-slate-500',
+        borderL: 'border-l-slate-500',
+        text: 'text-slate-900',
+        badge: 'bg-slate-500',
+    },
+    {
+        hex: ['#f97316'],
+        bg: 'bg-orange-50',
+        border: 'border-orange-500',
+        borderL: 'border-l-orange-500',
+        text: 'text-orange-800',
+        badge: 'bg-orange-500',
+    },
+    {
+        hex: ['#8b5cf6'],
+        bg: 'bg-violet-50',
+        border: 'border-violet-500',
+        borderL: 'border-l-violet-500',
+        text: 'text-violet-800',
+        badge: 'bg-violet-500',
+    },
+    {
+        hex: ['#eab308'],
+        bg: 'bg-yellow-50',
+        border: 'border-yellow-500',
+        borderL: 'border-l-yellow-500',
+        text: 'text-yellow-800',
+        badge: 'bg-yellow-500',
+    },
 ];
+
+// Atividade sem professor.
+const SEM_PROFESSOR = PROFESSOR_COLORS[2];
 
 const ACTIVITY_COLORS = {
     extra: {
         bg: 'bg-violet-100',
         border: 'border-violet-500',
+        borderL: 'border-l-violet-500',
         text: 'text-violet-900',
         badge: 'bg-violet-500',
     },
     curricular: {
         bg: 'bg-blue-100',
         border: 'border-blue-500',
+        borderL: 'border-l-blue-500',
         text: 'text-blue-900',
         badge: 'bg-emerald-500',
     },
     reposta: {
         bg: 'bg-amber-100',
         border: 'border-amber-500',
+        borderL: 'border-l-amber-500',
         text: 'text-amber-900',
         badge: 'bg-amber-500',
     },
@@ -76,23 +131,16 @@ function hashString(value) {
 }
 
 function buildColorSetFromHex(hex) {
-    const match = PROFESSOR_COLORS.find(
-        (set) => set.border.toLowerCase() === String(hex || '').toLowerCase()
-    );
-    return match || null;
+    const valor = String(hex || '').toLowerCase();
+    return PROFESSOR_COLORS.find((set) => set.hex.includes(valor)) || null;
 }
 
-// Cores (hex) do professor da atividade: a cor guardada na ficha do professor
-// ou, sem ela, uma cor fixa derivada do nome.
+// Cor do professor da atividade: a cor guardada na ficha do professor ou, sem
+// ela, uma cor fixa derivada do nome.
 export function getProfessorColor(atividade) {
     const professor = getProfessorName(atividade);
     if (!professor) {
-        return {
-            bg: '#f8fafc',
-            border: '#64748b',
-            text: '#0f172a',
-            badge: '#64748b',
-        };
+        return SEM_PROFESSOR;
     }
 
     const corPersistida = buildColorSetFromHex(atividade?.professorCor);
@@ -103,6 +151,16 @@ export function getProfessorColor(atividade) {
     return PROFESSOR_COLORS[
         hashString(professor.toLowerCase()) % PROFESSOR_COLORS.length
     ];
+}
+
+/**
+ * Cores de uma atividade: por professor no modo "equipa" (gestor e
+ * professor), por tipo no modo "aluno" (aluno e encarregado).
+ */
+export function getCoresAtividade(atividade, modo) {
+    return modo === 'equipa'
+        ? getProfessorColor(atividade)
+        : getAtividadeColors(atividade);
 }
 
 export function getAlunosList(atividade) {
@@ -129,7 +187,7 @@ export function isAtividadeReposta(atividade) {
     return String(atividade?.estado || '').toLowerCase() === 'reposta';
 }
 
-// Cores (classes Tailwind) por tipo de atividade, usadas no modo "aluno".
+// Cores por tipo de atividade, usadas no modo "aluno".
 export function getAtividadeColors(atividade) {
     if (isAtividadeReposta(atividade)) {
         return ACTIVITY_COLORS.reposta;
