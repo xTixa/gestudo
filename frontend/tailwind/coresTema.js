@@ -179,17 +179,26 @@ function variaveisTemas() {
             ...variaveis('s', 'accent', superficieEscura(paleta)),
             ...variaveis('t', 'accent', conteudoEscuro(paleta)),
         };
-        // Fundo da barra lateral (bg-slate-900 dentro de .zona-escura) num tom
-        // escuro da cor do centro. O ciano mantém o azul-marinho da marca.
+        // Barra lateral (.zona-escura) na cor do centro, num tom vivo: fundo
+        // 700 (800 no modo escuro), texto em tons claros da mesma cor e o item
+        // ativo a branco, para manter o contraste. O ciano mantém o
+        // azul-marinho da marca.
         if (id === TEMA_CENTRO_POR_OMISSAO) continue;
-        resultado[`[data-tema='${id}'] .zona-escura`] = {
-            '--s-slate-900': canais(misturar(paleta[900], '#0a0a0a', 0.5)),
-        };
+        const barraLateral = (fundo) => ({
+            '--s-slate-900': canais(fundo),
+            '--t-slate-100': canais('#ffffff'),
+            '--t-slate-300': canais(paleta[50]),
+            '--t-slate-400': canais(paleta[100]),
+            '--t-slate-500': canais(paleta[200]),
+            '--t-accent-400': canais('#ffffff'),
+            '--s-accent-400': canais('#ffffff'),
+            // Contador de não lidas: escuro, com texto branco.
+            '--s-accent-500': canais(paleta[900]),
+        });
+        resultado[`[data-tema='${id}'] .zona-escura`] = barraLateral(paleta[700]);
         resultado[
             `.dark[data-tema='${id}'] .zona-escura, .dark [data-tema='${id}'] .zona-escura`
-        ] = {
-            '--s-slate-900': canais(misturar(paleta[900], '#0a0a0a', 0.25)),
-        };
+        ] = barraLateral(paleta[800]);
     }
     return resultado;
 }
