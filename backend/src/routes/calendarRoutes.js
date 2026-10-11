@@ -4,6 +4,7 @@ import {
     regenerarCalendarTokenController,
 } from '../controllers/calendarFeedController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { requireSession } from '../middlewares/roleMiddleware.js';
 import { requireModule } from '../config/plans.js';
 
 /**
@@ -27,6 +28,7 @@ import { requireModule } from '../config/plans.js';
 const router = express.Router();
 
 router.use(authMiddleware);
+router.use(requireSession());
 router.use(requireModule('calendario_sync'));
 
 router.get('/calendar-token', obterCalendarToken);

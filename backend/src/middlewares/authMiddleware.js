@@ -24,16 +24,15 @@ function parseCookieHeader(cookieHeader) {
  * ========================================
  * Extrai informações de autenticação do utilizador
  *
- * Suporta múltiplas formas de autenticação:
- * 1. Header X-User-Id: número do utilizador
- * 2. Authorization Bearer: Bearer <userId> ou apenas <userId>
+ * Lê o JWT do cookie mc_token ou do header "Authorization: Bearer <jwt>".
  *
  * Resultado:
- * - req.userId: ID do utilizador autenticado (ou null se não autenticado)
+ * - req.userId, req.userRole e req.tokenVersion (null/0 sem token)
  *
  * Notas:
- * - NÃO bloqueia requisições (continua mesmo sem autenticação)
- * - Útil para rotas que permitem ambos autenticados e não autenticados
+ * - Só valida a assinatura e a validade do token; NÃO bloqueia pedidos sem
+ *   token. As rotas protegidas usam o roleMiddleware/requireSession, que
+ *   confirma na BD se a sessão não foi revogada.
  * ========================================
  */
 
@@ -76,6 +75,9 @@ export function authMiddleware(req, res, next) {
 
         req.userId = userId;
         req.userRole = String(payload?.role || '').trim() || null;
+        // Comparado com users.token_version no roleMiddleware. Tokens emitidos
+        // antes desta funcionalidade não têm "tv" e contam como versão 0.
+        req.tokenVersion = Number.isInteger(payload?.tv) ? payload.tv : 0;
         next();
     } catch (error) {
         console.error('Erro no middleware de autenticação:', error.message);

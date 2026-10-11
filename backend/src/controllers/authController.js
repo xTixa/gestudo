@@ -326,7 +326,8 @@ export async function login(req, res) {
       SELECT ${safeId} AS id,
              ${safeEmail} AS email,
              ${safePassword} AS password,
-              ${safeRole} AS role
+              ${safeRole} AS role,
+             token_version
               ${selectFirstLoginFragment}
           ${selectProfileImageFragment}
              ${selectNameFragment}
@@ -357,6 +358,7 @@ export async function login(req, res) {
             id: user.id,
             role: user.role,
             email: user.email,
+            tv: Number(user.token_version || 0),
         });
         setAuthCookie(res, authToken);
         const csrfToken = refreshCsrfCookie(res);
@@ -475,9 +477,10 @@ export async function alterarPassword(req, res) {
             : '';
         const updateQuery = `
       UPDATE ${safeTable}
-      SET ${safePassword} = $1${updateFirstLoginFragment}
+      SET ${safePassword} = $1${updateFirstLoginFragment},
+          token_version = token_version + 1
       WHERE ${safeId} = $2
-      RETURNING ${safeId} AS id
+      RETURNING ${safeId} AS id, token_version
     `;
 
         const { rows: updateRows } = await db.query(updateQuery, [
@@ -520,9 +523,13 @@ export async function alterarPassword(req, res) {
             }
         }
 
+        // As outras sessões deste utilizador deixam de valer (token_version
+        // foi incrementado); esta continua com um token na versão nova.
         const refreshedToken = signAuthToken({
             id: userId,
             role: req.userRole || null,
+            email: user.email,
+            tv: Number(updateRows[0].token_version),
         });
         setAuthCookie(res, refreshedToken);
         const csrfToken = refreshCsrfCookie(res);
@@ -702,7 +709,9 @@ export async function redefinirPassword(req, res) {
         const passwordHash = await bcrypt.hash(passwordNova, 10);
 
         await client.query(
-            `UPDATE users SET password = $1, primeira_login = false WHERE id_user = $2`,
+            `UPDATE users
+             SET password = $1, primeira_login = false, token_version = token_version + 1
+             WHERE id_user = $2`,
             [passwordHash, pedido.id_user]
         );
 

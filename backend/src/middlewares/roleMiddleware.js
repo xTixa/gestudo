@@ -4,27 +4,26 @@ import { db } from '../config/db.js';
  * ========================================
  * ROLE MIDDLEWARE
  * ========================================
- * Verifica se o utilizador autenticado tem a role/permissão necessária
- * Consulta a tabela users para obter o role do utilizador
+ * Confirma na base de dados que a sessão continua válida e, opcionalmente,
+ * que o utilizador tem uma das roles pedidas.
+ *
+ * A sessão é inválida se o utilizador não existir, estiver desativado ou se
+ * o token_version da BD for diferente do "tv" do JWT (password alterada,
+ * redefinida ou reposta pelo gestor depois de o token ser emitido).
  *
  * Uso:
  * router.use(authMiddleware)
  * router.use(roleMiddleware('gestor'))
- *
- * Ou por rota:
- * router.get("/admin", roleMiddleware('admin'), controller)
- *
- * Resultado:
- * - Se user tem role correto: continua (next)
- * - Se user não tem role correto: retorna 403 Forbidden
- * - Se user não autenticado: retorna 401 Unauthorized
+ * router.use(roleMiddlewareMultiple(['gestor', 'professor']))
+ * router.use(requireSession())      // qualquer utilizador autenticado
  * ========================================
  */
 
-export function roleMiddleware(requiredRole) {
+function verificarSessao(requiredRoles) {
+    const roles = requiredRoles.map((role) => String(role).toLowerCase());
+
     return async (req, res, next) => {
         try {
-            // Verificar se utilizador está autenticado
             if (!req.userId) {
                 return res.status(401).json({
                     error: 'Autenticação necessária',
@@ -32,9 +31,8 @@ export function roleMiddleware(requiredRole) {
                 });
             }
 
-            // Obter role do utilizador da BD
             const { rows } = await db.query(
-                `SELECT role, status FROM users WHERE id_user = $1 LIMIT 1`,
+                `SELECT role, status, token_version FROM users WHERE id_user = $1 LIMIT 1`,
                 [req.userId]
             );
 
@@ -47,7 +45,6 @@ export function roleMiddleware(requiredRole) {
 
             const user = rows[0];
 
-            // Verificar se utilizador está ativo
             if (user.status === false) {
                 return res.status(401).json({
                     error: 'Conta desativada',
@@ -56,22 +53,25 @@ export function roleMiddleware(requiredRole) {
                 });
             }
 
-            // Verificar se tem a role necessária
-            if (
-                String(user.role).toLowerCase() !==
-                String(requiredRole).toLowerCase()
-            ) {
-                return res.status(403).json({
-                    error: 'Permissão insuficiente',
-                    message: `Apenas utilizadores com role '${requiredRole}' podem aceder a este recurso`,
-                    userRole: user.role,
-                    requiredRole: requiredRole,
+            if (Number(user.token_version || 0) !== (req.tokenVersion || 0)) {
+                return res.status(401).json({
+                    error: 'Sessão terminada',
+                    message:
+                        'A sua sessão terminou porque a password foi alterada. Faça login novamente.',
                 });
             }
 
-            // Adicionar role a req para acesso em controladores
-            req.userRole = user.role;
+            if (
+                roles.length &&
+                !roles.includes(String(user.role).toLowerCase())
+            ) {
+                return res.status(403).json({
+                    error: 'Permissão insuficiente',
+                    message: 'Não tem permissão para aceder a este recurso',
+                });
+            }
 
+            req.userRole = user.role;
             next();
         } catch (error) {
             console.error('Erro no middleware de role:', error.message);
@@ -83,69 +83,14 @@ export function roleMiddleware(requiredRole) {
     };
 }
 
-/**
- * Middleware para verificar múltiplas roles
- * Utiliza: roleMiddlewareMultiple(['admin', 'gestor'])
- */
+export function roleMiddleware(requiredRole) {
+    return verificarSessao([requiredRole]);
+}
+
 export function roleMiddlewareMultiple(requiredRoles) {
-    return async (req, res, next) => {
-        try {
-            if (!req.userId) {
-                return res.status(401).json({
-                    error: 'Autenticação necessária',
-                    message: 'Faça login para aceder a este recurso',
-                });
-            }
+    return verificarSessao(requiredRoles);
+}
 
-            const { rows } = await db.query(
-                `SELECT role, status FROM users WHERE id_user = $1 LIMIT 1`,
-                [req.userId]
-            );
-
-            if (!rows.length) {
-                return res.status(401).json({
-                    error: 'Utilizador não encontrado',
-                    message: 'Utilizador não existe no sistema',
-                });
-            }
-
-            const user = rows[0];
-
-            if (user.status === false) {
-                return res.status(401).json({
-                    error: 'Conta desativada',
-                    message:
-                        'A sua conta foi desativada. Contacte o administrador',
-                });
-            }
-
-            // Verificar se role está na lista permitida
-            const hasRole = requiredRoles.some(
-                (role) =>
-                    String(user.role).toLowerCase() ===
-                    String(role).toLowerCase()
-            );
-
-            if (!hasRole) {
-                return res.status(403).json({
-                    error: 'Permissão insuficiente',
-                    message: `Apenas utilizadores com roles ${requiredRoles.join(', ')} podem aceder a este recurso`,
-                    userRole: user.role,
-                    requiredRoles: requiredRoles,
-                });
-            }
-
-            req.userRole = user.role;
-            next();
-        } catch (error) {
-            console.error(
-                'Erro no middleware de role (múltiplo):',
-                error.message
-            );
-            return res.status(500).json({
-                error: 'Erro interno',
-                message: 'Erro ao verificar permissões',
-            });
-        }
-    };
+export function requireSession() {
+    return verificarSessao([]);
 }

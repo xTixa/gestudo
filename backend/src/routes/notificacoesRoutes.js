@@ -6,7 +6,10 @@ import {
     removerDeviceToken,
 } from '../controllers/notificacoesController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
-import { roleMiddleware } from '../middlewares/roleMiddleware.js';
+import {
+    roleMiddleware,
+    requireSession,
+} from '../middlewares/roleMiddleware.js';
 import { requireModule } from '../config/plans.js';
 
 /**
@@ -36,16 +39,22 @@ const router = express.Router();
  * Response: [{id, tipo, titulo, descricao, nivel, createdAt}]
  * Status: 200 OK | 500 Internal Server Error
  */
-router.get('/', listarNotificacoes);
+router.get('/', authMiddleware, requireSession(), listarNotificacoes);
 
 router.post(
     '/device-token',
     authMiddleware,
+    requireSession(),
     requireModule('notificacoes_push'),
     registarDeviceToken
 );
 
-router.post('/device-token/remover', authMiddleware, removerDeviceToken);
+router.post(
+    '/device-token/remover',
+    authMiddleware,
+    requireSession(),
+    removerDeviceToken
+);
 
 /**
  * POST /api/notificacoes/broadcast

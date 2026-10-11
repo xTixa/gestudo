@@ -4,8 +4,6 @@ import bcrypt from 'bcryptjs';
 import {
     enviarEmailCredenciaisIniciais,
     enviarEmailContaCriadaEE,
-    enviarEmailRecuperacaoPassword,
-    enviarEmailRecuperacaoPasswordEE,
 } from '../services/emailService.js';
 import {
     registarDelete,
@@ -2333,14 +2331,16 @@ export async function resetarPasswordAluno(req, res) {
         const passwordHash = await bcrypt.hash(passwordTemporaria, 10);
 
         await client.query(
-            `UPDATE users SET password = $1, primeira_login = true WHERE id_user = $2`,
+            `UPDATE users
+             SET password = $1, primeira_login = true, token_version = token_version + 1
+             WHERE id_user = $2`,
             [passwordHash, row.id_user]
         );
 
         client.release();
 
         // Enviar ao aluno
-        await enviarEmailRecuperacaoPassword(
+        await enviarEmailCredenciaisIniciais(
             row.nome,
             row.aluno_email,
             passwordTemporaria
@@ -2349,7 +2349,7 @@ export async function resetarPasswordAluno(req, res) {
         // Enviar ao encarregado se tiver email real
         const eeEmail = String(row.ee_email || '').trim();
         if (eeEmail && !eeEmail.includes('@placeholder.local')) {
-            await enviarEmailRecuperacaoPasswordEE(
+            await enviarEmailContaCriadaEE(
                 row.nome,
                 eeEmail,
                 passwordTemporaria

@@ -7,6 +7,7 @@ import {
     listarEventos,
 } from '../controllers/alertasController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { requireSession } from '../middlewares/roleMiddleware.js';
 import { requireModule } from '../config/plans.js';
 
 /**
@@ -58,6 +59,7 @@ router.get('/', obterDefinicoes);
 
 // Rotas abaixo requerem utilizador autenticado
 router.use(authMiddleware);
+router.use(requireSession());
 
 /**
  * GET /api/alertas/minhas-preferencias

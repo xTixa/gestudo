@@ -8,6 +8,7 @@ import {
     obterCsrfToken,
 } from '../controllers/authController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { requireSession } from '../middlewares/roleMiddleware.js';
 import { rateLimitMiddleware } from '../middlewares/securityMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
 
@@ -89,6 +90,7 @@ router.post(
 router.post(
     '/alterar-password',
     authMiddleware,
+    requireSession(),
     validateBody({
         passwordAtual: { type: 'string', required: true, min: 1 },
         passwordNova: { type: 'string', required: true, min: 8 },
