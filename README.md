@@ -180,6 +180,7 @@ As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por 
 - `POST /api/auth/redefinir-password` (`{ token, passwordNova, passwordNovaConfirm }`) define a nova password e invalida todos os links pendentes da conta.
 - Na base de dados só fica o hash SHA-256 do token (`password_reset_tokens`).
 - Mudar, redefinir ou repor (gestor) uma password incrementa `users.token_version` e termina todas as sessões abertas dessa conta. O JWT leva a versão no campo `tv` e o `roleMiddleware`/`requireSession` compara-a com a da BD em cada pedido. Quem mudou a própria password continua com sessão nesse dispositivo.
+- No menu do utilizador, "Terminar sessão em todos os dispositivos" (`POST /api/auth/terminar-sessoes`) faz o mesmo sem mudar a password, incluindo no dispositivo atual, e desativa os dispositivos registados para notificações push.
 - As passwords são sempre guardadas com bcrypt. O login já não aceita passwords em texto simples; a migração `027_passwords_bcrypt.sql` converteu as que existiam.
 
 ### Dashboard

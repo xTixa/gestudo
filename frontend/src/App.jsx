@@ -6,6 +6,7 @@ import {
     useLocation,
     useNavigate,
 } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Navbar from './components/layout/navbar';
 import Sidebar from './components/layout/sidebar';
 import { apiGet, apiPost } from './utils/api';
@@ -551,7 +552,19 @@ function App() {
         };
     }, [user, pushEnabled]);
 
-    const handleLogout = useCallback(async () => {
+    // todosDispositivos: revoga todas as sessões da conta no servidor (e os
+    // dispositivos de push), não só a deste browser.
+    const handleLogout = useCallback(async ({ todosDispositivos = false } = {}) => {
+        if (todosDispositivos) {
+            const response = await apiPost('/api/auth/terminar-sessoes', {}).catch(
+                () => null
+            );
+            if (!response?.ok) {
+                toast.error('Não foi possível terminar as sessões. Tente novamente.');
+                return;
+            }
+        }
+
         try {
             const { removerTokenFirebaseAtual } = await import('./services/firebaseMessaging');
             await removerTokenFirebaseAtual();
@@ -559,15 +572,20 @@ function App() {
             // Falha no cleanup do token não bloqueia logout.
         }
 
-        try {
-            await apiPost('/api/auth/logout', {});
-        } catch {
-            // Se o servidor não responder, o estado local ainda é limpo.
+        if (!todosDispositivos) {
+            try {
+                await apiPost('/api/auth/logout', {});
+            } catch {
+                // Se o servidor não responder, o estado local ainda é limpo.
+            }
         }
 
         setUser(null);
         limparSessaoLocal();
         navigate('/login', { replace: true });
+        if (todosDispositivos) {
+            toast.success('Sessão terminada em todos os dispositivos.');
+        }
     }, [navigate]);
 
     const handleNavigate = useCallback(

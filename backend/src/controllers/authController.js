@@ -553,6 +553,37 @@ export async function logout(req, res) {
     });
 }
 
+/**
+ * Termina a sessão em todos os dispositivos (incluindo este): incrementa o
+ * token_version, o que invalida todos os JWT emitidos, e desativa os
+ * dispositivos registados para notificações push.
+ */
+export async function terminarTodasSessoes(req, res) {
+    try {
+        await db.query(
+            `UPDATE users SET token_version = token_version + 1 WHERE id_user = $1`,
+            [req.userId]
+        );
+        await db.query(
+            `UPDATE notificacoes_device_tokens
+             SET ativo = false, updated_at = NOW()
+             WHERE id_user = $1 AND ativo = true`,
+            [req.userId]
+        );
+
+        clearAuthCookie(res);
+        clearCsrfCookie(res);
+        return res.status(200).json({
+            message: 'Sessão terminada em todos os dispositivos.',
+        });
+    } catch (error) {
+        console.error('Erro ao terminar todas as sessões:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Não foi possível terminar as sessões.' });
+    }
+}
+
 export async function obterCsrfToken(req, res) {
     const csrfToken = refreshCsrfCookie(res);
     return res.status(200).json({ csrfToken });

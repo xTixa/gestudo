@@ -119,6 +119,21 @@ describe('Redefinir password', () => {
     });
 });
 
+describe('Terminar sessão em todos os dispositivos', () => {
+    it('exige sessão', async () => {
+        const res = await request(app).post('/api/auth/terminar-sessoes');
+        expect(res.status).toBe(401);
+    });
+
+    it('com cookie de sessão exige CSRF', async () => {
+        const res = await request(app)
+            .post('/api/auth/terminar-sessoes')
+            .set('Cookie', `mc_token=${tokenFor({ id: 1, role: 'aluno' })}; mc_csrf=abc`);
+        expect(res.status).toBe(403);
+        expect(res.body.message).toMatch(/CSRF/);
+    });
+});
+
 describe('Mensagens', () => {
     it('exigem sessão', async () => {
         expect((await request(app).get('/api/mensagens/conversas')).status).toBe(401);

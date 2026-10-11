@@ -5,11 +5,15 @@ import {
     recuperarPassword,
     redefinirPassword,
     logout,
+    terminarTodasSessoes,
     obterCsrfToken,
 } from '../controllers/authController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireSession } from '../middlewares/roleMiddleware.js';
-import { rateLimitMiddleware } from '../middlewares/securityMiddleware.js';
+import {
+    csrfProtectionMiddleware,
+    rateLimitMiddleware,
+} from '../middlewares/securityMiddleware.js';
 import { validateBody } from '../middlewares/validationMiddleware.js';
 
 /**
@@ -100,5 +104,18 @@ router.post(
 );
 
 router.post('/logout', logout);
+
+/**
+ * POST /api/auth/terminar-sessoes
+ * Termina a sessão em todos os dispositivos do utilizador autenticado
+ * (incluindo o atual) e desativa os dispositivos de notificações push.
+ */
+router.post(
+    '/terminar-sessoes',
+    authMiddleware,
+    csrfProtectionMiddleware(),
+    requireSession(),
+    terminarTodasSessoes
+);
 
 export default router;
