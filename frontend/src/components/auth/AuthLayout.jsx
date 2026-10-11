@@ -208,5 +208,45 @@ export function AuthAlert({ type = 'error', children }) {
     );
 }
 
+const STRENGTH_LEVELS = [
+    { label: 'Fraca', bar: 'bg-red-400' },
+    { label: 'Fraca', bar: 'bg-red-400' },
+    { label: 'Razoável', bar: 'bg-york-400' },
+    { label: 'Boa', bar: 'bg-emerald-400' },
+    { label: 'Forte', bar: 'bg-emerald-600' },
+];
+
+function getPasswordStrength(value) {
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value) || value.length >= 12) score += 1;
+    return { score, ...STRENGTH_LEVELS[score] };
+}
+
+export function PasswordStrength({ value }) {
+    if (!value) return null;
+    const strength = getPasswordStrength(value);
+
+    return (
+        <div className="mt-2 flex items-center gap-2">
+            <div className="flex flex-1 gap-1">
+                {[1, 2, 3, 4].map((level) => (
+                    <span
+                        key={level}
+                        className={`h-1 flex-1 rounded-full ${
+                            level <= strength.score ? strength.bar : 'bg-slate-200'
+                        }`}
+                    />
+                ))}
+            </div>
+            <span className="w-14 text-right text-xs font-medium text-slate-500">
+                {strength.label}
+            </span>
+        </div>
+    );
+}
+
 export const authLinkCls =
     'font-semibold text-slate-700 underline-offset-4 transition hover:text-slate-900 hover:underline';

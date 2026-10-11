@@ -3,6 +3,7 @@ import {
     login,
     alterarPassword,
     recuperarPassword,
+    redefinirPassword,
     logout,
     obterCsrfToken,
 } from '../controllers/authController.js';
@@ -54,6 +55,24 @@ router.post(
         email: { type: 'email', required: true },
     }),
     recuperarPassword
+);
+
+/**
+ * POST /api/auth/redefinir-password
+ * Define uma nova password com o token do link enviado por email
+ *
+ * Body: {token: string, passwordNova: string, passwordNovaConfirm: string}
+ * Status: 200 OK | 400 Bad Request (token inválido/expirado) | 500
+ */
+router.post(
+    '/redefinir-password',
+    rateLimitMiddleware(10, 15),
+    validateBody({
+        token: { type: 'string', required: true, min: 20, max: 200 },
+        passwordNova: { type: 'string', required: true, min: 8 },
+        passwordNovaConfirm: { type: 'string', required: true, min: 8 },
+    }),
+    redefinirPassword
 );
 
 /**

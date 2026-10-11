@@ -21,6 +21,7 @@ import { useAplicarTemaCentro } from './theme/aparenciaCentro';
 // Páginas carregadas a pedido (cada uma é um ficheiro JS à parte).
 const Login = lazyPage(() => import('./pages/Auth/Login'));
 const RecoverPassword = lazyPage(() => import('./pages/Auth/RecoverPassword'));
+const ResetPassword = lazyPage(() => import('./pages/Auth/ResetPassword'));
 const AlterarPasswordObrigatorio = lazyPage(() => import('./pages/Auth/AlterPassword'));
 const InfosInscricaoPage = lazyPage(() => import('./pages/Infos/enrollment'));
 const HomePage = lazyPage(() => import('./pages/Infos/home'));
@@ -593,6 +594,10 @@ function App() {
                     <Route
                         path="/recuperar-password"
                         element={<RecoverPassword />}
+                    />
+                    <Route
+                        path="/redefinir-password"
+                        element={<ResetPassword />}
                     />
                     <Route
                         path="/auth/alterar-password-obrigatorio"

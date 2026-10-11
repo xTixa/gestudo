@@ -171,6 +171,7 @@ export function csrfProtectionMiddleware(options = {}) {
     const ignoredPaths = new Set([
         '/api/auth/login',
         '/api/auth/recuperar-password',
+        '/api/auth/redefinir-password',
         '/api/auth/csrf-token',
         '/api/health',
         ...(Array.isArray(options.ignoredPaths) ? options.ignoredPaths : []),

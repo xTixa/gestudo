@@ -111,16 +111,16 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         name: 'Recuperacao de password',
         description:
             'Email enviado ao utilizador quando solicita a recuperacao da sua password.',
-        subject: 'Recuperacao de password - Acesso temporario ao Gestudo',
+        subject: 'Recuperacao de password - Gestudo',
         title: 'Recuperacao de password',
         introText: 'Ola {nome},',
         bodyText:
-            'Recebemos um pedido de recuperacao de password para a tua conta.\n\nPassword temporaria de acesso: {password_temporaria}\n\nNo proximo login, ser-te-a pedido que definas uma nova password. Se nao solicitaste esta recuperacao, contacta o gestor do centro de imediato.',
+            'Recebemos um pedido para redefinir a password da tua conta.\n\nCarrega no botao abaixo para escolheres uma nova password. O link e valido durante {validade_minutos} minutos e so pode ser usado uma vez.\n\nSe nao fizeste este pedido, ignora este email: a tua password atual continua a funcionar.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
-        buttonLabel: 'Recuperar acesso',
-        allowedVariables: ['nome', 'password_temporaria', 'app_url'],
-        requiredVariables: ['nome', 'password_temporaria'],
+        buttonLabel: 'Redefinir password',
+        allowedVariables: ['nome', 'validade_minutos', 'app_url'],
+        requiredVariables: ['nome'],
     },
     password_recovery_guardian: {
         templateKey: 'password_recovery_guardian',
@@ -131,12 +131,12 @@ export const DEFAULT_EMAIL_TEMPLATES = {
         title: 'Recuperacao de password do educando',
         introText: 'Caro(a) Encarregado(a) de Educacao,',
         bodyText:
-            'Foi solicitada uma recuperacao de password para a conta do seu educando {nome}.\n\nPassword temporaria de acesso: {password_temporaria}\n\nNo proximo login, o aluno sera obrigado a definir uma nova password. Se nao reconhece este pedido, contacte o gestor do centro de imediato.',
+            'Foi pedida a recuperacao da password da conta do seu educando {nome}.\n\nPode usar o botao abaixo para definir uma nova password. O link e valido durante {validade_minutos} minutos e so pode ser usado uma vez.\n\nSe nao reconhece este pedido, ignore este email: a password atual continua a funcionar.',
         footerText:
             'Este email foi enviado automaticamente. Nao respondas a esta mensagem.',
-        buttonLabel: 'Aceder a plataforma',
-        allowedVariables: ['nome', 'password_temporaria', 'app_url'],
-        requiredVariables: ['nome', 'password_temporaria'],
+        buttonLabel: 'Redefinir password',
+        allowedVariables: ['nome', 'validade_minutos', 'app_url'],
+        requiredVariables: ['nome'],
     },
 };
 

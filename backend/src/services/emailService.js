@@ -727,18 +727,23 @@ export async function enviarEmailPasswordAlteradaEE(nomeAluno, emailEE) {
     });
 }
 
-export async function enviarEmailRecuperacaoPassword(nome, email, passwordTemp) {
-    return enviarEmailTemplate('password_recovery', email, {
-        nome,
-        password_temporaria: passwordTemp,
-    });
+// linkPath: caminho da página de redefinição com o token (ex.: /redefinir-password?token=...).
+export async function enviarEmailRecuperacaoPassword(nome, email, linkPath, validadeMinutos) {
+    return enviarEmailTemplate(
+        'password_recovery',
+        email,
+        { nome, validade_minutos: String(validadeMinutos) },
+        linkPath
+    );
 }
 
-export async function enviarEmailRecuperacaoPasswordEE(nomeAluno, emailEE, passwordTemp) {
-    return enviarEmailTemplate('password_recovery_guardian', emailEE, {
-        nome: nomeAluno,
-        password_temporaria: passwordTemp,
-    });
+export async function enviarEmailRecuperacaoPasswordEE(nomeAluno, emailEE, linkPath, validadeMinutos) {
+    return enviarEmailTemplate(
+        'password_recovery_guardian',
+        emailEE,
+        { nome: nomeAluno, validade_minutos: String(validadeMinutos) },
+        linkPath
+    );
 }
 
 export async function enviarEmailReagendamentoSessao({

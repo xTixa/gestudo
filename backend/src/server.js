@@ -87,7 +87,14 @@ Middlewares ativos
  * ========================================
  */
 bootstrapServer().catch((error) => {
-    console.error('[Startup] Falha ao iniciar servidor:', error.message);
+    // Erros de rede (ex.: AggregateError do pg) chegam com message vazia;
+    // o código e os endereços tentados é que explicam a falha.
+    const detalhes = [
+        error.message,
+        error.code,
+        ...(error.errors || []).map((e) => `${e.code} ${e.address}:${e.port}`),
+    ].filter(Boolean);
+    console.error('[Startup] Falha ao iniciar servidor:', detalhes.join(' | '));
     process.exit(1);
 });
 

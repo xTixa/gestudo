@@ -173,6 +173,14 @@ As migrações são os ficheiros `backend/sql/NNN_descricao.sql`, aplicados por 
 - Cada migração corre numa transação: se falhar, nada fica aplicado e o arranque é cancelado.
 - Não edite uma migração já aplicada. Para alterar o schema, crie um ficheiro novo com o número seguinte.
 
+### Recuperação de password
+
+- `POST /api/auth/recuperar-password` envia um link de uso único (válido 30 minutos) para `/redefinir-password?token=...`. A password atual não muda até o link ser usado.
+- Nos alunos, o encarregado também recebe o link.
+- `POST /api/auth/redefinir-password` (`{ token, passwordNova, passwordNovaConfirm }`) define a nova password e invalida todos os links pendentes da conta.
+- Na base de dados só fica o hash SHA-256 do token (`password_reset_tokens`).
+- As passwords são sempre guardadas com bcrypt. O login já não aceita passwords em texto simples; a migração `027_passwords_bcrypt.sql` converteu as que existiam.
+
 ### Dashboard
 
 A aplicação inclui um dashboard para:

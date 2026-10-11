@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../config/db.js';
@@ -173,14 +174,27 @@ function sanitizeIdentifier(identifier) {
     return identifier.replace(/[^a-zA-Z0-9_]/g, '');
 }
 
-function gerarPasswordTemporaria() {
-    const chars =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+/**
+ * Só aceita hashes bcrypt. As passwords antigas em texto simples foram
+ * convertidas na migração 027_passwords_bcrypt.sql.
+ */
+async function passwordConfere(password, hash) {
+    if (typeof hash !== 'string' || !hash.startsWith('$2')) {
+        return false;
     }
-    return password;
+    return bcrypt.compare(String(password), hash);
+}
+
+const RESET_TOKEN_VALIDADE_MINUTOS = 30;
+// Intervalo mínimo entre dois emails de recuperação para a mesma conta.
+const RESET_TOKEN_INTERVALO_MINUTOS = 2;
+
+export function hashResetToken(token) {
+    return createHash('sha256').update(String(token)).digest('hex');
+}
+
+function isEmailPlaceholder(email) {
+    return !email || String(email).includes('@placeholder.local');
 }
 
 async function hasFirstLoginColumn(safeTable, safeFirstLoginColumn) {
@@ -255,7 +269,7 @@ async function hasProfileImageColumn(safeTable, safeProfileImageColumn) {
 /**
  * Autentica um utilizador validando email e password
  * Retorna dados do utilizador (ID, email, nome, role) se autenticação bem-sucedida
- * Suporta passwords em plaintext ou hasheadas com bcrypt
+ * Só aceita passwords guardadas com bcrypt
  *
  * @param {Object} req - Objecto de requisição com body {email, password}
  * @param {Object} res - Objecto de resposta
@@ -330,11 +344,7 @@ export async function login(req, res) {
         }
 
         const user = rows[0];
-        const isHash =
-            typeof user.password === 'string' && user.password.startsWith('$2');
-        const isValidPassword = isHash
-            ? await bcrypt.compare(password, user.password)
-            : password === String(user.password);
+        const isValidPassword = await passwordConfere(password, user.password);
 
         if (!isValidPassword) {
             registerLoginFailure(loginThrottleKey, email, getClientIp(req));
@@ -439,11 +449,10 @@ export async function alterarPassword(req, res) {
         }
 
         const user = userRows[0];
-        const isHash =
-            typeof user.password === 'string' && user.password.startsWith('$2');
-        const isValidPassword = isHash
-            ? await bcrypt.compare(passwordAtual, user.password)
-            : passwordAtual === String(user.password);
+        const isValidPassword = await passwordConfere(
+            passwordAtual,
+            user.password
+        );
 
         if (!isValidPassword) {
             // 400 e não 401: o frontend trata 401 como sessão expirada e
@@ -542,6 +551,29 @@ export async function obterCsrfToken(req, res) {
     return res.status(200).json({ csrfToken });
 }
 
+// Email do encarregado de um aluno, ou '' se não tiver (ou for placeholder).
+async function obterEmailEncarregado(client, idUserAluno) {
+    const { rows } = await client.query(
+        `SELECT ue.email AS ee_email
+         FROM alunos a
+         INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
+         LEFT JOIN users ue ON ue.id_user = e.id_user
+         WHERE a.id_user = $1
+         LIMIT 1`,
+        [idUserAluno]
+    );
+    const email = rows[0]?.ee_email || '';
+    return isEmailPlaceholder(email) ? '' : email;
+}
+
+const MENSAGEM_RECUPERACAO =
+    'Se existir uma conta associada a este email, vai receber instruções de recuperação.';
+
+/**
+ * Envia um link de uso único para redefinir a password.
+ * A password atual não é alterada aqui: só muda quando o link é usado
+ * (redefinirPassword). A resposta é sempre a mesma, exista ou não a conta.
+ */
 export async function recuperarPassword(req, res) {
     const email = String(req.body?.email || '')
         .trim()
@@ -551,100 +583,161 @@ export async function recuperarPassword(req, res) {
         return res.status(400).json({ message: 'Email é obrigatório.' });
     }
 
-    const safeTable = sanitizeIdentifier(userTable);
-    const safeId = sanitizeIdentifier(idColumn);
-    const safeEmail = sanitizeIdentifier(emailColumn);
-    const safePassword = sanitizeIdentifier(passwordColumn);
-    const safeName = sanitizeIdentifier(nameColumn || '');
-    const safeFirstLogin = sanitizeIdentifier(firstLoginColumn || '');
+    try {
+        const { rows } = await db.query(
+            `SELECT u.id_user AS id, u.email, LOWER(COALESCE(u.role, '')) AS role, v.nome
+             FROM users u
+             LEFT JOIN vw_utilizadores_nome v ON v.id_user = u.id_user
+             WHERE LOWER(u.email) = $1
+               AND u.status IS NOT FALSE
+             LIMIT 1`,
+            [email]
+        );
 
-    const selectNameFragment = safeName ? `, ${safeName} AS nome` : '';
-    const hasFirstLogin = await hasFirstLoginColumn(safeTable, safeFirstLogin);
+        if (!rows.length) {
+            return res.status(200).json({ message: MENSAGEM_RECUPERACAO });
+        }
+
+        const user = rows[0];
+
+        // Evita encher a caixa de correio de alguém com pedidos repetidos.
+        const { rowCount: pedidosRecentes } = await db.query(
+            `SELECT 1 FROM password_reset_tokens
+             WHERE id_user = $1
+               AND used_at IS NULL
+               AND created_at > NOW() - make_interval(mins => $2)
+             LIMIT 1`,
+            [user.id, RESET_TOKEN_INTERVALO_MINUTOS]
+        );
+        if (pedidosRecentes > 0) {
+            return res.status(200).json({ message: MENSAGEM_RECUPERACAO });
+        }
+
+        const token = randomBytes(32).toString('base64url');
+        await db.query(
+            `INSERT INTO password_reset_tokens (id_user, token_hash, expires_at)
+             VALUES ($1, $2, NOW() + make_interval(mins => $3))`,
+            [user.id, hashResetToken(token), RESET_TOKEN_VALIDADE_MINUTOS]
+        );
+
+        const nome = user.role === 'gestor' ? 'Utilizador' : user.nome || 'Utilizador';
+        const linkPath = `/redefinir-password?token=${token}`;
+        const destinatarios = [];
+
+        if (!isEmailPlaceholder(user.email)) {
+            destinatarios.push(
+                enviarEmailRecuperacaoPassword(nome, user.email, linkPath, RESET_TOKEN_VALIDADE_MINUTOS)
+            );
+        }
+
+        // Alunos menores podem não ter email próprio: o encarregado também recebe o link.
+        if (user.role === 'aluno') {
+            const eeEmail = await obterEmailEncarregado(db, user.id);
+            if (eeEmail) {
+                destinatarios.push(
+                    enviarEmailRecuperacaoPasswordEE(nome, eeEmail, linkPath, RESET_TOKEN_VALIDADE_MINUTOS)
+                );
+            }
+        }
+
+        const resultados = await Promise.all(destinatarios);
+        if (!resultados.some((resultado) => resultado.ok)) {
+            // Não se responde com erro para não revelar que a conta existe.
+            console.error(
+                `Recuperação de password: nenhum email enviado para o utilizador ${user.id}.`
+            );
+        }
+
+        return res.status(200).json({ message: MENSAGEM_RECUPERACAO });
+    } catch (error) {
+        console.error('Erro ao recuperar password:', error.message);
+        return res.status(500).json({
+            message: 'Não foi possível processar a recuperação de password.',
+        });
+    }
+}
+
+/**
+ * Define uma nova password a partir do link enviado por recuperarPassword.
+ * Body: { token, passwordNova, passwordNovaConfirm }
+ */
+export async function redefinirPassword(req, res) {
+    const token = String(req.body?.token || '').trim();
+    const { passwordNova, passwordNovaConfirm } = req.body || {};
+
+    if (passwordNova !== passwordNovaConfirm) {
+        return res
+            .status(400)
+            .json({ message: 'A nova password não coincide.' });
+    }
 
     const client = await db.connect();
 
     try {
         await client.query('BEGIN');
 
-        const safeRole = sanitizeIdentifier(roleColumn);
-        const userQuery = `
-            SELECT ${safeId} AS id, ${safeEmail} AS email, ${safeRole} AS role${selectNameFragment}
-            FROM ${safeTable}
-            WHERE LOWER(${safeEmail}) = LOWER($1)
-            LIMIT 1
-        `;
-
-        const { rows } = await client.query(userQuery, [email]);
+        const { rows } = await client.query(
+            `SELECT t.id_token, t.id_user, u.email, LOWER(COALESCE(u.role, '')) AS role, v.nome
+             FROM password_reset_tokens t
+             INNER JOIN users u ON u.id_user = t.id_user
+             LEFT JOIN vw_utilizadores_nome v ON v.id_user = t.id_user
+             WHERE t.token_hash = $1
+               AND t.used_at IS NULL
+               AND t.expires_at > NOW()
+               AND u.status IS NOT FALSE
+             FOR UPDATE OF t`,
+            [hashResetToken(token)]
+        );
 
         if (!rows.length) {
-            await client.query('COMMIT');
-            return res.status(200).json({
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+                code: 'RESET_TOKEN_INVALIDO',
                 message:
-                    'Se existir uma conta associada a este email, vai receber instruções de recuperação.',
+                    'O link de recuperação é inválido ou expirou. Peça um novo.',
             });
         }
 
-        const user = rows[0];
-        const passwordTemporaria = gerarPasswordTemporaria();
-        const passwordHash = await bcrypt.hash(passwordTemporaria, 10);
-        const updateFirstLoginFragment = hasFirstLogin
-            ? `, ${safeFirstLogin} = true`
-            : '';
+        const pedido = rows[0];
+        const passwordHash = await bcrypt.hash(passwordNova, 10);
 
-        const updateQuery = `
-            UPDATE ${safeTable}
-            SET ${safePassword} = $1${updateFirstLoginFragment}
-            WHERE ${safeId} = $2
-        `;
-
-        await client.query(updateQuery, [passwordHash, user.id]);
-
-        const nome = user.nome || 'Utilizador';
-        const emailResult = await enviarEmailRecuperacaoPassword(
-            nome,
-            user.email,
-            passwordTemporaria
+        await client.query(
+            `UPDATE users SET password = $1, primeira_login = false WHERE id_user = $2`,
+            [passwordHash, pedido.id_user]
         );
 
-        if (!emailResult.ok) {
-            throw new Error(
-                emailResult.error || 'Não foi possível enviar o email.'
-            );
-        }
-
-        // Se for aluno, notificar também o encarregado de educação
-        if (String(user.role || '').toLowerCase() === 'aluno') {
-            try {
-                const { rows: guardianRows } = await client.query(
-                    `SELECT ue.email AS ee_email
-                     FROM alunos a
-                     INNER JOIN encarregados e ON e.id_encarregado = a.id_encarregado
-                     LEFT JOIN users ue ON ue.id_user = e.id_user
-                     WHERE a.id_user = $1
-                     LIMIT 1`,
-                    [user.id]
-                );
-                const eeEmail = guardianRows[0]?.ee_email || '';
-                if (eeEmail && !eeEmail.includes('@placeholder.local')) {
-                    await enviarEmailRecuperacaoPasswordEE(nome, eeEmail, passwordTemporaria).catch(() => {});
-                }
-            } catch (eeErr) {
-                console.error('Erro ao notificar encarregado na recuperação de password:', eeErr.message);
-            }
-        }
+        // O link usado e quaisquer outros pendentes deixam de funcionar.
+        await client.query(
+            `UPDATE password_reset_tokens
+             SET used_at = NOW()
+             WHERE id_user = $1 AND used_at IS NULL`,
+            [pedido.id_user]
+        );
 
         await client.query('COMMIT');
 
+        const nome =
+            pedido.role === 'gestor' ? 'Utilizador' : pedido.nome || 'Utilizador';
+        if (!isEmailPlaceholder(pedido.email)) {
+            enviarEmailPasswordAlterada(nome, pedido.email).catch(() => {});
+        }
+        if (pedido.role === 'aluno') {
+            obterEmailEncarregado(db, pedido.id_user)
+                .then((eeEmail) =>
+                    eeEmail ? enviarEmailPasswordAlteradaEE(nome, eeEmail) : null
+                )
+                .catch(() => {});
+        }
+
         return res.status(200).json({
-            message:
-                'Se existir uma conta associada a este email, vai receber instruções de recuperação.',
+            message: 'Password redefinida com sucesso. Já pode iniciar sessão.',
         });
     } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Erro ao recuperar password:', error.message);
-        return res.status(500).json({
-            message: 'Não foi possível processar a recuperação de password.',
-        });
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro ao redefinir password:', error.message);
+        return res
+            .status(500)
+            .json({ message: 'Não foi possível redefinir a password.' });
     } finally {
         client.release();
     }

@@ -87,6 +87,38 @@ describe('Autenticação', () => {
     });
 });
 
+describe('Redefinir password', () => {
+    const tokenValido = 'a'.repeat(43);
+
+    it('exige token e password com pelo menos 8 caracteres', async () => {
+        const res = await request(app)
+            .post('/api/auth/redefinir-password')
+            .send({ token: 'curto', passwordNova: '123', passwordNovaConfirm: '123' });
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('recusa passwords diferentes antes de consultar a base de dados', async () => {
+        const res = await request(app)
+            .post('/api/auth/redefinir-password')
+            .send({
+                token: tokenValido,
+                passwordNova: 'NovaPass123',
+                passwordNovaConfirm: 'OutraPass123',
+            });
+        expect(res.status).toBe(400);
+        expect(res.body.message).toMatch(/não coincide/);
+    });
+
+    it('não exige CSRF mesmo com cookie de sessão', async () => {
+        const res = await request(app)
+            .post('/api/auth/redefinir-password')
+            .set('Cookie', `mc_token=${tokenFor({ id: 1, role: 'aluno' })}`)
+            .send({ token: 'curto' });
+        expect(res.status).toBe(400);
+    });
+});
+
 describe('Mensagens', () => {
     it('exigem sessão', async () => {
         expect((await request(app).get('/api/mensagens/conversas')).status).toBe(401);

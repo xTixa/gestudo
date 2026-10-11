@@ -28,6 +28,7 @@ const previewVariables = {
     nome: 'Maria Silva',
     email: 'maria.silva@email.pt',
     password_temporaria: 'SenhaTemporaria123',
+    validade_minutos: '30',
     app_url: 'https://alunos.blocodenotas.pt',
     titulo: 'Aviso importante',
     descricao: 'Esta e uma mensagem de exemplo.',
